@@ -605,6 +605,27 @@ export const PlacementService = {
     return response.data;
   },
 
+  /** Alumni: submit HR recommendation */
+  submitHrRecommendation: async (data) => {
+    const response = await apiFetch('/placement/alumni/hr-recommendations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  /** Alumni: get my HR recommendations */
+  getMyHrRecommendations: async () => {
+    const response = await apiFetch('/placement/alumni/hr-recommendations');
+    return response.data ?? [];
+  },
+
+  /** Admin: get all HR recommendations */
+  getAllHrRecommendations: async () => {
+    const response = await apiFetch('/placement/hr-recommendations');
+    return response.data ?? [];
+  },
+
   /** Alumni: toggle like on a project */
   toggleProjectLike: async (projectId) => {
     const response = await apiFetch(`/placement/projects/${projectId}/like`, {
