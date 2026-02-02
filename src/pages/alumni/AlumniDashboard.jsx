@@ -29,8 +29,17 @@ const AlumniDashboard = () => {
         </HStack>
       </Box>
 
-      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-        <Card borderLeft="4px solid #d4a960" boxShadow="md" cursor="pointer" onClick={() => navigate('/placement/alumni-directory')} _hover={{ transform: 'translateY(-2px)' }} transition="all 0.2s">
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+        <Card borderLeft="4px solid #d4a960" boxShadow="md" cursor="pointer" onClick={() => navigate('/placement/alumni-projects')} _hover={{ transform: 'translateY(-2px)' }} transition="all 0.2s">
+          <CardBody>
+            <VStack align="start" spacing={1}>
+              <Text color="gray.500" fontSize="sm">Student Projects</Text>
+              <Heading size="md" color="#172e36">Explore student work</Heading>
+              <Text fontSize="sm" color="gray.600">View projects, skills, and profiles of current students.</Text>
+            </VStack>
+          </CardBody>
+        </Card>
+        <Card borderLeft="4px solid #3182ce" boxShadow="md" cursor="pointer" onClick={() => navigate('/placement/alumni-directory')} _hover={{ transform: 'translateY(-2px)' }} transition="all 0.2s">
           <CardBody>
             <VStack align="start" spacing={1}>
               <Text color="gray.500" fontSize="sm">Alumni Directory</Text>

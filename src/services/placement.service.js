@@ -493,6 +493,39 @@ export const PlacementService = {
     return response.data;
   },
 
+  /** Upload alumni profile image */
+  uploadAlumniImage: async (alumniId, file) => {
+    if (!file || !(file instanceof File)) {
+      throw new Error('Please select a valid image file');
+    }
+    if (file.size === 0) {
+      throw new Error('File is empty');
+    }
+    const formData = new FormData();
+    formData.append('file', file, file.name || 'profile.jpg');
+    formData.append('usn', `alumni_${alumniId}`);
+    formData.append('folder', 'profile_image');
+
+    const token = localStorage.getItem('token');
+    const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl.replace(/\/$/, '')}/api`;
+    
+    const response = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Upload failed');
+    }
+
+    return response.json();
+  },
+
   getAllAlumni: async () => {
     try {
       const response = await apiFetch('/placement/alumni');
@@ -558,6 +591,34 @@ export const PlacementService = {
     const url = q ? `/placement/projects?${q}` : '/placement/projects';
     const response = await apiFetch(url);
     return response.data ?? [];
+  },
+
+  /** Alumni: get approved public projects with like status */
+  getAlumniProjects: async () => {
+    const response = await apiFetch('/placement/projects/alumni');
+    return response.data ?? [];
+  },
+
+  /** Alumni: get student profile for viewing (limited data) */
+  getStudentProfileForAlumni: async (usn) => {
+    const response = await apiFetch(`/placement/alumni/student/${encodeURIComponent(usn)}`);
+    return response.data;
+  },
+
+  /** Alumni: toggle like on a project */
+  toggleProjectLike: async (projectId) => {
+    const response = await apiFetch(`/placement/projects/${projectId}/like`, {
+      method: 'POST',
+    });
+    return response.data;
+  },
+
+  /** Increment project view count */
+  incrementProjectView: async (projectId) => {
+    const response = await apiFetch(`/placement/projects/${projectId}/view`, {
+      method: 'POST',
+    });
+    return response.data;
   },
 
   /** Admin: update project (admin_rating, is_approved) */

@@ -60,6 +60,7 @@ import AlumniDashboard from './pages/alumni/AlumniDashboard';
 import AlumniDirectory from './pages/alumni/AlumniDirectory';
 import AlumniProfile from './pages/alumni/AlumniProfile';
 import AlumniProjects from './pages/alumni/AlumniProjects';
+import AlumniViewStudent from './pages/alumni/AlumniViewStudent';
 import ReferralForm from './pages/alumni/ReferralForm';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
@@ -314,6 +315,14 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole="alumni">
             <ReferralForm />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/alumni-student/:usn",
+        element: (
+          <PlacementProtectedRoute requiredRole="alumni">
+            <AlumniViewStudent />
           </PlacementProtectedRoute>
         )
       },

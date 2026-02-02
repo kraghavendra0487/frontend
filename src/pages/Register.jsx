@@ -19,6 +19,34 @@ import { apiFetch } from "../services/api"
 // Helper Icon component wrapper
 const Icon = ({ as, ...props }) => <Box as={as} {...props} />
 
+// Normalize phone input to digits only and limit to 10 characters
+function normalizePhoneInput(v) {
+  if (v === null || v === undefined) return ''
+  const digits = String(v).replace(/\D/g, '')
+  return digits.slice(0, 10)
+}
+
+// Allow only numeric keys, navigation, and common shortcuts during keydown
+function isAllowedNumericKey(e) {
+  const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End']
+  if (allowed.includes(e.key)) return true
+  if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase())) return true
+  if (/^[0-9]$/.test(e.key)) return true
+  return false
+}
+
+// Paste handler to extract digits and limit to 10; setter should accept the sanitized string
+function handlePasteDigits(e, setter) {
+  try {
+    const text = (e.clipboardData || window.clipboardData).getData('text') || ''
+    const digits = String(text).replace(/\D/g, '').slice(0, 10)
+    if (typeof setter === 'function') setter(digits)
+  } catch (err) {
+    // ignore
+  }
+  e.preventDefault()
+}
+
 const StudentRegister = () => {
   const { user, setSession } = useAuth()
   const navigate = useNavigate()
@@ -175,6 +203,8 @@ const StudentRegister = () => {
     }
   }
 
+  // (normalizePhoneInput moved to module level)
+
   const handleVerifyUsn = async () => {
     if (!formData.usn) {
       setError("Please enter a USN");
@@ -229,21 +259,21 @@ const StudentRegister = () => {
              yearOfJoining: student?.year_of_joining || prev.yearOfJoining || "",
              currentYear: student?.current_year || prev.currentYear || "",
              currentSemester: student?.current_semester || prev.currentSemester || "",
-             contact: phoneNumber || prev.contact || "",
+            contact: phoneNumber ? String(phoneNumber).replace(/\D/g, '').slice(-10) : prev.contact || "",
              dob: dobNormalized || prev.dob || "",
              gender: genderRaw || prev.gender || "",
-             fatherName: father?.name || prev.fatherName || "",
-             fatherContact: (father?.phone || father?.phone_number) || prev.fatherContact || "",
-             fatherOccupation: father?.occupation || prev.fatherOccupation || "",
-             fatherEmail: father?.email || prev.fatherEmail || "",
-             motherName: mother?.name || prev.motherName || "",
-             motherContact: (mother?.phone || mother?.phone_number) || prev.motherContact || "",
-             motherOccupation: mother?.occupation || prev.motherOccupation || "",
-             motherEmail: mother?.email || prev.motherEmail || "",
-             guardianName: guardian?.name || prev.guardianName || "",
-             guardianContact: (guardian?.phone || guardian?.phone_number) || prev.guardianContact || "",
-             guardianOccupation: guardian?.occupation || prev.guardianOccupation || "",
-             guardianEmail: guardian?.email || prev.guardianEmail || ""
+            fatherName: father?.name || prev.fatherName || "",
+            fatherContact: normalizePhoneInput((father?.phone || father?.phone_number) || prev.fatherContact || ""),
+            fatherOccupation: father?.occupation || prev.fatherOccupation || "",
+            fatherEmail: father?.email || prev.fatherEmail || "",
+            motherName: mother?.name || prev.motherName || "",
+            motherContact: normalizePhoneInput((mother?.phone || mother?.phone_number) || prev.motherContact || ""),
+            motherOccupation: mother?.occupation || prev.motherOccupation || "",
+            motherEmail: mother?.email || prev.motherEmail || "",
+            guardianName: guardian?.name || prev.guardianName || "",
+            guardianContact: normalizePhoneInput((guardian?.phone || guardian?.phone_number) || prev.guardianContact || ""),
+            guardianOccupation: guardian?.occupation || prev.guardianOccupation || "",
+            guardianEmail: guardian?.email || prev.guardianEmail || ""
            }));
            setDbStudent(student)
            setDbParents(nextParents)
@@ -840,7 +870,26 @@ const StudentRegister = () => {
       ) : null}
       
       <Field label="Contact Number">
-        <Input type="tel" name="contact" placeholder="e.g. 9876543210" value={formData.contact} onChange={handleChange} {...inputStyle} color="gray.700" />
+        <Input
+          type="tel"
+          name="contact"
+          placeholder="e.g. 9876543210"
+          value={formData.contact}
+          onChange={(e) => setFormData({ ...formData, contact: normalizePhoneInput(e.target.value) })}
+          inputMode="numeric"
+          onKeyDown={(e) => {
+            if (!isAllowedNumericKey(e)) {
+              e.preventDefault();
+              setError('Only digits allowed in contact number');
+              setTimeout(() => setError(''), 2000);
+            }
+          }}
+          onPaste={(e) => handlePasteDigits(e, (digits) => setFormData(prev => ({ ...prev, contact: digits })))}
+          {...inputStyle}
+          color="gray.700"
+          maxLength={10}
+          pattern="\d*"
+        />
       </Field>
 
       <Flex gap={4} mt={4}>
@@ -882,8 +931,25 @@ const StudentRegister = () => {
                   </Field>
                   <Flex gap={3} width="full">
                     <Field label="Contact">
-                      <Input placeholder="Contact" value={parentContact} onChange={(e) => setParentContact(e.target.value)} {...inputStyle} color="gray.700" />
-                    </Field>
+                        <Input
+                          placeholder="Contact"
+                          value={parentContact}
+                          onChange={(e) => setParentContact(normalizePhoneInput(e.target.value))}
+                          {...inputStyle}
+                          color="gray.700"
+                          maxLength={10}
+                          pattern="\d*"
+                          inputMode="numeric"
+                          onKeyDown={(e) => {
+                            if (!isAllowedNumericKey(e)) {
+                              e.preventDefault();
+                              setError('Only digits allowed in parent contact');
+                              setTimeout(() => setError(''), 2000);
+                            }
+                          }}
+                          onPaste={(e) => handlePasteDigits(e, setParentContact)}
+                        />
+                      </Field>
                     <Field label="Occupation">
                       <Input placeholder="Occupation" value={parentOccupation} onChange={(e) => setParentOccupation(e.target.value)} {...inputStyle} color="gray.700" />
                     </Field>
@@ -899,6 +965,8 @@ const StudentRegister = () => {
                     onClick={() => {
                       const r = ['Father','Mother','Guardian'][parentTab]
                       if (!parentName || !parentContact) { setError("Please enter name and contact"); return; }
+                      // Parent contact must be 10 digits
+                      if (parentContact && parentContact.replace(/\D/g, '').length !== 10) { setError("Parent contact must be exactly 10 digits"); return; }
                       if (parentEmail && !parentEmail.toLowerCase().endsWith('@gmail.com')) { setError("Only Gmail addresses are allowed"); return; }
                       if (savedParents.length >= 3 && !savedParents.includes(r)) { setError("Maximum three contacts allowed"); return; }
                       if (r === 'Father') {
@@ -1077,7 +1145,12 @@ const CompanyRegister = () => {
     })
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value })
+      if (e.target.name === 'contact_phone') {
+        const v = normalizePhoneInput(e.target.value)
+        setFormData({ ...formData, contact_phone: v })
+        return
+      }
+      setFormData({ ...formData, [e.target.name]: e.target.value })
     }
 
     const handleSubmit = () => {
@@ -1133,9 +1206,13 @@ const CompanyRegister = () => {
                     <Input 
                         name="contact_phone" 
                         value={formData.contact_phone}
-                        onChange={handleChange}
-                        placeholder="+91 9876543210" 
-                        type="tel" 
+                    onChange={handleChange}
+                    placeholder="+91 9876543210" 
+                    type="tel" 
+                    inputMode="numeric"
+                    maxLength={15}
+                    onKeyDown={(e) => { if (!isAllowedNumericKey(e)) e.preventDefault(); }}
+                    onPaste={(e) => handlePasteDigits(e, (d) => setFormData(prev => ({ ...prev, contact_phone: d })))}
                         color="gray.700" 
                         borderColor="gray.300" 
                         _focus={{ borderColor: "#d4a960", boxShadow: "0 0 0 1px #d4a960" }} 

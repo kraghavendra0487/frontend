@@ -224,16 +224,20 @@ export const StudentCalendarOfEvents = () => {
                 />
               </HStack>
             </Box>
-            <Grid templateColumns={`repeat(7, ${cellSize}px)`} gap={0} flexShrink={0} w={`${gridW}px`}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => (
-                <Box key={w} bg="#fad373" py={2} px={1} h={`${DAY_LABELS_H}px`}>
-                  <Text textAlign="center" fontSize="sm" fontWeight="bold" color="gray.800">
-                    {w}
-                  </Text>
-                </Box>
-              ))}
-            </Grid>
-            <Box flex={1} minH={0} display="flex" alignItems="flex-start" overflow="hidden">
+            {/* Center calendar grid to avoid large left alignment on wide screens */}
+            <Box display="flex" justifyContent="center" px={4} pt={3}>
+              <Grid templateColumns={`repeat(7, ${cellSize}px)`} gap={0} flexShrink={0} w={`${gridW}px`}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => (
+                  <Box key={w} bg="#fad373" py={2} px={1} h={`${DAY_LABELS_H}px`} borderBottom="1px solid" borderColor="gray.200">
+                    <Text textAlign="center" fontSize="sm" fontWeight="bold" color="gray.800">
+                      {w}
+                    </Text>
+                  </Box>
+                ))}
+              </Grid>
+            </Box>
+
+            <Box flex={1} minH={0} display="flex" alignItems="flex-start" overflow="hidden" justifyContent="center">
               <Grid
                 templateColumns={`repeat(7, ${cellSize}px)`}
                 templateRows={`repeat(${range.weeks}, ${cellSize}px)`}
@@ -273,10 +277,11 @@ export const StudentCalendarOfEvents = () => {
                         bg={hasEvents ? `${colorName}.50` : 'white'}
                         opacity={inMonth ? 1 : 0.5}
                         _hover={{ bg: hasEvents ? `${colorName}.100` : 'gray.50' }}
-                        border={isSelected ? '2px solid' : 'none'}
-                        borderColor={isSelected ? '#20343c' : 'transparent'}
                         borderRadius="sm"
                         boxSizing="border-box"
+                        border={isSelected ? '2px solid' : 'none'}
+                        borderColor={isSelected ? '#20343c' : 'transparent'}
+                        boxShadow={isSelected ? '0 6px 18px rgba(32,52,60,0.08)' : 'none'}
                       >
                         <Text fontWeight="bold" fontSize="sm" textAlign="center" color={isToday ? '#20343c' : 'gray.800'}>
                           {d.getDate()}
@@ -306,8 +311,8 @@ export const StudentCalendarOfEvents = () => {
               </Grid>
             </Box>
           </Box>
-
-          <Box w={{ base: '100%', lg: '380px' }} flexShrink={0} bg="white" borderRadius="xl" p={5} boxShadow="lg" overflowY="auto" minH={0}>
+ 
+          <Box w={{ base: '100%', lg: '380px' }} flexShrink={0} bg="white" borderRadius="xl" p={5} boxShadow="lg" overflowY="auto" minH={0} alignSelf="flex-start" position={{ base: 'relative', lg: 'sticky' }} top={{ lg: '20px' }} maxH={{ lg: 'calc(100vh - 140px)' }}>
             <Heading as="h2" fontSize="md" fontWeight="bold" color="#20343c" mb={3}>
               {formatDMY(selectedDate)}
             </Heading>

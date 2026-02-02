@@ -198,6 +198,7 @@
   border: 1px solid #e0e7ff;
   border-radius: 0.75rem;
   transition: all 0.2s ease;
+  width: 100%; /* Use complete screen width */
 }
 
 .admin-student-section > div > div[class*="css-"]:hover {
