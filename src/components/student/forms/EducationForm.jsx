@@ -1,0 +1,560 @@
+/**
+ * Component: EducationForm
+ * 
+ * Fields (Repeatable):
+ * - educationLevel (Select: 10th, 12th, Undergraduate, Postgraduate)
+ * - instituteName (Text)
+ * - board (Text)
+ * - city (Text)
+ * - yearOfPassing (Number)
+ * - resultType (Select: Percentage, CGPA)
+ * - result (Text/Number)
+ * - subjects (Text)
+ * - gapDetails (Optional)
+ * 
+ * Validation: All fields optional. Save enabled when there are any changes.
+ * 
+ * API Contracts:
+ * - GET /api/student/profile/education
+ * - POST /api/student/profile/education (Add Item)
+ * - PUT /api/student/profile/education/:id (Update Item)
+ * - DELETE /api/student/profile/education/:id (Delete Item)
+ */
+
+import { useState, useEffect } from "react"
+import { Box, SimpleGrid, Input, Select, VStack, Heading, Flex, Button, Text, IconButton, Collapse, useToast, Image, Link, FormControl } from "@chakra-ui/react"
+import { getFileUrl } from "../../../utils/fileUrl"
+import { Field } from "../../ui/field"
+import { FaGraduationCap, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
+import { useAuth } from "../../../context/AuthContext"
+import { StudentProfileService } from "../../../services/studentProfile.service"
+
+const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEditing, onFileSelect, isPG, fieldErrors = {} }) => {
+  const [yearError, setYearError] = useState(null)
+
+  const handleChange = (field, value) => {
+    onChange({ ...item, [field]: value }, index)
+  }
+  
+  const getError = (field) => fieldErrors[field] || null
+
+  // Validate gap details
+  const getGapError = () => {
+    const gapType = item.gapType ?? "";
+    const gapDuration = item.gapDurationMonths ?? "";
+    const gapReason = item.gapReason ?? "";
+    
+    // If gap type is selected, validate other fields
+    if (gapType && gapType !== "") {
+      // Duration is required when gap type is selected
+      if (gapDuration === "" || gapDuration === null) {
+        return "Duration is required when gap type is selected";
+      }
+      
+      // Duration must be numeric and 2 digits max
+      if (!/^\d{1,2}$/.test(String(gapDuration).trim())) {
+        return "Duration must be a number between 0 and 99";
+      }
+      
+      // Reason is required when gap type is selected
+      if (gapReason === "" || gapReason === null) {
+        return "Reason is required when gap type is selected";
+      }
+    }
+    
+    return null;
+  }
+
+  const gapError = getGapError();
+
+  return (
+    <Box border="1px solid" borderColor="gray.200" borderRadius="xl" p={4} bg="white">
+      <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0} cursor="pointer" onClick={onToggle}>
+        <VStack align="start" gap={0}>
+            <Heading size="sm" color="#20343c">{item.educationLevel || "New Education Entry"}</Heading>
+            <Text fontSize="xs" color="gray.500">{item.instituteName}</Text>
+        </VStack>
+        <Flex gap={2}>
+            <IconButton icon={<FaTrash />} size="sm" colorScheme="red" variant="ghost" onClick={(e) => { e.stopPropagation(); onDelete(index); }} aria-label="Delete" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} />
+            <IconButton icon={isOpen ? <FaChevronUp /> : <FaChevronDown />} size="sm" variant="ghost" aria-label="Toggle" onClick={(e) => { e.stopPropagation(); onToggle(); }} />
+        </Flex>
+      </Flex>
+      
+      <Collapse in={isOpen}>
+        <VStack spacing={6} align="stretch" mt={4}>
+          <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+            <Field label="Education Level *">
+                <Select variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} value={item.educationLevel ?? item.education_level ?? ""} onChange={(e) => handleChange("educationLevel", e.target.value)} placeholder="Select Level">
+                    <option value="10TH">10th</option>
+                    <option value="12TH">12th</option>
+                    <option value="DIPLOMA">Diploma</option>
+                    {isPG && (
+                        <>
+                            <option value="GRADUATION">Undergraduate</option>
+                            <option value="POST_GRADUATION">Postgraduate</option>
+                            <option value="OTHER">Other</option>
+                        </>
+                    )}
+                </Select>
+            </Field>
+            <Field label="Institute Name *">
+                <Input value={item.instituteName ?? item.institute_name ?? ""} onChange={(e) => handleChange("instituteName", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter institute name" />
+            </Field>
+            <Field label="Board *">
+                <Input value={item.board ?? ""} onChange={(e) => handleChange("board", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter board" />
+            </Field>
+            <Field label="City *">
+                <Input value={item.city ?? ""} onChange={(e) => handleChange("city", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter city" />
+            </Field>
+            <FormControl isInvalid={!!getError('year_of_passing')}>
+              <Field label="Year of Passing *">
+                <Input 
+                  type="text" 
+                  inputMode="numeric"
+                  value={item.yearOfPassing ?? item.year_of_passing ?? ""} 
+                  onChange={(e) => {
+                    let val = e.target.value;
+                    // allow only digits, max 4
+                    val = val.replace(/[^0-9]/g, '').slice(0, 4);
+                    const currentYear = new Date().getFullYear();
+                    // set the field value
+                    handleChange("yearOfPassing", val);
+                    // validate range when length is 4 or when cleared
+                    if (val === "") {
+                      setYearError(null)
+                    } else if (val.length === 4) {
+                      const n = parseInt(val, 10)
+                      if (Number.isNaN(n) || n < 1900 || n > currentYear) {
+                        setYearError(`Enter a valid year between 1900 and ${currentYear}`)
+                      } else {
+                        setYearError(null)
+                      }
+                    } else {
+                      setYearError(null)
+                    }
+                  }}
+                  onBlur={() => {
+                    const v = String(item.yearOfPassing ?? item.year_of_passing ?? "").trim();
+                    const currentYear = new Date().getFullYear();
+                    if (v !== "") {
+                      const n = parseInt(v, 10);
+                      if (Number.isNaN(n) || n < 1900 || n > currentYear) {
+                        setYearError(`Enter a valid year between 1900 and ${currentYear}`)
+                      } else {
+                        setYearError(null)
+                      }
+                    } else {
+                      setYearError(null)
+                    }
+                  }}
+                  variant="flushed" 
+                  isDisabled={!isEditing} 
+                  _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                  placeholder={`e.g. ${new Date().getFullYear()}`}
+                />
+              </Field>
+              {(getError('year_of_passing') || yearError) && (
+                <Text fontSize="sm" color="red.500" mt={1}>{getError('year_of_passing') || yearError}</Text>
+              )}
+            </FormControl>
+            <Field label="Result Type *">
+                <Select variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} value={item.resultType ?? item.result_type ?? "PERCENTAGE"} onChange={(e) => handleChange("resultType", e.target.value)}>
+                    <option value="PERCENTAGE">Percentage</option>
+                    <option value="CGPA">CGPA</option>
+                </Select>
+            </Field>
+            <FormControl isInvalid={!!getError('result')}>
+              <Field label="Result Value *">
+                <Input 
+                  type="number"
+                  value={item.result ?? item.result_value ?? ""} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const resultType = item.resultType ?? item.result_type ?? "PERCENTAGE";
+                    
+                    if (val === '') {
+                      handleChange("result", val);
+                      return;
+                    }
+                    
+                    const numVal = parseFloat(val);
+                    
+                    // Validate based on result type
+                    if (resultType === "PERCENTAGE") {
+                      // Percentage: 0-100
+                      if (numVal >= 0 && numVal <= 100) {
+                        handleChange("result", val);
+                      }
+                    } else {
+                      // CGPA: 0-10
+                      if (numVal >= 0 && numVal <= 10) {
+                        handleChange("result", val);
+                      }
+                    }
+                  }}
+                  variant="flushed" 
+                  isDisabled={!isEditing} 
+                  _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                  placeholder={item.resultType === "CGPA" ? "e.g. 8.5 (0-10)" : "e.g. 85 (0-100)"}
+                  step="0.01"
+                  min={0}
+                  max={item.resultType === "CGPA" ? 10 : 100}
+                />
+              </Field>
+              {getError('result') && (
+                <Text fontSize="sm" color="red.500" mt={1}>{getError('result')}</Text>
+              )}
+            </FormControl>
+            <FormControl isInvalid={!!getError('subjects')}>
+              <Field label="Subjects *">
+                <Input 
+                  value={item.subjects ?? ""} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Only allow letters, spaces, commas, and common punctuation
+                    if (val === '' || /^[a-zA-Z\s,.\-&()]+$/.test(val)) {
+                      handleChange("subjects", val);
+                    }
+                  }}
+                  variant="flushed" 
+                  isDisabled={!isEditing} 
+                  _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                  placeholder="e.g. Physics, Chemistry, Mathematics"
+                />
+              </Field>
+              {getError('subjects') && (
+                <Text fontSize="sm" color="red.500" mt={1}>{getError('subjects')}</Text>
+              )}
+            </FormControl>
+          <Field label="Upload Marksheet/Certificate *">
+            <EducationFileInput
+                isEditing={isEditing}
+                value={item.proofFile}
+                onChange={(url) => handleChange("proofFile", url)}
+                onFileSelect={onFileSelect ? (file) => onFileSelect(index, file) : undefined}
+            />
+          </Field>
+          </SimpleGrid>
+          
+          <Box bg={gapError ? "red.50" : "gray.50"} p={4} borderRadius="md" borderLeft={gapError ? "4px solid" : "none"} borderLeftColor={gapError ? "red.400" : "none"}>
+            <Heading size="xs" mb={4} color="gray.600">Gap Details (Optional)</Heading>
+            {gapError && (
+              <Box mb={4} p={3} bg="red.100" borderRadius="md" borderLeft="4px solid" borderLeftColor="red.500">
+                <Text fontSize="sm" color="red.800" fontWeight="500">
+                  ⚠️ {gapError}
+                </Text>
+              </Box>
+            )}
+            <SimpleGrid columns={{ base: 1, md: 3 }} gap={6}>
+                 <Field label="Gap Type" helperText="e.g. 12th to Graduation">
+                    <Select 
+                      variant="flushed" 
+                      isDisabled={!isEditing} 
+                      _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                      value={item.gapType ?? ""} 
+                      onChange={(e) => handleChange("gapType", e.target.value)} 
+                      placeholder="Select"
+                      borderColor={gapError ? "red.400" : undefined}
+                      _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
+                    >
+                        <option value="">None</option>
+                        <option value="12TH_TO_GRADUATION">12th to Graduation</option>
+                        <option value="DIPLOMA_TO_GRADUATION">Diploma to Graduation</option>
+                        <option value="GRADUATION_TO_POST_GRADUATION">Graduation to Post Graduation</option>
+                    </Select>
+                </Field>
+                <Field label="Duration (Months)" helperText="2 digits (00-99)" errorText={gapError ? "" : (getError("gapDurationMonths") || getError("gap_duration_months"))}>
+                    <Input 
+                        type="text" 
+                        inputMode="numeric"
+                        value={item.gapDurationMonths ?? ""} 
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          // Only allow digits
+                          val = val.replace(/[^0-9]/g, '');
+                          // Max 2 digits
+                          val = val.slice(0, 2);
+                          handleChange("gapDurationMonths", val);
+                        }} 
+                        variant="flushed" 
+                        isDisabled={!isEditing} 
+                        _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                        placeholder="00"
+                        maxLength="2"
+                        borderColor={gapError ? "red.400" : undefined}
+                        _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
+                    />
+                </Field>
+                <Field label="Reason" helperText="e.g. N/A or reason">
+                    <Input 
+                      value={item.gapReason ?? ""} 
+                      onChange={(e) => handleChange("gapReason", e.target.value)} 
+                      variant="flushed" 
+                      isDisabled={!isEditing} 
+                      _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
+                      placeholder="N/A if no gap"
+                      borderColor={gapError ? "red.400" : undefined}
+                      _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
+                    />
+                </Field>
+            </SimpleGrid>
+          </Box>
+          </VStack>
+      </Collapse>
+    </Box>
+  )
+}
+
+export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSelect, fieldErrors = {} }) => {
+  // Ensure items is always an array; normalize keys from DB (snake_case) to camelCase; use "" for null/undefined
+  const items = Array.isArray(data) ? data.map(item => ({
+      ...item,
+      educationLevel: item.educationLevel ?? item.education_level ?? "",
+      instituteName: item.instituteName ?? item.institute_name ?? "",
+      board: item.board ?? "",
+      city: item.city ?? "",
+      yearOfPassing: item.yearOfPassing ?? item.year_of_passing ?? "",
+      resultType: item.resultType ?? item.result_type ?? "PERCENTAGE",
+      result: item.result ?? item.result_value ?? "",
+      subjects: item.subjects ?? "",
+      proofFile: item.proofFile ?? item.marksheet_file ?? "",
+      gapType: item.gapType ?? item.gap_type ?? "",
+      gapDurationMonths: item.gapDurationMonths ?? item.gap_duration_months ?? "",
+      gapReason: item.gapReason ?? item.gap_reason ?? ""
+  })) : []
+  const [openIndex, setOpenIndex] = useState(-1)
+  const toast = useToast()
+  const { user } = useAuth()
+  const usn = user?.usn
+  const isPG = true
+
+  const handleChange = (updatedItem, index) => {
+      const newItems = [...items]
+      newItems[index] = updatedItem
+      onUpdate(newItems)
+  }
+
+  const handleAdd = () => {
+      onUpdate([
+          ...items,
+          {
+              educationLevel: "",
+              instituteName: "",
+              board: "",
+              city: "",
+              yearOfPassing: "",
+              resultType: "PERCENTAGE",
+              result: "",
+              subjects: "",
+              proofFile: "",
+              marksheet_file: "",
+              gapType: "",
+              gapDurationMonths: "",
+              gapReason: ""
+          }
+      ])
+  }
+
+  const handleDelete = (index) => {
+      const newItems = items.filter((_, i) => i !== index)
+      onUpdate(newItems)
+  }
+
+  const handleUpload = async (index, file) => {
+    if (!file || !usn) return
+    try {
+      const result = await StudentProfileService.uploadFile(usn, file, { folder: "education" })
+      const url = result?.url || result?.path
+      if (url) {
+        const newItems = [...items]
+        newItems[index] = { 
+            ...newItems[index], 
+            proofFile: url, 
+            marksheet_file: url 
+        }
+        onUpdate(newItems)
+        toast({
+          status: "success",
+          description: "Marksheet uploaded successfully",
+          duration: 3000,
+          isClosable: true
+        })
+      }
+    } catch (e) {
+      toast({
+        status: "error",
+        description: "File upload failed",
+        duration: 4000,
+        isClosable: true
+      })
+    }
+  }
+
+  const handleFileSelectWrapper = async (index, file) => {
+    if (onFileSelect) {
+      onFileSelect(index, file)
+    } else {
+      await handleUpload(index, file)
+    }
+  }
+
+  return (
+    <Box bg="white" p={8} borderRadius="xl" shadow="sm">
+      <Heading size="lg" mb={6} color="#20343c">Education History</Heading>
+      
+      <VStack spacing={6} align="stretch">
+        {items.map((item, index) => (
+          <EducationItem 
+            key={index} 
+            index={index} 
+            item={item} 
+            onChange={handleChange} 
+            onDelete={handleDelete}
+            isOpen={openIndex === index}
+            onToggle={() => setOpenIndex(openIndex === index ? -1 : index)}
+            isEditing={isEditing}
+            onFileSelect={handleFileSelectWrapper}
+            isPG={isPG}
+            fieldErrors={fieldErrors?.[index] || {}}
+          />
+        ))}
+
+        <Button 
+          leftIcon={<FaPlus />} 
+          onClick={handleAdd} 
+          variant="outline" 
+          colorScheme="orange" 
+          borderColor="#d4a960" 
+          color="#d4a960"
+          _hover={{ bg: "#fff5e6" }}
+          isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }}
+        >
+          Add Education
+        </Button>
+      </VStack>
+    </Box>
+  )
+}
+
+const EducationFileInput = ({ isEditing, value, onChange, onFileSelect }) => {
+  const toast = useToast()
+  const { user } = useAuth()
+  const usn = user?.usn
+  const [pendingFile, setPendingFile] = useState(null)
+  const [pendingPreview, setPendingPreview] = useState(null)
+
+  const handleFileChange = (e) => {
+    const file = e.target.files && e.target.files[0]
+    if (!file) return
+    // Create preview for images
+    if (file.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(file)
+      setPendingPreview(previewUrl)
+    }
+    setPendingFile(file)
+    
+    if (onFileSelect) {
+      onFileSelect(file)
+      toast({
+        status: "info",
+        description: "File selected. It will be uploaded when you save changes.",
+        duration: 3000,
+        isClosable: true
+      })
+    }
+    e.target.value = ""
+  }
+
+  return (
+    <Box>
+      {isEditing && (
+        <VStack align="stretch" spacing={2}>
+          <Input
+            type="file"
+            p={1}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+            onChange={handleFileChange}
+            variant="outline"
+          />
+          {pendingPreview && (
+            <Box 
+              border="2px dashed" 
+              borderColor="orange.300" 
+              borderRadius="md" 
+              p={2}
+              bg="orange.50"
+            >
+              <Image 
+                src={pendingPreview} 
+                alt="Preview" 
+                maxH="200px" 
+                objectFit="contain"
+                mx="auto"
+              />
+              <Text fontSize="xs" color="orange.600" mt={2} textAlign="center" fontWeight="bold">
+                Pending Upload
+              </Text>
+            </Box>
+          )}
+          {pendingFile && !pendingPreview && (
+            <Box 
+              border="2px dashed" 
+              borderColor="orange.300" 
+              borderRadius="md" 
+              p={2}
+              bg="orange.50"
+            >
+              <Text fontSize="sm" color="orange.600" textAlign="center">
+                📄 {pendingFile.name} (Pending Upload)
+              </Text>
+            </Box>
+          )}
+        </VStack>
+      )}
+      {value && (
+        <Box mt={2}>
+          {value.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+            <Box 
+              border="1px solid" 
+              borderColor="gray.200" 
+              borderRadius="md" 
+              p={2}
+              bg="gray.50"
+            >
+              <Image 
+                src={getFileUrl(value)} 
+                alt="Marksheet" 
+                maxH="200px" 
+                objectFit="contain"
+                mx="auto"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+              <Link 
+                href={getFileUrl(value)} 
+                isExternal 
+                fontSize="sm" 
+                color="blue.500"
+                display="block"
+                textAlign="center"
+                mt={2}
+              >
+                View Full Size
+              </Link>
+            </Box>
+          ) : (
+            <Link 
+              href={getFileUrl(value)} 
+              isExternal 
+              fontSize="sm" 
+              color="blue.500"
+            >
+              📄 View Marksheet
+            </Link>
+          )}
+        </Box>
+      )}
+    </Box>
+  )
+}
