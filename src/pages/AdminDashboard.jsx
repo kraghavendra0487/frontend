@@ -275,15 +275,16 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch data directly from parent tables
-        const [students, drives, offers, companies] = await Promise.all([
+        // Fetch data directly from parent tables including all schools
+        const [students, drives, offers, companies, allSchools] = await Promise.all([
           PlacementService.getAllStudents({ opt_in_only: true }),
           PlacementService.getAllDrives(),
           PlacementService.getAllJobOffers(),
-          PlacementService.getAllCompanies()
+          PlacementService.getAllCompanies(),
+          PlacementService.getSchools()
         ]);
 
-        processData(students, drives, offers, companies);
+        processData(students, drives, offers, companies, allSchools);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
@@ -294,14 +295,16 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const processData = (students, drives, offers, companies) => {
+  const processData = (students, drives, offers, companies, allSchools) => {
     // 1. Total Students (opt_in = true, i.e., placement seeking)
     const totalStudents = students.length;
 
     // 2. School-wise Stats & Placement Table Data
     // Extract school names from nested school object or direct field
     const getSchoolName = (s) => s.schools?.name || s.schools?.abbreviation || s.school || 'Unknown';
-    const schools = [...new Set(students.map(s => getSchoolName(s)))].sort();
+    
+    // Use all schools from the database, sorted by name
+    const schools = allSchools.map(s => s.name || s.abbreviation).sort();
     
     const schoolWise = schools.map(school => ({
       name: school,
