@@ -44,9 +44,10 @@ import {
   AlertTitle,
   AlertDescription,
 } from '@chakra-ui/react';
-import { SearchIcon, AddIcon, ArrowBackIcon, DownloadIcon } from '@chakra-ui/icons';
+import { SearchIcon, AddIcon, ArrowBackIcon, DownloadIcon, EditIcon } from '@chakra-ui/icons';
 import { BsLayoutThreeColumns } from 'react-icons/bs';
 import { FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import { IconButton } from '@chakra-ui/react';
 import * as XLSX from 'xlsx';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
@@ -80,6 +81,7 @@ const JobOffers = () => {
     { id: 'academic_year', label: 'Academic Year' },
     { id: 'source', label: 'Source' },
     { id: 'remarks', label: 'Remarks' },
+    { id: 'actions', label: 'Actions' },
   ];
 
   const placementColumns = [
@@ -126,12 +128,18 @@ const JobOffers = () => {
   // Default visible columns - show student info and key offer columns
   const defaultVisibleColumns = [
     'usn', 'student', 'batch', 'company', 'designation', 'job_type', 
-    'ctc_min', 'ctc_max', 'offer_status', 'source'
+    'ctc_min', 'ctc_max', 'offer_status', 'source', 'actions'
   ];
 
   const [visibleColumns, setVisibleColumns] = useState(defaultVisibleColumns);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editSaving, setEditSaving] = useState(false);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCompany, setSelectedCompany] = useState('');
@@ -358,6 +366,61 @@ const JobOffers = () => {
     });
     setSelectedStudents([]);
     setStudentSearch('');
+  };
+
+  // Edit offer functions
+  const handleEditOffer = (offer) => {
+    setEditingOffer(offer);
+    setEditForm({
+      company_id: offer.company_id || '',
+      company_name: offer.company_name || offer.capstone_company_name || '',
+      designation: offer.placement_designation || offer.capstone_designation || offer.designation || '',
+      job_type: offer.offer_job_type || offer.job_type || '',
+      offer_letter_status: offer.placement_offer_letter_status || offer.capstone_offer_letter_status || offer.offer_letter_status || '',
+      academic_year: offer.offer_academic_year || offer.placement_academic_year || offer.capstone_academic_year || offer.academic_year || '',
+      remarks: offer.offer_remarks || offer.placement_remarks || offer.capstone_remarks || offer.remarks || '',
+      job_description: offer.placement_job_description || offer.capstone_description || '',
+      ctc_min_lpa: offer.placement_ctc_min_lpa || '',
+      ctc_max_lpa: offer.placement_ctc_max_lpa || '',
+      ctc_variable_pay: offer.placement_ctc_variable_pay || '',
+      ctc_stock_in_lpa: offer.placement_ctc_stock_in_lpa || '',
+      type_of_hiring: offer.placement_type_of_hiring || '',
+      internship_duration_months: offer.capstone_internship_duration_months || offer.internship_duration || '',
+      internship_stipend_min: offer.capstone_internship_stipend_min || offer.internship_stipend_min || '',
+      internship_stipend_max: offer.capstone_internship_stipend_max || offer.internship_stipend_max || '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'company_name') {
+      const company = allCompanies.find(c => c.company_name === value);
+      setEditForm(prev => ({
+        ...prev,
+        company_name: value,
+        company_id: company?.id || prev.company_id
+      }));
+      return;
+    }
+    setEditForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingOffer?.id) return;
+
+    try {
+      setEditSaving(true);
+      await PlacementService.updateJobOffer(editingOffer.id, editForm);
+      toast({ title: "Job offer updated successfully", status: "success" });
+      setIsEditModalOpen(false);
+      setEditingOffer(null);
+      fetchOffers();
+    } catch (error) {
+      toast({ title: error.message || "Error updating offer", status: "error" });
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // Master list of schools
@@ -910,7 +973,6 @@ const JobOffers = () => {
                   {visibleColumns.includes('company') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Company</Th>}
                   {visibleColumns.includes('designation') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Designation</Th>}
                   {visibleColumns.includes('job_type') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Job Type</Th>}
-                  {visibleColumns.includes('offer_status') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Offer Status</Th>}
                   {visibleColumns.includes('academic_year') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Academic Year</Th>}
                   {visibleColumns.includes('source') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Source</Th>}
                   {visibleColumns.includes('remarks') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Remarks</Th>}
@@ -944,7 +1006,10 @@ const JobOffers = () => {
                   {visibleColumns.includes('internship_duration') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Duration (Months)</Th>}
                   {visibleColumns.includes('stipend_min') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Stipend Min</Th>}
                   {visibleColumns.includes('stipend_max') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Stipend Max</Th>}
-                  {visibleColumns.includes('capstone_description') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Description</Th>}
+                  
+                  {/* Status and Actions - Always Last */}
+                  {visibleColumns.includes('offer_status') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Status</Th>}
+                  {visibleColumns.includes('actions') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Actions</Th>}
                 </Tr>
               </Thead>
               <Tbody>
@@ -1030,24 +1095,6 @@ const JobOffers = () => {
                         {visibleColumns.includes('job_type') && (
                           <Td fontSize="sm" color="gray.600">{jobType}</Td>
                         )}
-                        {visibleColumns.includes('offer_status') && (
-                          <Td>
-                            <Badge 
-                              colorScheme={
-                                ['Issued', 'Accepted'].includes(offerStatus) ? 'green' :
-                                ['Yet to Receive', 'Pending'].includes(offerStatus) ? 'orange' :
-                                offerStatus === 'Rejected' ? 'red' : 'gray'
-                              }
-                              px={2}
-                              py={0.5}
-                              borderRadius="full"
-                              fontSize="xs"
-                              textTransform="capitalize"
-                            >
-                              {offerStatus}
-                            </Badge>
-                          </Td>
-                        )}
                         {visibleColumns.includes('academic_year') && (
                           <Td fontSize="sm" color="gray.600">{academicYear}</Td>
                         )}
@@ -1100,9 +1147,36 @@ const JobOffers = () => {
                         {visibleColumns.includes('stipend_max') && (
                           <Td fontSize="sm" color="gray.600">{offer.capstone_internship_stipend_max || offer.internship_stipend_max || '-'}</Td>
                         )}
-                        {visibleColumns.includes('capstone_description') && (
-                          <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.capstone_description}>
-                            {offer.capstone_description || '-'}
+                        
+                        {/* Status and Actions - Always Last */}
+                        {visibleColumns.includes('offer_status') && (
+                          <Td>
+                            <Badge 
+                              colorScheme={
+                                ['Issued', 'Accepted'].includes(offerStatus) ? 'green' :
+                                ['Yet to Receive', 'Pending'].includes(offerStatus) ? 'orange' :
+                                offerStatus === 'Rejected' ? 'red' : 'gray'
+                              }
+                              px={2}
+                              py={0.5}
+                              borderRadius="full"
+                              fontSize="xs"
+                              textTransform="capitalize"
+                            >
+                              {offerStatus}
+                            </Badge>
+                          </Td>
+                        )}
+                        {visibleColumns.includes('actions') && (
+                          <Td>
+                            <IconButton
+                              icon={<EditIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="blue"
+                              aria-label="Edit offer"
+                              onClick={() => handleEditOffer(offer)}
+                            />
                           </Td>
                         )}
                       </Tr>
@@ -1387,6 +1461,160 @@ const JobOffers = () => {
                   loadingText="Saving..."
                 >
                   Save
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+
+          {/* Edit Job Offer Modal */}
+          <Modal isOpen={isEditModalOpen} onClose={() => { setIsEditModalOpen(false); setEditingOffer(null); }} size="xl" closeOnOverlayClick={!editSaving}>
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>Edit Job Offer</ModalHeader>
+              <ModalCloseButton isDisabled={editSaving} />
+              <ModalBody>
+                {editingOffer && (
+                  <VStack spacing={4} align="stretch">
+                    {/* Student Info (read-only) */}
+                    <Box bg="gray.50" p={3} borderRadius="md">
+                      <HStack spacing={4}>
+                        <Text fontSize="sm"><strong>Student:</strong> {editingOffer.student_name}</Text>
+                        <Badge colorScheme="purple">{editingOffer.usn}</Badge>
+                        <Text fontSize="sm" color="gray.600">{editingOffer.school}</Text>
+                      </HStack>
+                    </Box>
+
+                    <FormControl>
+                      <FormLabel>Company</FormLabel>
+                      <Select
+                        name="company_name"
+                        placeholder="Select company"
+                        value={editForm.company_name}
+                        onChange={handleEditInputChange}
+                      >
+                        {allCompanies.map((company) => (
+                          <option key={company.id} value={company.company_name}>
+                            {company.company_name}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel>Designation</FormLabel>
+                      <Input name="designation" value={editForm.designation} onChange={handleEditInputChange} />
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel>Job Type</FormLabel>
+                      <Select name="job_type" placeholder="Select Job Type" value={editForm.job_type} onChange={handleEditInputChange}>
+                        <option value="internship">Internship</option>
+                        <option value="full time">Full Time</option>
+                        <option value="internship_cum_full_time">Internship cum Full Time</option>
+                        <option value="capstone">Capstone</option>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel>Offer Letter Status</FormLabel>
+                      <Select name="offer_letter_status" placeholder="Select status" value={editForm.offer_letter_status} onChange={handleEditInputChange}>
+                        <option value="Pending">Pending</option>
+                        <option value="Yet to Receive">Yet to Receive</option>
+                        <option value="Issued">Issued</option>
+                        <option value="Accepted">Accepted</option>
+                        <option value="Rejected">Rejected</option>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel>Academic Year</FormLabel>
+                      <Input name="academic_year" value={editForm.academic_year} onChange={handleEditInputChange} placeholder="e.g. 2024-25" />
+                    </FormControl>
+
+                    {/* Placement-specific fields */}
+                    {editingOffer.source === 'placement' && (
+                      <>
+                        <Divider />
+                        <Text fontWeight="bold" color="gray.600">Placement Details</Text>
+                        <HStack width="100%" spacing={4}>
+                          <FormControl>
+                            <FormLabel>CTC Min (LPA)</FormLabel>
+                            <Input name="ctc_min_lpa" type="number" value={editForm.ctc_min_lpa} onChange={handleEditInputChange} />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel>CTC Max (LPA)</FormLabel>
+                            <Input name="ctc_max_lpa" type="number" value={editForm.ctc_max_lpa} onChange={handleEditInputChange} />
+                          </FormControl>
+                        </HStack>
+                        <HStack width="100%" spacing={4}>
+                          <FormControl>
+                            <FormLabel>Variable Pay</FormLabel>
+                            <Input name="ctc_variable_pay" type="number" value={editForm.ctc_variable_pay} onChange={handleEditInputChange} />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel>Stock (LPA)</FormLabel>
+                            <Input name="ctc_stock_in_lpa" type="number" value={editForm.ctc_stock_in_lpa} onChange={handleEditInputChange} />
+                          </FormControl>
+                        </HStack>
+                        <FormControl>
+                          <FormLabel>Type of Hiring</FormLabel>
+                          <Select name="type_of_hiring" placeholder="Select type" value={editForm.type_of_hiring} onChange={handleEditInputChange}>
+                            <option value="local">Local</option>
+                            <option value="global">Global</option>
+                          </Select>
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel>Job Description</FormLabel>
+                          <Textarea name="job_description" value={editForm.job_description} onChange={handleEditInputChange} />
+                        </FormControl>
+                      </>
+                    )}
+
+                    {/* Capstone-specific fields */}
+                    {editingOffer.source === 'capstone' && (
+                      <>
+                        <Divider />
+                        <Text fontWeight="bold" color="gray.600">Capstone Details</Text>
+                        <FormControl>
+                          <FormLabel>Internship Duration (Months)</FormLabel>
+                          <Input name="internship_duration_months" type="number" value={editForm.internship_duration_months} onChange={handleEditInputChange} />
+                        </FormControl>
+                        <HStack width="100%" spacing={4}>
+                          <FormControl>
+                            <FormLabel>Stipend Min</FormLabel>
+                            <Input name="internship_stipend_min" type="number" value={editForm.internship_stipend_min} onChange={handleEditInputChange} />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel>Stipend Max</FormLabel>
+                            <Input name="internship_stipend_max" type="number" value={editForm.internship_stipend_max} onChange={handleEditInputChange} />
+                          </FormControl>
+                        </HStack>
+                        <FormControl>
+                          <FormLabel>Description</FormLabel>
+                          <Textarea name="description" value={editForm.job_description} onChange={(e) => setEditForm(prev => ({ ...prev, job_description: e.target.value }))} />
+                        </FormControl>
+                      </>
+                    )}
+
+                    <FormControl>
+                      <FormLabel>Remarks</FormLabel>
+                      <Textarea name="remarks" value={editForm.remarks} onChange={handleEditInputChange} />
+                    </FormControl>
+                  </VStack>
+                )}
+              </ModalBody>
+
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={() => { setIsEditModalOpen(false); setEditingOffer(null); }} isDisabled={editSaving}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="blue"
+                  onClick={handleSaveEdit}
+                  isLoading={editSaving}
+                  loadingText="Saving..."
+                >
+                  Save Changes
                 </Button>
               </ModalFooter>
             </ModalContent>

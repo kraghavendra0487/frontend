@@ -248,6 +248,14 @@ export const PlacementService = {
     return response.data;
   },
 
+  updateJobOffer: async (id, data) => {
+    const response = await apiFetch(`/placement/job-offers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
   getStudentOffers: async (usn) => {
     try {
       const response = await apiFetch(`/placement/offers/${usn}`);
