@@ -5,7 +5,7 @@
 
   color-scheme: light;
   color: #1a202c;
-  background-color: #f7fafc;
+  background-color: #f0f0f0;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,12 +13,51 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Global cursor reset - default cursor for all elements */
+html, body, div, span, section, article, aside, header, footer, nav, main,
+h1, h2, h3, h4, h5, h6, p, a, img, ul, ol, li, table, tr, td, th,
+form, label, fieldset, legend, button, figure, figcaption {
+  cursor: default;
+}
+
+/* Pointer cursor for interactive elements */
+a, button, [role="button"], [type="button"], [type="submit"], [type="reset"],
+label[for], summary, [onclick], [tabindex]:not([tabindex="-1"]) {
+  cursor: pointer;
+}
+
+/* Text cursor only for actual text input fields */
+input[type="text"], input[type="email"], input[type="password"], 
+input[type="search"], input[type="tel"], input[type="url"],
+input[type="number"], input[type="date"], input[type="time"],
+input[type="datetime-local"], input[type="month"], input[type="week"],
+textarea, [contenteditable="true"] {
+  cursor: text;
+}
+
+/* Special cursors */
+input[type="range"] {
+  cursor: ew-resize;
+}
+
+[disabled], [aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 body {
   margin: 0;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
   color: #1a202c;
-  background-color: #f7fafc;
+  background-color: #f0f0f0;
+  cursor: default;
 }
 
 #root {
@@ -26,4 +65,5 @@ body {
   min-height: 100vh;
   color: inherit;
   background-color: inherit;
+  cursor: default;
 }

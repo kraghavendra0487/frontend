@@ -104,7 +104,7 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
   );
 
   return (
-    <Box minH="100vh">
+    <Box minH="100vh" bg="#f0f0f0">
       {/* Top Navbar */}
       <Box
         position="fixed"
@@ -177,12 +177,11 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       <Box
         as="main"
         ml={0}
-        mt="72px"
-        p={fullWidth ? 0 : 8}
-        pt={fullWidth ? 0 : compactTop ? 0 : undefined}
-        pb={fullWidth ? 0 : undefined}
-        bg={fullWidth ? "transparent" : "#f0f0f0ff"}
-        minH="calc(100vh - 72px)"
+        pt="72px"
+        px={fullWidth ? 0 : 8}
+        pb={fullWidth ? 0 : 8}
+        bg={fullWidth ? "transparent" : "#f0f0f0"}
+        minH="100vh"
         transition="filter 0.3s ease"
         filter={isNavHovered ? 'blur(5px)' : 'none'}
       >

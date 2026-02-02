@@ -438,10 +438,19 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <Field label="SELF RATING (1-10)" errorText={fieldErrors.self_rating}>
           <NumberInput
-            value={item.self_rating ?? 5}
+            value={item.self_rating ?? ""}
             min={1}
             max={10}
-            onChange={(val) => onChange(index, "self_rating", parseInt(val, 10) || 5)}
+            allowMouseWheel
+            clampValueOnBlur={false}
+            onChange={(valueString, valueNumber) => {
+              // Allow empty string, otherwise use the number value
+              if (valueString === "" || valueString === undefined) {
+                onChange(index, "self_rating", "")
+              } else {
+                onChange(index, "self_rating", valueNumber)
+              }
+            }}
             className="projects-edit-number"
           >
             <NumberInputField />

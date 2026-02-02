@@ -200,8 +200,15 @@ const AlumniRegistrationCodes = () => {
             <FormControl mb={4} isRequired>
               <FormLabel>Batch year</FormLabel>
               <NumberInput
-                value={formData.batch_year}
-                onChange={(_, val) => setFormData((p) => ({ ...p, batch_year: typeof val === 'number' && !Number.isNaN(val) ? val : p.batch_year }))}
+                value={formData.batch_year ?? ""}
+                clampValueOnBlur={false}
+                onChange={(valueString, valueNumber) => {
+                  if (valueString === "" || valueString === undefined) {
+                    setFormData((p) => ({ ...p, batch_year: "" }))
+                  } else if (!Number.isNaN(valueNumber)) {
+                    setFormData((p) => ({ ...p, batch_year: valueNumber }))
+                  }
+                }}
                 min={2000}
                 max={2100}
               >
@@ -219,8 +226,15 @@ const AlumniRegistrationCodes = () => {
             <FormControl mb={4}>
               <FormLabel>Max uses (0 = unlimited)</FormLabel>
               <NumberInput
-                value={formData.max_uses}
-                onChange={(_, val) => setFormData((p) => ({ ...p, max_uses: Math.max(0, parseInt(String(val), 10) || 0) }))}
+                value={formData.max_uses ?? ""}
+                clampValueOnBlur={false}
+                onChange={(valueString, valueNumber) => {
+                  if (valueString === "" || valueString === undefined) {
+                    setFormData((p) => ({ ...p, max_uses: "" }))
+                  } else if (!Number.isNaN(valueNumber)) {
+                    setFormData((p) => ({ ...p, max_uses: Math.max(0, valueNumber) }))
+                  }
+                }}
                 min={0}
               >
                 <NumberInputField />

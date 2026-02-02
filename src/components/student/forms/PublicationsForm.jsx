@@ -191,9 +191,17 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 <Field label="Number of Authors" errorText={getError("author_count")}>
                     <NumberInput 
-                        value={item.author_count || 1}
+                        value={item.author_count ?? ""}
                         min={1}
-                        onChange={(val) => onChange(index, "author_count", parseInt(val, 10) || 1)}
+                        allowMouseWheel
+                        clampValueOnBlur={false}
+                        onChange={(valueString, valueNumber) => {
+                            if (valueString === "" || valueString === undefined) {
+                                onChange(index, "author_count", "")
+                            } else {
+                                onChange(index, "author_count", valueNumber)
+                            }
+                        }}
                         isDisabled={!isEditing}
                     >
                         <NumberInputField />
