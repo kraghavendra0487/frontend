@@ -65,6 +65,7 @@ const UniversalSearch = () => {
 
   const pages = [
     { name: 'Dashboard', path: '/placement/dashboard', keywords: 'home, stats, overview' },
+    { name: 'Placement Overview', path: '/placement/overview', keywords: 'statistics, school, batch, salary, placement, overview' },
     { name: 'Students Directory', path: '/placement/students', keywords: 'list, database, search, students' },
     { name: 'Job Offers', path: '/placement/job-offers', keywords: 'placements, offers, results' },
     { name: 'Events', path: '/events', keywords: 'events, upcoming, ongoing, schedule, add event' },

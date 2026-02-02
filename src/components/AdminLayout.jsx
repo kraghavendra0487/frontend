@@ -32,6 +32,7 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       textColor: "#fff",
       links: [
         { label: "Dashboard", path: "/placement/dashboard", ariaLabel: "Placement Dashboard" },
+        { label: "Placement Overview", path: "/placement/overview", ariaLabel: "Placement Overview Statistics" },
         { label: "Events", path: "/events", ariaLabel: "Events" },
         { label: "Calendar of Events", path: "/placement/calendar", ariaLabel: "Calendar of Events" },
         { label: "Monthly Reports", path: "/placement/reports", ariaLabel: "Monthly Placement Reports" }

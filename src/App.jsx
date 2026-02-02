@@ -318,6 +318,14 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: "/placement/overview",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <PlacementOverviewPage />
+          </PlacementProtectedRoute>
+        ),
+      },
+      {
         path: "/placement/students",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
@@ -326,7 +334,6 @@ const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <ViewAllStudents /> },
-          { path: "overview", element: <PlacementOverviewPage /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "add", element: <AddStudents /> },
         ],

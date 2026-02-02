@@ -63,27 +63,79 @@ const JobOffers = () => {
   const prefillData = location.state?.prefillData;
   const prefillStudents = location.state?.selectedStudents || [];
 
-  // Column Visibility State
-  const baseColumns = [
+  // Column Visibility State - Organized by table source
+  const studentColumns = [
     { id: 'usn', label: 'USN' },
-    { id: 'student', label: 'Student' },
+    { id: 'student', label: 'Student Name' },
     { id: 'batch', label: 'Batch' },
-    { id: 'company', label: 'Company' },
-    { id: 'designation', label: 'Designation' },
-    { id: 'job_type', label: 'Job Type' },
-    { id: 'ctc', label: 'CTC (LPA)' },
-    { id: 'status', label: 'Status' },
+    { id: 'school', label: 'School' },
+    { id: 'program', label: 'Program' },
   ];
+
+  const offerColumns = [
+    { id: 'company', label: 'Company' },
+    { id: 'offer_job_type', label: 'Job Type' },
+    { id: 'offer_academic_year', label: 'Academic Year' },
+    { id: 'offer_remarks', label: 'Offer Remarks' },
+    { id: 'source', label: 'Source' },
+  ];
+
+  const placementColumns = [
+    { id: 'placement_designation', label: 'Designation' },
+    { id: 'placement_ctc_min', label: 'CTC Min (LPA)' },
+    { id: 'placement_ctc_max', label: 'CTC Max (LPA)' },
+    { id: 'placement_ctc_variable', label: 'Variable Pay' },
+    { id: 'placement_ctc_stock', label: 'Stock (LPA)' },
+    { id: 'placement_type_of_hiring', label: 'Type of Hiring' },
+    { id: 'placement_offer_letter_status', label: 'Offer Letter Status' },
+    { id: 'placement_job_description', label: 'Job Description' },
+    { id: 'placement_remarks', label: 'Placement Remarks' },
+  ];
+
+  const capstoneColumns = [
+    { id: 'capstone_company', label: 'Capstone Company' },
+    { id: 'capstone_designation', label: 'Capstone Designation' },
+    { id: 'capstone_duration', label: 'Duration (Months)' },
+    { id: 'capstone_stipend_min', label: 'Stipend Min' },
+    { id: 'capstone_stipend_max', label: 'Stipend Max' },
+    { id: 'capstone_offer_status', label: 'Capstone Offer Status' },
+    { id: 'capstone_description', label: 'Capstone Description' },
+    { id: 'capstone_remarks', label: 'Capstone Remarks' },
+  ];
+
+  const allColumns = [...studentColumns, ...offerColumns, ...placementColumns, ...capstoneColumns];
 
   const columnGroups = [
     {
+      id: 'student_info',
+      label: 'Student Information',
+      columns: studentColumns,
+    },
+    {
       id: 'offer_details',
       label: 'Offer Details',
-      columns: baseColumns,
+      columns: offerColumns,
+    },
+    {
+      id: 'placement_details',
+      label: 'Placement Details',
+      columns: placementColumns,
+    },
+    {
+      id: 'capstone_details',
+      label: 'Capstone Details',
+      columns: capstoneColumns,
     },
   ];
 
-  const [visibleColumns, setVisibleColumns] = useState(baseColumns.map(c => c.id));
+  // Default visible columns - show student info and key offer/placement columns
+  const defaultVisibleColumns = [
+    'usn', 'student', 'batch', 'company', 'offer_job_type', 
+    'placement_designation', 'placement_ctc_min', 'placement_ctc_max',
+    'placement_offer_letter_status', 'source'
+  ];
+
+  const [visibleColumns, setVisibleColumns] = useState(defaultVisibleColumns);
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
   
   // Filters
@@ -505,27 +557,47 @@ const JobOffers = () => {
     }
 
     const exportData = filteredOffers.map(offer => ({
+      // Student Info
       USN: offer.usn,
       "Student Name": offer.student_name,
       Batch: offer.batch,
+      School: offer.school,
+      Program: offer.program,
+      
+      // Offer Details
       Company: offer.company_name,
-      Designation: offer.designation,
-      "Job Type": offer.job_type,
-      "Internship Duration": offer.internship_duration,
-      "Internship Stipend": offer.internship_stipend,
-      "CTC Min (LPA)": offer.ctc_min_lpa || offer.ctc,
-      "CTC Max (LPA)": offer.ctc_max_lpa,
-      "Variable Pay": offer.ctc_variable_pay,
-      "Offer Letter Status": offer.offer_letter_status,
-      "Final Interview Status": offer.final_interview_status,
-      Remarks: offer.remarks
+      "Job Type": offer.offer_job_type || offer.job_type,
+      "Academic Year": offer.offer_academic_year || offer.academic_year,
+      "Offer Remarks": offer.offer_remarks,
+      Source: offer.source,
+      
+      // Placement Details
+      "Placement Designation": offer.placement_designation,
+      "CTC Min (LPA)": offer.placement_ctc_min_lpa,
+      "CTC Max (LPA)": offer.placement_ctc_max_lpa,
+      "Variable Pay": offer.placement_ctc_variable_pay,
+      "Stock (LPA)": offer.placement_ctc_stock_in_lpa,
+      "Type of Hiring": offer.placement_type_of_hiring,
+      "Placement Offer Status": offer.placement_offer_letter_status,
+      "Job Description": offer.placement_job_description,
+      "Placement Remarks": offer.placement_remarks,
+      
+      // Capstone Details
+      "Capstone Company": offer.capstone_company_name,
+      "Capstone Designation": offer.capstone_designation,
+      "Internship Duration (Months)": offer.capstone_internship_duration_months,
+      "Stipend Min": offer.capstone_internship_stipend_min,
+      "Stipend Max": offer.capstone_internship_stipend_max,
+      "Capstone Offer Status": offer.capstone_offer_letter_status,
+      "Capstone Description": offer.capstone_description,
+      "Capstone Remarks": offer.capstone_remarks,
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Job Offers");
     
-    XLSX.writeFile(wb, "Job_Offers.xlsx");
+    XLSX.writeFile(wb, "Job_Offers_Complete.xlsx");
     
     toast({ title: "Download started", status: "success" });
   };
@@ -553,8 +625,9 @@ const JobOffers = () => {
       const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
       return Number.isNaN(n) ? NaN : n;
     };
-    const min = toNum(offer.ctc_min_lpa ?? offer.ctc_min);
-    const max = toNum(offer.ctc_max_lpa ?? offer.ctc_max);
+    // Try placement CTC first, then fallback to legacy fields
+    const min = toNum(offer.placement_ctc_min_lpa ?? offer.ctc_min_lpa ?? offer.ctc_min);
+    const max = toNum(offer.placement_ctc_max_lpa ?? offer.ctc_max_lpa ?? offer.ctc_max);
     if (!Number.isNaN(max)) return max;
     if (!Number.isNaN(min)) return min;
     const fallback = toNum(offer.ctc);
@@ -568,8 +641,8 @@ const JobOffers = () => {
       const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
       return Number.isNaN(n) ? NaN : n;
     };
-    const minStr = offer.ctc_min_lpa ?? offer.ctc_min;
-    const maxStr = offer.ctc_max_lpa ?? offer.ctc_max;
+    const minStr = offer.placement_ctc_min_lpa ?? offer.ctc_min_lpa ?? offer.ctc_min;
+    const maxStr = offer.placement_ctc_max_lpa ?? offer.ctc_max_lpa ?? offer.ctc_max;
     const min = toNum(minStr);
     const max = toNum(maxStr);
     if (!Number.isNaN(min) && !Number.isNaN(max)) {
@@ -824,33 +897,60 @@ const JobOffers = () => {
 
           {/* Offers Table */}
           <Box bg="white" borderRadius="xl" shadow="sm" overflowX="auto" border="1px solid" borderColor="gray.100">
-            <Table variant="simple">
+            <Table variant="simple" size="sm">
               <Thead bg="gray.50" borderBottom="2px solid" borderColor="gray.100">
                 <Tr>
-                  {visibleColumns.includes('usn') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">USN</Th>}
-                  {visibleColumns.includes('student') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Student</Th>}
-                  {visibleColumns.includes('batch') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Batch</Th>}
-                  {visibleColumns.includes('company') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Company</Th>}
-                  {visibleColumns.includes('designation') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Designation</Th>}
-                  {visibleColumns.includes('job_type') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Job Type</Th>}
-                  {visibleColumns.includes('ctc') && (
-                    <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">
+                  {/* Student Info Columns */}
+                  {visibleColumns.includes('usn') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">USN</Th>}
+                  {visibleColumns.includes('student') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Student</Th>}
+                  {visibleColumns.includes('batch') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Batch</Th>}
+                  {visibleColumns.includes('school') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">School</Th>}
+                  {visibleColumns.includes('program') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Program</Th>}
+                  
+                  {/* Offer Columns */}
+                  {visibleColumns.includes('company') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Company</Th>}
+                  {visibleColumns.includes('offer_job_type') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Job Type</Th>}
+                  {visibleColumns.includes('offer_academic_year') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Academic Year</Th>}
+                  {visibleColumns.includes('offer_remarks') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Offer Remarks</Th>}
+                  {visibleColumns.includes('source') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Source</Th>}
+                  
+                  {/* Placement Columns */}
+                  {visibleColumns.includes('placement_designation') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Designation</Th>}
+                  {visibleColumns.includes('placement_ctc_min') && (
+                    <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">
                       <Button
                         variant="ghost"
-                        size="sm"
+                        size="xs"
                         onClick={() => setCtcSort(prev => prev === 'none' ? 'asc' : prev === 'asc' ? 'desc' : 'none')}
+                        p={0}
                       >
-                        <HStack spacing={2} align="center">
-                          <Text>CTC (LPA)</Text>
+                        <HStack spacing={1} align="center">
+                          <Text fontSize="xs">CTC Min</Text>
                           <HStack spacing={0} align="center">
-                            <FiArrowUp color={ctcSort === 'asc' ? '#2b6cb0' : '#cbd5e0'} />
-                            <FiArrowDown color={ctcSort === 'desc' ? '#2b6cb0' : '#cbd5e0'} />
+                            <FiArrowUp size={10} color={ctcSort === 'asc' ? '#2b6cb0' : '#cbd5e0'} />
+                            <FiArrowDown size={10} color={ctcSort === 'desc' ? '#2b6cb0' : '#cbd5e0'} />
                           </HStack>
                         </HStack>
                       </Button>
                     </Th>
                   )}
-                  {visibleColumns.includes('status') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={5} letterSpacing="wider">Status</Th>}
+                  {visibleColumns.includes('placement_ctc_max') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">CTC Max</Th>}
+                  {visibleColumns.includes('placement_ctc_variable') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Variable Pay</Th>}
+                  {visibleColumns.includes('placement_ctc_stock') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Stock</Th>}
+                  {visibleColumns.includes('placement_type_of_hiring') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Hiring Type</Th>}
+                  {visibleColumns.includes('placement_offer_letter_status') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Offer Status</Th>}
+                  {visibleColumns.includes('placement_job_description') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Job Description</Th>}
+                  {visibleColumns.includes('placement_remarks') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Placement Remarks</Th>}
+                  
+                  {/* Capstone Columns */}
+                  {visibleColumns.includes('capstone_company') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Company</Th>}
+                  {visibleColumns.includes('capstone_designation') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Designation</Th>}
+                  {visibleColumns.includes('capstone_duration') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Duration</Th>}
+                  {visibleColumns.includes('capstone_stipend_min') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Stipend Min</Th>}
+                  {visibleColumns.includes('capstone_stipend_max') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Stipend Max</Th>}
+                  {visibleColumns.includes('capstone_offer_status') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Status</Th>}
+                  {visibleColumns.includes('capstone_description') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Desc</Th>}
+                  {visibleColumns.includes('capstone_remarks') && <Th color="gray.600" fontSize="xs" textTransform="uppercase" py={4} letterSpacing="wider" whiteSpace="nowrap">Capstone Remarks</Th>}
                 </Tr>
               </Thead>
               <Tbody>
@@ -870,6 +970,7 @@ const JobOffers = () => {
                 ) : (
                   filteredOffers.map((offer) => (
                     <Tr key={offer.id} _hover={{ bg: "gray.50" }} transition="all 0.2s">
+                      {/* Student Info Cells */}
                       {visibleColumns.includes('usn') && (
                         <Td>
                           <Badge colorScheme="purple" fontSize="xs" variant="subtle">{offer.usn}</Badge>
@@ -883,6 +984,7 @@ const JobOffers = () => {
                               color="blue.600"
                               onClick={() => navigate(`/placement/students/${encodeURIComponent(offer.usn)}`)}
                               sx={{ textDecoration: 'underline' }}
+                              size="sm"
                             >
                               {offer.student_name || offer.usn}
                             </Button>
@@ -892,10 +994,16 @@ const JobOffers = () => {
                         </Td>
                       )}
                       {visibleColumns.includes('batch') && (
-                        <Td fontSize="sm" color="gray.600">
-                          {offer.batch || '-'}
-                        </Td>
+                        <Td fontSize="sm" color="gray.600">{offer.batch || '-'}</Td>
                       )}
+                      {visibleColumns.includes('school') && (
+                        <Td fontSize="sm" color="gray.600">{offer.school || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('program') && (
+                        <Td fontSize="sm" color="gray.600">{offer.program || '-'}</Td>
+                      )}
+                      
+                      {/* Offer Cells */}
                       {visibleColumns.includes('company') && (
                         <Td fontSize="sm" fontWeight="600" color="gray.700">
                           {offer.company_id ? (
@@ -906,31 +1014,62 @@ const JobOffers = () => {
                               _hover={{ textDecoration: 'underline' }}
                               onClick={() => navigate(`/placement/company/${offer.company_id}`)}
                             >
-                              {offer.company_name}
+                              {offer.company_name || '-'}
                             </Text>
                           ) : (
-                            offer.company_name
+                            offer.company_name || '-'
                           )}
                         </Td>
                       )}
-                      {visibleColumns.includes('designation') && (
-                        <Td fontSize="sm" color="gray.600">
-                          {offer.designation}
+                      {visibleColumns.includes('offer_job_type') && (
+                        <Td fontSize="sm" color="gray.600">{offer.offer_job_type || offer.job_type || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('offer_academic_year') && (
+                        <Td fontSize="sm" color="gray.600">{offer.offer_academic_year || offer.academic_year || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('offer_remarks') && (
+                        <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.offer_remarks}>
+                          {offer.offer_remarks || '-'}
                         </Td>
                       )}
-                      {visibleColumns.includes('job_type') && <Td fontSize="sm" color="gray.600">{offer.job_type}</Td>}
-                      {visibleColumns.includes('ctc') && (
-                        <Td fontSize="sm" color="gray.600">
-                          {formatCTC(offer)}
+                      {visibleColumns.includes('source') && (
+                        <Td>
+                          <Badge 
+                            colorScheme={offer.source === 'capstone' ? 'purple' : offer.source === 'placement' ? 'blue' : 'gray'}
+                            fontSize="xs"
+                            variant="subtle"
+                          >
+                            {offer.source || 'offer'}
+                          </Badge>
                         </Td>
                       )}
-                      {visibleColumns.includes('status') && (
+                      
+                      {/* Placement Cells */}
+                      {visibleColumns.includes('placement_designation') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_designation || offer.designation || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_ctc_min') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_ctc_min_lpa || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_ctc_max') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_ctc_max_lpa || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_ctc_variable') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_ctc_variable_pay || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_ctc_stock') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_ctc_stock_in_lpa || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_type_of_hiring') && (
+                        <Td fontSize="sm" color="gray.600">{offer.placement_type_of_hiring || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('placement_offer_letter_status') && (
                         <Td>
                           <Badge 
                             colorScheme={
-                              ['Issued', 'Accepted'].includes(offer.offer_letter_status) ? 'green' :
-                              ['Yet to Receive', 'Pending'].includes(offer.offer_letter_status) ? 'orange' :
-                              offer.offer_letter_status === 'Rejected' ? 'red' : 'gray'
+                              ['Issued', 'Accepted'].includes(offer.placement_offer_letter_status) ? 'green' :
+                              ['Yet to Receive', 'Pending'].includes(offer.placement_offer_letter_status) ? 'orange' :
+                              offer.placement_offer_letter_status === 'Rejected' ? 'red' : 'gray'
                             }
                             px={2}
                             py={0.5}
@@ -938,8 +1077,65 @@ const JobOffers = () => {
                             fontSize="xs"
                             textTransform="capitalize"
                           >
-                            {offer.offer_letter_status || 'Pending'}
+                            {offer.placement_offer_letter_status || offer.offer_letter_status || 'Pending'}
                           </Badge>
+                        </Td>
+                      )}
+                      {visibleColumns.includes('placement_job_description') && (
+                        <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.placement_job_description}>
+                          {offer.placement_job_description || '-'}
+                        </Td>
+                      )}
+                      {visibleColumns.includes('placement_remarks') && (
+                        <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.placement_remarks}>
+                          {offer.placement_remarks || '-'}
+                        </Td>
+                      )}
+                      
+                      {/* Capstone Cells */}
+                      {visibleColumns.includes('capstone_company') && (
+                        <Td fontSize="sm" color="gray.600">{offer.capstone_company_name || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('capstone_designation') && (
+                        <Td fontSize="sm" color="gray.600">{offer.capstone_designation || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('capstone_duration') && (
+                        <Td fontSize="sm" color="gray.600">{offer.capstone_internship_duration_months || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('capstone_stipend_min') && (
+                        <Td fontSize="sm" color="gray.600">{offer.capstone_internship_stipend_min || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('capstone_stipend_max') && (
+                        <Td fontSize="sm" color="gray.600">{offer.capstone_internship_stipend_max || '-'}</Td>
+                      )}
+                      {visibleColumns.includes('capstone_offer_status') && (
+                        <Td>
+                          {offer.capstone_offer_letter_status ? (
+                            <Badge 
+                              colorScheme={
+                                ['Issued', 'Accepted'].includes(offer.capstone_offer_letter_status) ? 'green' :
+                                ['Yet to Receive', 'Pending'].includes(offer.capstone_offer_letter_status) ? 'orange' :
+                                offer.capstone_offer_letter_status === 'Rejected' ? 'red' : 'gray'
+                              }
+                              px={2}
+                              py={0.5}
+                              borderRadius="full"
+                              fontSize="xs"
+                              textTransform="capitalize"
+                            >
+                              {offer.capstone_offer_letter_status}
+                            </Badge>
+                          ) : '-'}
+                        </Td>
+                      )}
+                      {visibleColumns.includes('capstone_description') && (
+                        <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.capstone_description}>
+                          {offer.capstone_description || '-'}
+                        </Td>
+                      )}
+                      {visibleColumns.includes('capstone_remarks') && (
+                        <Td fontSize="sm" color="gray.600" maxW="200px" isTruncated title={offer.capstone_remarks}>
+                          {offer.capstone_remarks || '-'}
                         </Td>
                       )}
                     </Tr>
