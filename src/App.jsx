@@ -62,6 +62,16 @@ import AlumniProfile from './pages/alumni/AlumniProfile';
 import AlumniProjects from './pages/alumni/AlumniProjects';
 import AlumniViewStudent from './pages/alumni/AlumniViewStudent';
 import ReferralForm from './pages/alumni/ReferralForm';
+// Company pages
+import CompanyDashboard from './pages/company/CompanyDashboard';
+import CompanyProfile from './pages/company/CompanyProfile';
+import CompanyContacts from './pages/company/CompanyContacts';
+import CompanyDrives from './pages/company/CompanyDrives';
+import CompanyDriveDetail from './pages/company/CompanyDriveDetail';
+import CompanyStudentView from './pages/company/CompanyStudentView';
+import CompanyOffers from './pages/company/CompanyOffers';
+import CompanyNotifications from './pages/company/CompanyNotifications';
+import CompanyEvents from './pages/company/CompanyEvents';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
 import EventsPage from './pages/EventsPage';
@@ -88,10 +98,11 @@ const Layout = () => {
   const isStudentDashboard = location.pathname.startsWith('/student-dashboard');
   const isStudentProfile = location.pathname.startsWith('/student/');
   const isAlumniPage = location.pathname.startsWith('/placement/alumni-');
+  const isCompanyPage = location.pathname.startsWith('/company/');
   const onStudentPath = isStudentPath(location.pathname);
 
-  // Hide Navbar on student pages and alumni dashboard (alumni/register shows main Navbar)
-  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage;
+  // Hide Navbar on student pages, alumni dashboard, and company pages (they have their own layouts)
+  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage || isCompanyPage;
 
   // Show Footer only on dashboard pages
   const isDashboard =
@@ -323,6 +334,79 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole="alumni">
             <AlumniViewStudent />
+          </PlacementProtectedRoute>
+        )
+      },
+      // Company Routes
+      {
+        path: "/company/dashboard",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyDashboard />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/profile",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyProfile />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/contacts",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyContacts />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/drives",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyDrives />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/drive/:id",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyDriveDetail />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/student/:usn",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyStudentView />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/offers",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyOffers />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/notifications",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyNotifications />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/events",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyEvents />
           </PlacementProtectedRoute>
         )
       },

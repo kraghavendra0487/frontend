@@ -6,6 +6,7 @@ import {
   Heading,
   Text,
   HStack,
+  VStack,
   Input,
   InputGroup,
   InputLeftElement,
@@ -32,16 +33,39 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  useDisclosure,
+  FormControl,
+  FormLabel,
+  Icon,
+  IconButton,
+  Avatar,
 } from '@chakra-ui/react';
-import { SearchIcon, CheckIcon, CloseIcon } from '@chakra-ui/icons';
+import { SearchIcon, CheckIcon, CloseIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FaBuilding, FaKey } from 'react-icons/fa';
 import AdminLayout from '../../components/AdminLayout';
-import { getUserLoginList, getStudentsWithoutLogin, updateUserLoginIsActive, bulkUpdateUserLoginIsActive } from '../../services/userLogin.service';
+import { 
+  getUserLoginList, 
+  getStudentsWithoutLogin, 
+  updateUserLoginIsActive, 
+  bulkUpdateUserLoginIsActive,
+  getCompanyLogins,
+  createCompanyLogin,
+  deleteCompanyLogin,
+} from '../../services/userLogin.service';
 
 const headerBg = '#172e36';
 const headerColor = '#fbeec8';
 const borderColor = '#c2b38a';
 const cardBg = '#ffffff';
 const rowHoverBg = '#f8f9fa';
+const accentColor = '#d4a960';
 
 const UserLoginManagement = () => {
   const navigate = useNavigate();
@@ -73,6 +97,22 @@ const UserLoginManagement = () => {
   const [noLoginYear, setNoLoginYear] = useState('all');
   const [noLoginSearch, setNoLoginSearch] = useState('');
   const [noLoginSearchDebounced, setNoLoginSearchDebounced] = useState('');
+
+  // Tab: Company logins
+  const [companyLogins, setCompanyLogins] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [companiesWithLogins, setCompaniesWithLogins] = useState([]);
+  const [companyTotal, setCompanyTotal] = useState(0);
+  const [companyPage, setCompanyPage] = useState(1);
+  const [companyLoading, setCompanyLoading] = useState(false);
+  const [companySearch, setCompanySearch] = useState('');
+  const [companySearchDebounced, setCompanySearchDebounced] = useState('');
+  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
+  const [newCompanyLogin, setNewCompanyLogin] = useState({ company_id: '', email: '', password: '' });
+  const [createLoading, setCreateLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -149,10 +189,45 @@ const UserLoginManagement = () => {
     setNoLoginPage(1);
   }, [noLoginSchool, noLoginProgram, noLoginYear, noLoginSearchDebounced]);
 
+  // Company logins
+  const fetchCompanyLogins = useCallback(async () => {
+    setCompanyLoading(true);
+    try {
+      const params = { page: companyPage, limit: 50 };
+      if (companySearchDebounced.trim()) params.search = companySearchDebounced.trim();
+      const data = await getCompanyLogins(params);
+      setCompanyLogins(data.logins || []);
+      setCompanies(data.companies || []);
+      setCompaniesWithLogins(data.companiesWithLogins || []);
+      setCompanyTotal(data.total ?? 0);
+    } catch (err) {
+      toast({
+        title: 'Failed to load company logins',
+        description: err?.message || 'Please try again',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+      setCompanyLogins([]);
+    } finally {
+      setCompanyLoading(false);
+    }
+  }, [companyPage, companySearchDebounced, toast]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setCompanySearchDebounced(companySearch), 400);
+    return () => clearTimeout(t);
+  }, [companySearch]);
+
+  useEffect(() => {
+    setCompanyPage(1);
+  }, [companySearchDebounced]);
+
   const [tabIndex, setTabIndex] = useState(0);
   useEffect(() => {
     if (tabIndex === 1) fetchNoLogin();
-  }, [tabIndex, fetchNoLogin]);
+    if (tabIndex === 2) fetchCompanyLogins();
+  }, [tabIndex, fetchNoLogin, fetchCompanyLogins]);
 
   const handleSingleToggle = async (id, currentActive) => {
     const next = !currentActive;
@@ -234,7 +309,73 @@ const UserLoginManagement = () => {
     }
   };
 
+  // Company login handlers
+  const handleCreateCompanyLogin = async () => {
+    if (!newCompanyLogin.company_id || !newCompanyLogin.email || !newCompanyLogin.password) {
+      toast({ title: 'Please fill all fields', status: 'warning', isClosable: true });
+      return;
+    }
+    if (newCompanyLogin.password.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', status: 'warning', isClosable: true });
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      await createCompanyLogin(newCompanyLogin);
+      toast({
+        title: 'Company login created',
+        description: 'The company can now log in with these credentials',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      setNewCompanyLogin({ company_id: '', email: '', password: '' });
+      onCreateClose();
+      fetchCompanyLogins();
+    } catch (err) {
+      toast({
+        title: 'Failed to create login',
+        description: err?.message || 'Please try again',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const handleDeleteCompanyLogin = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await deleteCompanyLogin(deleteTarget.id);
+      toast({
+        title: 'Company login deleted',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onDeleteClose();
+      setDeleteTarget(null);
+      fetchCompanyLogins();
+    } catch (err) {
+      toast({
+        title: 'Failed to delete login',
+        description: err?.message || 'Please try again',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const isSmall = useBreakpointValue({ base: true, md: false });
+
+  // Filter companies that don't have logins yet
+  const availableCompanies = companies.filter(c => !companiesWithLogins.includes(c.id));
 
   return (
     <AdminLayout>
@@ -244,7 +385,7 @@ const UserLoginManagement = () => {
             User Login Management
           </Heading>
           <Text color="gray.500" fontSize="sm" mb={4}>
-            Manage all users and activate or deactivate accounts in bulk or individually. View students who have not logged in yet.
+            Manage all users, students without login, and company login credentials.
           </Text>
 
           <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled" mb={4}>
@@ -281,9 +422,25 @@ const UserLoginManagement = () => {
               >
                 Students without login
               </Tab>
+              <Tab
+                borderRadius="md"
+                px={4}
+                py={2}
+                fontSize="sm"
+                fontWeight="medium"
+                _selected={{ bg: 'white', color: 'gray.800', boxShadow: 'sm', border: '1px', borderColor: 'gray.200', borderBottom: '2px solid white', mb: '-2px' }}
+                _hover={{ bg: 'whiteAlpha.700' }}
+                color="gray.600"
+              >
+                <HStack spacing={2}>
+                  <Icon as={FaBuilding} boxSize={3} />
+                  <Text>Company logins</Text>
+                </HStack>
+              </Tab>
             </TabList>
 
             <TabPanels pt={4}>
+              {/* Tab 1: User Logins */}
               <TabPanel p={0}>
           <Box
             bg={cardBg}
@@ -526,6 +683,7 @@ const UserLoginManagement = () => {
           </Box>
               </TabPanel>
 
+              {/* Tab 2: Students without login */}
               <TabPanel p={0}>
                 <Box
                   bg={cardBg}
@@ -682,10 +840,296 @@ const UserLoginManagement = () => {
                   )}
                 </Box>
               </TabPanel>
+
+              {/* Tab 3: Company Logins */}
+              <TabPanel p={0}>
+                <Box
+                  bg={cardBg}
+                  borderRadius="xl"
+                  boxShadow="sm"
+                  border="1px"
+                  borderColor="gray.200"
+                  overflow="hidden"
+                  mb={4}
+                >
+                  {/* Header with Add button */}
+                  <Flex
+                    p={4}
+                    gap={3}
+                    wrap="wrap"
+                    align="center"
+                    borderBottom="1px"
+                    borderColor="gray.100"
+                    bg="gray.50"
+                  >
+                    <InputGroup maxW="280px" size="sm">
+                      <InputLeftElement pointerEvents="none">
+                        <SearchIcon color="gray.400" />
+                      </InputLeftElement>
+                      <Input
+                        placeholder="Search by email or company..."
+                        value={companySearch}
+                        onChange={(e) => setCompanySearch(e.target.value)}
+                        bg="white"
+                        borderColor="gray.300"
+                        _focus={{ borderColor: 'gray.400', boxShadow: 'none' }}
+                        autoComplete="off"
+                      />
+                    </InputGroup>
+                    <HStack flex="1" justify="flex-end">
+                      <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        bg={accentColor}
+                        color="white"
+                        _hover={{ bg: '#c4983f' }}
+                        onClick={onCreateOpen}
+                      >
+                        Create Company Login
+                      </Button>
+                    </HStack>
+                  </Flex>
+
+                  {/* Company Logins Table */}
+                  <TableContainer overflowX="auto">
+                    {companyLoading ? (
+                      <Flex justify="center" py={12}>
+                        <Spinner size="lg" color="gray.400" />
+                      </Flex>
+                    ) : (
+                      <Table size="sm" variant="simple">
+                        <Thead>
+                          <Tr bg={headerBg}>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Company</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Email</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Status</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Last Login</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Created</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none" textAlign="center">Actions</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {companyLogins.map((login) => (
+                            <Tr
+                              key={login.id}
+                              _hover={{ bg: rowHoverBg }}
+                              borderBottom="1px"
+                              borderColor="gray.100"
+                            >
+                              <Td borderColor="gray.100">
+                                <HStack spacing={3}>
+                                  <Avatar
+                                    size="sm"
+                                    name={login.company_name || 'Company'}
+                                    bg={headerBg}
+                                    color="white"
+                                  />
+                                  <VStack align="start" spacing={0}>
+                                    <Text fontSize="sm" fontWeight="medium">{login.company_name || '—'}</Text>
+                                    {login.company_type && (
+                                      <Text fontSize="xs" color="gray.500">{login.company_type}</Text>
+                                    )}
+                                  </VStack>
+                                </HStack>
+                              </Td>
+                              <Td borderColor="gray.100" fontSize="sm">{login.email_id}</Td>
+                              <Td borderColor="gray.100">
+                                <Badge colorScheme={login.is_active ? 'green' : 'red'} fontSize="xs">
+                                  {login.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </Td>
+                              <Td borderColor="gray.100" fontSize="xs" color="gray.600">
+                                {formatDate(login.last_login_at)}
+                              </Td>
+                              <Td borderColor="gray.100" fontSize="xs" color="gray.600">
+                                {formatDate(login.created_at)}
+                              </Td>
+                              <Td borderColor="gray.100" textAlign="center">
+                                <Tooltip label="Delete company login">
+                                  <IconButton
+                                    aria-label="Delete"
+                                    icon={<DeleteIcon />}
+                                    size="sm"
+                                    colorScheme="red"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setDeleteTarget(login);
+                                      onDeleteOpen();
+                                    }}
+                                  />
+                                </Tooltip>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    )}
+                  </TableContainer>
+
+                  {!companyLoading && companyLogins.length === 0 && (
+                    <Flex direction="column" py={12} align="center" color="gray.500">
+                      <Icon as={FaBuilding} boxSize={12} mb={4} opacity={0.3} />
+                      <Text fontSize="md" fontWeight="medium" mb={1}>No company logins yet</Text>
+                      <Text fontSize="sm" mb={4}>Create login credentials for companies to access the portal</Text>
+                      <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        bg={accentColor}
+                        color="white"
+                        _hover={{ bg: '#c4983f' }}
+                        onClick={onCreateOpen}
+                      >
+                        Create Company Login
+                      </Button>
+                    </Flex>
+                  )}
+
+                  {!companyLoading && companyTotal > 0 && (
+                    <Flex px={4} py={3} borderTop="1px" borderColor="gray.100" justify="space-between" align="center" bg="gray.50">
+                      <Text fontSize="sm" color="gray.600">
+                        Showing {companyLogins.length} of {companyTotal} company login(s)
+                        {companyTotal > 50 && ` (page ${companyPage})`}
+                      </Text>
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          isDisabled={companyPage <= 1}
+                          onClick={() => setCompanyPage((p) => Math.max(1, p - 1))}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          isDisabled={companyPage * 50 >= companyTotal}
+                          onClick={() => setCompanyPage((p) => p + 1)}
+                        >
+                          Next
+                        </Button>
+                      </HStack>
+                    </Flex>
+                  )}
+                </Box>
+              </TabPanel>
             </TabPanels>
           </Tabs>
         </Container>
       </Box>
+
+      {/* Create Company Login Modal */}
+      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <HStack spacing={3}>
+              <Flex
+                w="40px"
+                h="40px"
+                bg="#f8f3e8"
+                borderRadius="lg"
+                align="center"
+                justify="center"
+              >
+                <Icon as={FaKey} color={accentColor} />
+              </Flex>
+              <Box>
+                <Text fontWeight="bold">Create Company Login</Text>
+                <Text fontSize="sm" fontWeight="normal" color="gray.500">
+                  Generate credentials for a company
+                </Text>
+              </Box>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel fontSize="sm" fontWeight="medium">Select Company</FormLabel>
+                <Select
+                  placeholder="Choose a company..."
+                  value={newCompanyLogin.company_id}
+                  onChange={(e) => setNewCompanyLogin(prev => ({ ...prev, company_id: e.target.value }))}
+                >
+                  {availableCompanies.map(c => (
+                    <option key={c.id} value={c.id}>{c.company_name}</option>
+                  ))}
+                </Select>
+                {availableCompanies.length === 0 && (
+                  <Text fontSize="xs" color="orange.500" mt={1}>
+                    All companies already have logins, or no companies exist yet.
+                  </Text>
+                )}
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel fontSize="sm" fontWeight="medium">Login Email</FormLabel>
+                <Input
+                  type="email"
+                  placeholder="company@example.com"
+                  value={newCompanyLogin.email}
+                  onChange={(e) => setNewCompanyLogin(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel fontSize="sm" fontWeight="medium">Password</FormLabel>
+                <Input
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={newCompanyLogin.password}
+                  onChange={(e) => setNewCompanyLogin(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onCreateClose}>
+              Cancel
+            </Button>
+            <Button
+              bg={accentColor}
+              color="white"
+              _hover={{ bg: '#c4983f' }}
+              onClick={handleCreateCompanyLogin}
+              isLoading={createLoading}
+              isDisabled={!newCompanyLogin.company_id || !newCompanyLogin.email || !newCompanyLogin.password}
+            >
+              Create Login
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteOpen} onClose={onDeleteClose} size="sm">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delete Company Login</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              Are you sure you want to delete the login for{' '}
+              <Text as="span" fontWeight="bold">{deleteTarget?.company_name}</Text>?
+            </Text>
+            <Text fontSize="sm" color="gray.500" mt={2}>
+              This action cannot be undone. The company will no longer be able to log in.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onDeleteClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="red"
+              onClick={handleDeleteCompanyLogin}
+              isLoading={deleteLoading}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </AdminLayout>
   );
 };

@@ -31,7 +31,6 @@ import {
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ViewIcon, StarIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import {
-  FaPhone,
   FaEnvelope,
   FaFileAlt,
   FaExternalLinkAlt,
@@ -379,32 +378,6 @@ const AlumniViewStudent = () => {
                     mb={5}
                   >
                     <VStack align="stretch" spacing={3}>
-                      {/* Phone - Always show */}
-                      <HStack spacing={4}>
-                        <Flex 
-                          w="36px" 
-                          h="36px" 
-                          bg={personal.phone_number ? colors.lightAccent : '#f0f0f0'} 
-                          borderRadius="lg" 
-                          align="center" 
-                          justify="center"
-                        >
-                          <Icon as={FaPhone} color={personal.phone_number ? colors.accent : colors.secondary} boxSize={4} />
-                        </Flex>
-                        <Box>
-                          <Text fontSize="xs" color={colors.secondary} fontWeight="500">Phone</Text>
-                          {personal.phone_number ? (
-                            <Text color={colors.dark} fontSize="sm" fontWeight="600">
-                              {personal.phone_country_code || '+91'} {personal.phone_number}
-                            </Text>
-                          ) : (
-                            <Text color={colors.secondary} fontSize="sm" fontStyle="italic">
-                              Not provided
-                            </Text>
-                          )}
-                        </Box>
-                      </HStack>
-                      
                       {/* College Email */}
                       <HStack spacing={4}>
                         <Flex 
@@ -438,42 +411,6 @@ const AlumniViewStudent = () => {
                           )}
                         </Box>
                       </HStack>
-
-                      {/* Personal Email - Show if different from college email */}
-                      {(personal.personal_email || !personal.college_email) && (
-                        <HStack spacing={4}>
-                          <Flex 
-                            w="36px" 
-                            h="36px" 
-                            bg={personal.personal_email ? '#f0f0f0' : '#f5f5f5'} 
-                            borderRadius="lg" 
-                            align="center" 
-                            justify="center"
-                          >
-                            <Icon as={FaEnvelope} color={colors.secondary} boxSize={4} />
-                          </Flex>
-                          <Box flex="1" minW={0}>
-                            <Text fontSize="xs" color={colors.secondary} fontWeight="500">Personal Email</Text>
-                            {personal.personal_email ? (
-                              <Link 
-                                href={`mailto:${personal.personal_email}`} 
-                                color={colors.dark} 
-                                fontSize="sm" 
-                                fontWeight="600" 
-                                _hover={{ color: colors.accent }}
-                                isTruncated
-                                display="block"
-                              >
-                                {personal.personal_email}
-                              </Link>
-                            ) : (
-                              <Text color={colors.secondary} fontSize="sm" fontStyle="italic">
-                                Not provided
-                              </Text>
-                            )}
-                          </Box>
-                        </HStack>
-                      )}
                     </VStack>
                   </Box>
 

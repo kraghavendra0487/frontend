@@ -49,9 +49,49 @@ export const getStudentsWithoutLogin = async (params = {}) => {
   return res.data;
 };
 
+/**
+ * Get all company logins with company details
+ * @param {Object} params - { search, page, limit }
+ */
+export const getCompanyLogins = async (params = {}) => {
+  const searchParams = new URLSearchParams();
+  if (params.search) searchParams.set('search', params.search);
+  if (params.page) searchParams.set('page', params.page);
+  if (params.limit) searchParams.set('limit', params.limit);
+  const qs = searchParams.toString();
+  const res = await apiFetch(`/auth/admin/company-logins${qs ? `?${qs}` : ''}`);
+  return res.data;
+};
+
+/**
+ * Create a new company login
+ * @param {Object} data - { company_id, email, password }
+ */
+export const createCompanyLogin = async (data) => {
+  const res = await apiFetch('/auth/admin/company-login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.data;
+};
+
+/**
+ * Delete a company login
+ * @param {number} id - The user_login id to delete
+ */
+export const deleteCompanyLogin = async (id) => {
+  const res = await apiFetch(`/auth/admin/company-login/${id}`, {
+    method: 'DELETE',
+  });
+  return res.data;
+};
+
 export default {
   getUserLoginList,
   getStudentsWithoutLogin,
   updateUserLoginIsActive,
   bulkUpdateUserLoginIsActive,
+  getCompanyLogins,
+  createCompanyLogin,
+  deleteCompanyLogin,
 };
