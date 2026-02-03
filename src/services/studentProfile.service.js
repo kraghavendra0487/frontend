@@ -125,6 +125,26 @@ export const StudentProfileService = {
     }
   },
 
+  createMajor: async (data) => {
+    const response = await apiFetch('/student/majors', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  updateMajor: async (id, data) => {
+    const response = await apiFetch(`/student/majors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  deleteMajor: async (id) => {
+    await apiFetch(`/student/majors/${id}`, { method: 'DELETE' });
+  },
+
   /**
    * Get all minors
    */
@@ -149,6 +169,26 @@ export const StudentProfileService = {
     }
   },
 
+  createSpecialization: async (data) => {
+    const response = await apiFetch('/student/specializations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  updateSpecialization: async (id, data) => {
+    const response = await apiFetch(`/student/specializations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  deleteSpecialization: async (id) => {
+    await apiFetch(`/student/specializations/${id}`, { method: 'DELETE' });
+  },
+
   /**
    * Get all schools
    */
@@ -162,6 +202,47 @@ export const StudentProfileService = {
   },
 
   /**
+   * Get academy overview: schools with totalStudents (for Manage Academic)
+   */
+  getAcademyOverview: async () => {
+    try {
+      const response = await apiFetch('/student/academy/overview');
+      return response.data;
+    } catch (error) {
+      return [];
+    }
+  },
+
+  /**
+   * Create school. Body: { name, abbreviation? }
+   */
+  createSchool: async (data) => {
+    const response = await apiFetch('/student/schools', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  /**
+   * Update school. id, body: { name?, abbreviation? }
+   */
+  updateSchool: async (id, data) => {
+    const response = await apiFetch(`/student/schools/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete school. Fails if any students are associated.
+   */
+  deleteSchool: async (id) => {
+    await apiFetch(`/student/schools/${id}`, { method: 'DELETE' });
+  },
+
+  /**
    * Get all programs
    */
   getPrograms: async () => {
@@ -171,6 +252,46 @@ export const StudentProfileService = {
     } catch (error) {
       return [];
     }
+  },
+
+  createProgram: async (data) => {
+    const response = await apiFetch('/student/programs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  updateProgram: async (id, data) => {
+    const response = await apiFetch(`/student/programs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  deleteProgram: async (id) => {
+    await apiFetch(`/student/programs/${id}`, { method: 'DELETE' });
+  },
+
+  createMinor: async (data) => {
+    const response = await apiFetch('/student/minors', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  updateMinor: async (id, data) => {
+    const response = await apiFetch(`/student/minors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  deleteMinor: async (id) => {
+    await apiFetch(`/student/minors/${id}`, { method: 'DELETE' });
   },
 
   /**

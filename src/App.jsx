@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, RouterProvider, Outlet, useLocation, Navigate, useParams } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
@@ -14,10 +15,13 @@ import AdminStudentDetail from './pages/AdminStudentDetail';
 import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
+import ManageAcademicPage from './pages/students/ManageAcademicPage';
 import CalendarOfEvents from './pages/admin/CalendarOfEvents';
 import Events from './pages/admin/Events';
 import DriveRegistrations from './pages/admin/DriveRegistrations';
-import DriveProcess from './pages/admin/DriveProcess';
+const DriveProcess = lazy(() =>
+  import('./pages/admin/DriveProcess').then((m) => ({ default: m.default ?? m.DriveProcess }))
+);
 import Process from './pages/admin/Process';
 import AlumniList from './pages/admin/AlumniList';
 import AlumniDetails from './pages/admin/AlumniDetails';
@@ -191,7 +195,9 @@ const router = createBrowserRouter([
         path: "/placement/events/:driveId/process",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
-            <DriveProcess />
+            <Suspense fallback={<div style={{ padding: 24, textAlign: 'center' }}>Loading…</div>}>
+              <DriveProcess />
+            </Suspense>
           </PlacementProtectedRoute>
         )
       },
@@ -439,6 +445,8 @@ const router = createBrowserRouter([
           { index: true, element: <ViewAllStudents /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "add", element: <AddStudents /> },
+          { path: "academic", element: <ManageAcademicPage /> },
+          { path: ":usn", element: <AdminStudentDetail /> },
         ],
       },
       {
@@ -448,14 +456,6 @@ const router = createBrowserRouter([
             <AdminHrRecommendations />
           </PlacementProtectedRoute>
         )
-      },
-      {
-        path: "/placement/students/:usn",
-        element: (
-          <PlacementProtectedRoute requiredRole="admin">
-            <AdminStudentDetail />
-          </PlacementProtectedRoute>
-        ),
       },
       { 
         path: "/student-dashboard", 
