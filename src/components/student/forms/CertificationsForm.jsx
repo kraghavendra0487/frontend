@@ -45,7 +45,8 @@ export const CertificationsForm = ({ data = {}, onUpdate, isEditing, onFileSelec
         score: "", 
         issueDate: "", 
         expiryDate: "", 
-        proofDocument: "" 
+        proofDocument: "",
+        _isNewEntry: true
       },
     ];
     onUpdate(newCertifications);
@@ -105,7 +106,8 @@ export const CertificationsForm = ({ data = {}, onUpdate, isEditing, onFileSelec
 };
 
 const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect, fieldErrors = {} }) => {
-    const [isOpen, setIsOpen] = useState(Object.keys(fieldErrors || {}).length > 0);
+    const isNewEntry = item?._isNewEntry === true
+    const [isOpen, setIsOpen] = useState(Object.keys(fieldErrors || {}).length > 0 || isNewEntry);
     const [pendingPreview, setPendingPreview] = useState(null);
     const lastProcessedFileRef = useRef(null);
     const borderColor = useColorModeValue("gray.200", "gray.600");
@@ -115,7 +117,11 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
         URL.revokeObjectURL(pendingPreview);
         setPendingPreview(null);
       }
-    }, [hasProof]);
+      // Clear the _isNewEntry flag after component mounts
+      if (isNewEntry && item._isNewEntry === true) {
+        onChange(index, "_isNewEntry", false)
+      }
+    }, [fieldErrors, isNewEntry]);
     useEffect(() => {
       if (Object.keys(fieldErrors || {}).length > 0) setIsOpen(true);
     }, [fieldErrors]);

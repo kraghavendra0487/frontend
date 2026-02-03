@@ -31,6 +31,7 @@ import { FaPlus, FaTrash, FaEdit } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { getFileUrl } from "../../../utils/fileUrl"
+import { validateUrl } from "../../../utils/profileValidators"
 
 const MAX_PROJECT_IMAGES = 4
 
@@ -52,6 +53,15 @@ function getNextPriority(items) {
 /** Get max allowed priority (equals total number of projects) */
 function getMaxPriority(items) {
   return Array.isArray(items) ? items.length : 0
+}
+
+/** Validate URL for GitHub and hosted links */
+function validateProjectUrl(value) {
+  if (!value || typeof value !== 'string') return { valid: true }
+  const trimmed = value.trim()
+  if (!trimmed) return { valid: true }
+  const urlValidation = validateUrl(trimmed)
+  return urlValidation
 }
 
 function validateProject(item, items, editingIndex) {
@@ -282,16 +292,25 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
       </Flex>
 
       <VStack spacing={3} align="stretch" mt={4}>
-        {items.map((item, index) => (
-          <ProjectInventoryCard
-            key={index}
-            index={index}
-            item={item}
-            isEditing={isEditing}
-            onEdit={() => openEditModal(index)}
-            onDelete={() => handleDelete(index)}
-          />
-        ))}
+        {items
+          .map((item, index) => ({ item, index }))
+          .sort((a, b) => {
+            const priorityA = parsePriority(a.item?.priority)
+            const priorityB = parsePriority(b.item?.priority)
+            if (priorityA === null || priorityA === undefined) return 1
+            if (priorityB === null || priorityB === undefined) return -1
+            return priorityA - priorityB
+          })
+          .map(({ item, index }) => (
+            <ProjectInventoryCard
+              key={index}
+              index={index}
+              item={item}
+              isEditing={isEditing}
+              onEdit={() => openEditModal(index)}
+              onDelete={() => handleDelete(index)}
+            />
+          ))}
       </VStack>
 
       <Modal isOpen={isModalOpen} onClose={closeEditModal} size="xl" scrollBehavior="inside" isCentered>
@@ -533,18 +552,54 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
       </SimpleGrid>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        <Field label="GITHUB REPO" errorText={fieldErrors.github_repo}>
+        <Field label="GITHUB REPO" errorText={fieldErrors.github_repo || (item.github_repo ? validateProjectUrl(item.github_repo).message : null)}>
           <Input
             value={item.github_repo || ""}
-            onChange={(e) => onChange(index, "github_repo", e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              onChange(index, "github_repo", val)
+            }}
+            onBlur={(e) => {
+              const val = e.target.value.trim()
+              if (val && !validateProjectUrl(val).valid) {
+                setModalErrors(prev => ({
+                  ...prev,
+                  github_repo: validateProjectUrl(val).message
+                }))
+              } else {
+                setModalErrors(prev => {
+                  const newErrors = { ...prev }
+                  delete newErrors.github_repo
+                  return newErrors
+                })
+              }
+            }}
             placeholder="https://github.com/..."
             className="projects-edit-input"
           />
         </Field>
-        <Field label="HOSTED LINK" errorText={fieldErrors.hosted_link}>
+        <Field label="HOSTED LINK" errorText={fieldErrors.hosted_link || (item.hosted_link ? validateProjectUrl(item.hosted_link).message : null)}>
           <Input
             value={item.hosted_link || ""}
-            onChange={(e) => onChange(index, "hosted_link", e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              onChange(index, "hosted_link", val)
+            }}
+            onBlur={(e) => {
+              const val = e.target.value.trim()
+              if (val && !validateProjectUrl(val).valid) {
+                setModalErrors(prev => ({
+                  ...prev,
+                  hosted_link: validateProjectUrl(val).message
+                }))
+              } else {
+                setModalErrors(prev => {
+                  const newErrors = { ...prev }
+                  delete newErrors.hosted_link
+                  return newErrors
+                })
+              }
+            }}
             placeholder="https://demo.com"
             className="projects-edit-input"
           />

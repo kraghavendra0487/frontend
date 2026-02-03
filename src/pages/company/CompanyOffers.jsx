@@ -65,6 +65,7 @@ const CompanyOffers = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     loadOffers();
@@ -97,6 +98,18 @@ const CompanyOffers = () => {
     });
   };
 
+  // Unique dates from offers (created_at) for date filter dropdown
+  const offerDates = React.useMemo(() => {
+    const dates = new Set();
+    (offers || []).forEach((offer) => {
+      if (offer.created_at) {
+        const d = new Date(offer.created_at);
+        if (!isNaN(d.getTime())) dates.add(d.toISOString().slice(0, 10));
+      }
+    });
+    return Array.from(dates).sort().reverse();
+  }, [offers]);
+
   // Filter offers
   const filteredOffers = offers.filter(offer => {
     const matchesSearch = !search || 
@@ -107,8 +120,10 @@ const CompanyOffers = () => {
       (statusFilter === 'accepted' && offer.is_accepted === true) ||
       (statusFilter === 'pending' && offer.is_accepted === null) ||
       (statusFilter === 'declined' && offer.is_accepted === false);
+
+    const matchesDate = !dateFilter || (offer.created_at && offer.created_at.slice(0, 10) === dateFilter);
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Stats
@@ -252,6 +267,20 @@ const CompanyOffers = () => {
                   <option value="accepted">Accepted</option>
                   <option value="pending">Pending</option>
                   <option value="declined">Declined</option>
+                </Select>
+                <Select
+                  w="180px"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  borderRadius="lg"
+                  title="Filter by offer date"
+                >
+                  <option value="">All dates</option>
+                  {offerDates.map((dateStr) => (
+                    <option key={dateStr} value={dateStr}>
+                      {formatDate(dateStr)}
+                    </option>
+                  ))}
                 </Select>
                 <Text fontSize="sm" color={colors.secondary} ml="auto">
                   {filteredOffers.length} of {totalOffers} offers

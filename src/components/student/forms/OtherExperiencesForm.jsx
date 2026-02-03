@@ -45,7 +45,8 @@ export const OtherExperiencesForm = ({ data = {}, onUpdate, isEditing = false, o
         endDate: "",
         skills: "",
         description: "",
-        proofDocument: ""
+        proofDocument: "",
+        _isNewEntry: true
       }
     ])
   }
@@ -99,7 +100,8 @@ export const OtherExperiencesForm = ({ data = {}, onUpdate, isEditing = false, o
 
 const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect, fieldErrors = {} }) => {
   const hasErrors = !!(fieldErrors && typeof fieldErrors === "object" && Object.keys(fieldErrors).length > 0)
-  const [isOpen, setIsOpen] = useState(hasErrors)
+  const isNewEntry = item?._isNewEntry === true
+  const [isOpen, setIsOpen] = useState(hasErrors || isNewEntry)
   const [pendingPreview, setPendingPreview] = useState(null)
   const [pendingFileName, setPendingFileName] = useState(null)
   const fileInputRef = useRef(null)
@@ -111,7 +113,11 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
       setPendingPreview(null)
     }
     if (hasProof) setPendingFileName(null)
-  }, [hasProof])
+    // Clear the _isNewEntry flag after component mounts
+    if (isNewEntry && item._isNewEntry === true) {
+      onChange(index, "_isNewEntry", false)
+    }
+  }, [hasProof, isNewEntry])
   useEffect(() => {
     if (hasErrors && !isOpen) setIsOpen(true)
   }, [hasErrors])

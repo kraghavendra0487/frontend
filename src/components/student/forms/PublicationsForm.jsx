@@ -39,7 +39,8 @@ export const PublicationsForm = ({ data = {}, onUpdate, isEditing = false, onFil
         link: "",
         skills: "",
         description: "",
-        evidence_document: ""
+        evidence_document: "",
+        _isNewEntry: true
       }
     ])
   }
@@ -86,7 +87,8 @@ export const PublicationsForm = ({ data = {}, onUpdate, isEditing = false, onFil
 }
 
 const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect, fieldErrors = {} }) => {
-  const [isOpen, setIsOpen] = useState(Object.keys(fieldErrors || {}).length > 0)
+  const isNewEntry = item?._isNewEntry === true
+  const [isOpen, setIsOpen] = useState(Object.keys(fieldErrors || {}).length > 0 || isNewEntry)
   const [pendingPreview, setPendingPreview] = useState(null)
   const lastProcessedFileRef = useRef(null)
   const hasProof = !!(item.evidence_document || item.evidenceDocument)
@@ -95,7 +97,11 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
       URL.revokeObjectURL(pendingPreview)
       setPendingPreview(null)
     }
-  }, [hasProof])
+    // Clear the _isNewEntry flag after component mounts
+    if (isNewEntry && item._isNewEntry === true) {
+      onChange(index, "_isNewEntry", false)
+    }
+  }, [hasProof, isNewEntry])
   useEffect(() => {
     if (Object.keys(fieldErrors || {}).length > 0) setIsOpen(true)
   }, [fieldErrors])

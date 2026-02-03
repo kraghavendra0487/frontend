@@ -2,84 +2,90 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Container,
   Heading,
   Text,
-  VStack,
   HStack,
-  Button,
-  useToast,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
   Flex,
-  Icon,
-  Badge,
+  useToast,
   Spinner,
-  Card,
-  CardBody,
-  SimpleGrid,
-  Select,
-  InputGroup,
-  InputLeftElement,
-  Input,
-  Divider,
-  Progress,
+  Badge,
 } from '@chakra-ui/react';
-import { 
-  SearchIcon,
-  CalendarIcon,
-  ViewIcon,
-} from '@chakra-ui/icons';
-import { 
-  FaBriefcase, 
-  FaMapMarkerAlt,
-  FaUsers,
-  FaRupeeSign,
-  FaClock,
-  FaCheckCircle,
-  FaHourglassHalf,
-  FaTimesCircle,
-} from 'react-icons/fa';
+import { FaRocket } from 'react-icons/fa';
+import { HiLocationMarker } from 'react-icons/hi';
+import { MdCalendarToday, MdHourglassEmpty } from 'react-icons/md';
+import { ViewIcon } from '@chakra-ui/icons';
+import '../admin/PlacementEvents.css';
 import CompanyLayout from '../../components/CompanyLayout';
 import { CompanyService } from '../../services/company.service';
 
-const colors = {
-  accent: '#d4a960',
-  accentHover: '#c4983f',
-  accentLight: '#f8f3e8',
-  dark: '#172e36',
-  darkBlue: '#1e3a47',
-  secondary: '#64748b',
-  cardBg: '#ffffff',
-  pageBg: '#f1f5f9',
-  border: '#e2e8f0',
-};
-
-const getStatusConfig = (status) => {
-  const statusLower = (status || '').toLowerCase();
-  switch (statusLower) {
-    case 'completed':
-      return { color: 'green', icon: FaCheckCircle, label: 'Completed' };
-    case 'ongoing':
-    case 'in_progress':
-    case 'active':
-      return { color: 'blue', icon: FaHourglassHalf, label: 'Ongoing' };
-    case 'scheduled':
-    case 'upcoming':
-      return { color: 'orange', icon: FaClock, label: 'Scheduled' };
-    case 'cancelled':
-      return { color: 'red', icon: FaTimesCircle, label: 'Cancelled' };
-    default:
-      return { color: 'gray', icon: FaClock, label: status || 'Unknown' };
-  }
-};
+/* Same columns as admin placement drive table */
+const TABLE_COLUMNS = [
+  { id: 'company_remarks_tpo', label: 'Company, Remarks & TPO' },
+  { id: 'eligibility', label: 'Eligibility' },
+  { id: 'location_description', label: 'Location & Description' },
+  { id: 'compensation', label: 'Compensation Details' },
+  { id: 'important_dates', label: 'Important Dates' },
+  { id: 'openings_reg', label: 'Openings/Reg' },
+  { id: 'actions', label: 'Actions' },
+];
 
 const CompanyDrives = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const [drives, setDrives] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [jobTypeFilter, setJobTypeFilter] = useState('all');
+  const [statusTab, setStatusTab] = useState('current'); // 'current' | 'history'
+
+  const calculateTotalCTC = (c) => {
+    if (!c || typeof c !== 'object') return null;
+    const max = parseFloat(c.max ?? c.max_lpa ?? 0) || 0;
+    const variablePercent = parseFloat(c.variable ?? 0) || 0;
+    const stock = parseFloat(c.stock ?? 0) || 0;
+    if (max <= 0) return null;
+    if (variablePercent === 0 && stock === 0) return max;
+    const variableAmount = (max * variablePercent) / 100;
+    return Number((max + variableAmount + stock).toFixed(2));
+  };
+
+  const getDisplayCTCValue = (ctcStructure) => {
+    if (!ctcStructure || typeof ctcStructure !== 'object') return null;
+    const calculated = calculateTotalCTC(ctcStructure);
+    const stored = ctcStructure.final ?? ctcStructure.package ?? ctcStructure.total;
+    return calculated != null ? calculated : (stored != null && stored !== '' ? stored : null);
+  };
+
+  const derivePlacementStatusFromDates = (lastDateToReg, eventDatetime) => {
+    const now = new Date();
+    let regEnd = lastDateToReg ? new Date(lastDateToReg) : null;
+    const eventStart = eventDatetime ? new Date(eventDatetime) : null;
+    if (regEnd && !isNaN(regEnd.getTime())) {
+      const str = String(lastDateToReg).trim();
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(str) || (str.length <= 10 && str.indexOf('T') === -1);
+      if (dateOnly) regEnd.setHours(23, 59, 59, 999);
+    }
+    if (!eventStart || isNaN(eventStart.getTime())) return 'Scheduled';
+    if (!regEnd || isNaN(regEnd.getTime())) return now < eventStart ? 'Scheduled' : 'Completed';
+    if (now <= regEnd) return 'Scheduled';
+    if (now < eventStart) return 'Ongoing';
+    return 'Completed';
+  };
+
+  const isManualPlacementStatus = (status) => {
+    const s = String(status || '').toLowerCase();
+    return s === 'cancelled' || s === 'postponed' || s === 'failed';
+  };
+
+  const getEffectiveStatus = (drive) => {
+    const s = (drive.placement_status || '').toString();
+    if (isManualPlacementStatus(s)) return s.toLowerCase();
+    return derivePlacementStatusFromDates(drive.last_date_to_registration, drive.event_datetime);
+  };
 
   useEffect(() => {
     loadDrives();
@@ -89,7 +95,7 @@ const CompanyDrives = () => {
     setLoading(true);
     try {
       const data = await CompanyService.getDrives();
-      setDrives(data || []);
+      setDrives(Array.isArray(data) ? data : []);
     } catch (err) {
       toast({
         title: 'Failed to load placement drives',
@@ -103,351 +109,259 @@ const CompanyDrives = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatCTC = (ctcStructure) => {
-    if (!ctcStructure) return null;
-    try {
-      const ctc = typeof ctcStructure === 'string' ? JSON.parse(ctcStructure) : ctcStructure;
-      if (ctc.min && ctc.max) {
-        return `${ctc.min} - ${ctc.max} LPA`;
-      } else if (ctc.fixed) {
-        return `${ctc.fixed} LPA`;
-      }
-      return null;
-    } catch {
-      return null;
+  const drivesByTab = drives.filter((drive) => {
+    const status = getEffectiveStatus(drive);
+    const statusLower = String(status || '').toLowerCase();
+    if (statusTab === 'current') {
+      return statusLower === 'scheduled' || statusLower === 'ongoing';
     }
-  };
-
-  const formatStipend = (stipendStructure) => {
-    if (!stipendStructure) return null;
-    try {
-      const stipend = typeof stipendStructure === 'string' ? JSON.parse(stipendStructure) : stipendStructure;
-      if (stipend.min && stipend.max) {
-        return `₹${stipend.min} - ₹${stipend.max}/month`;
-      } else if (stipend.fixed) {
-        return `₹${stipend.fixed}/month`;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  // Filter drives
-  const filteredDrives = drives.filter(drive => {
-    const matchesSearch = !search || 
-      drive.job_description?.toLowerCase().includes(search.toLowerCase()) ||
-      drive.job_type?.toLowerCase().includes(search.toLowerCase()) ||
-      drive.job_location?.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || 
-      (drive.placement_status || '').toLowerCase() === statusFilter.toLowerCase();
-    
-    const matchesJobType = jobTypeFilter === 'all' || 
-      (drive.job_type || '').toLowerCase() === jobTypeFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus && matchesJobType;
+    return statusLower === 'completed' || statusLower === 'cancelled' || statusLower === 'failed' || statusLower === 'postponed';
   });
 
-  // Stats
-  const totalDrives = drives.length;
-  const activeDrives = drives.filter(d => 
-    !['completed', 'cancelled'].includes((d.placement_status || '').toLowerCase())
-  ).length;
-  const totalRegistrations = drives.reduce((sum, d) => sum + (d.number_of_registrations || 0), 0);
+  const registeredCount = (drive) => drive.registered_count ?? drive.number_of_registrations ?? 0;
 
-  if (loading) {
-    return (
-      <CompanyLayout>
-        <Flex justify="center" align="center" minH="60vh">
-          <Spinner size="xl" color={colors.accent} thickness="4px" />
-        </Flex>
-      </CompanyLayout>
-    );
-  }
+  const renderTableCell = (drive, colId) => {
+    const ctc = drive.ctc_structure || {};
+    const stipend = drive.stipend_structure || {};
+    switch (colId) {
+      case 'company_remarks_tpo':
+        return (
+          <Box className="col-company-remarks-tpo">
+            <Flex gap={3}>
+              <Box className="company-logo">{(drive.company_name || drive.job_description || ' ')[0]}</Box>
+              <Flex flexDirection="column">
+                <Box className="company-name">{drive.company_name || '—'}</Box>
+                <Box className="company-remarks line-clamp-2">"{drive.company_remarks || ''}"</Box>
+                <Box className="company-tpo">TPO: {(drive.tpo || '').toUpperCase()}</Box>
+              </Flex>
+            </Flex>
+          </Box>
+        );
+      case 'eligibility':
+        return (
+          <Badge
+            fontSize="10px"
+            colorScheme="gray"
+            variant="subtle"
+            fontWeight="bold"
+            textTransform="uppercase"
+            letterSpacing="tighter"
+            px={2}
+            py={1}
+            borderRadius="md"
+          >
+            {drive.school || 'General'}
+            {drive.program ? ` • ${drive.program}` : ''}
+          </Badge>
+        );
+      case 'location_description':
+        return (
+          <Flex flexDirection="column" gap={1} maxW="350px">
+            <Flex as="span" alignItems="center" gap={1} fontSize="xs" fontWeight="bold" color="gray.700">
+              <Box as={HiLocationMarker} boxSize={3} color="gray.500" /> {drive.job_location || '—'} (
+              {drive.type_of_hiring || '—'})
+            </Flex>
+            <Text
+              fontSize="11px"
+              color="gray.500"
+              fontWeight="medium"
+              className="line-clamp-2"
+              fontStyle="italic"
+              lineHeight="relaxed"
+            >
+              "{drive.job_description || ''}"
+            </Text>
+          </Flex>
+        );
+      case 'compensation': {
+        const ctcValue = getDisplayCTCValue(ctc);
+        return (
+          <Flex flexDirection="column" gap={1}>
+            <Text fontSize="sm" fontWeight="bold" color="blue.600">
+              {ctcValue != null ? `${ctcValue} LPA` : 'TBD'}
+            </Text>
+            <Text fontSize="xs" color="gray.500" fontWeight="normal">
+              Base: {ctc.min || '0'}-{ctc.max || '0'} | Var: {ctc.variable || '0'}%
+            </Text>
+            {stipend && (stipend.avg || stipend.min || stipend.max) ? (
+              <Text fontSize="xs" fontWeight="bold" color="green.500">
+                Stipend: ₹{parseInt(stipend.avg || stipend.min || 0, 10).toLocaleString()}
+              </Text>
+            ) : (
+              <Text fontSize="xs" color="gray.400">—</Text>
+            )}
+          </Flex>
+        );
+      }
+      case 'important_dates':
+        return (
+          <Box fontSize="11px">
+            <Flex
+              as="p"
+              alignItems="center"
+              gap={1}
+              color="gray.600"
+              fontWeight="bold"
+              textTransform="uppercase"
+              letterSpacing="tighter"
+            >
+              <Box as={MdCalendarToday} boxSize={3} /> Drive:{' '}
+              {drive.event_datetime ? new Date(drive.event_datetime).toLocaleDateString() : '—'}
+            </Flex>
+            <Flex
+              as="p"
+              alignItems="center"
+              gap={1}
+              color="red.400"
+              fontWeight="bold"
+              mt={1}
+              letterSpacing="tighter"
+              textTransform="uppercase"
+            >
+              <Box as={MdHourglassEmpty} boxSize={3} /> Reg:{' '}
+              {drive.last_date_to_registration
+                ? new Date(drive.last_date_to_registration).toLocaleDateString()
+                : '—'}
+            </Flex>
+          </Box>
+        );
+      case 'openings_reg':
+        return (
+          <Flex alignItems="center" gap={3}>
+            <Box>
+              <Text fontSize="xs" fontWeight="bold" color="gray.800">
+                {registeredCount(drive)}
+              </Text>
+              <Text fontSize="10px" color="gray.500" textTransform="uppercase" fontWeight="bold">
+                Regs
+              </Text>
+            </Box>
+            <Box w="1px" h={6} bg="gray.200" />
+            <Box>
+              <Text fontSize="xs" fontWeight="bold" color="gray.800">
+                {drive.number_of_openings ?? '—'}
+              </Text>
+              <Text fontSize="10px" color="gray.500" textTransform="uppercase" fontWeight="bold">
+                Seats
+              </Text>
+            </Box>
+          </Flex>
+        );
+      case 'actions':
+        return (
+          <HStack spacing={1} justify="flex-end">
+            <Box
+              as="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/company/drive/${drive.id}`);
+              }}
+              title="View drive"
+              aria-label="View drive"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                w: 8,
+                h: 8,
+                borderRadius: 'lg',
+                color: 'gray.400',
+                _hover: { color: 'blue.600', bg: 'gray.100' },
+              }}
+            >
+              <ViewIcon boxSize={4} />
+            </Box>
+          </HStack>
+        );
+      default:
+        return '—';
+    }
+  };
 
   return (
     <CompanyLayout>
-      <Box bg={colors.pageBg} minH="100vh" py={8}>
-        <Container maxW="1400px">
-          {/* Header */}
-          <Box mb={8}>
-            <Heading size="xl" color={colors.dark} mb={1}>
+      <Box className="placement-events-page" minH="calc(100vh - 72px)" h="100%" pt={0} pb={0} px={0}>
+        <Box as="header" className="placement-events-header">
+          <Box>
+            <Heading as="h1" size="md" display="flex" alignItems="center" gap={2}>
+              <Box as={FaRocket} className="header-icon" boxSize={5} />
               Placement Drives
             </Heading>
-            <Text color={colors.secondary} fontSize="md">
-              View and manage all your hiring drives
-            </Text>
+            <Text className="header-subtitle">View your current drives and drive history</Text>
           </Box>
+        </Box>
 
-          {/* Stats Cards */}
-          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={8}>
-            <Card bg="white" borderRadius="xl" boxShadow="sm" border="1px solid" borderColor={colors.border}>
-              <CardBody p={5}>
-                <HStack spacing={4}>
-                  <Flex w="50px" h="50px" bg={colors.accentLight} borderRadius="xl" align="center" justify="center">
-                    <Icon as={FaBriefcase} color={colors.accent} boxSize={6} />
-                  </Flex>
-                  <Box>
-                    <Text fontSize="2xl" fontWeight="700" color={colors.dark}>{totalDrives}</Text>
-                    <Text fontSize="sm" color={colors.secondary}>Total Drives</Text>
-                  </Box>
-                </HStack>
-              </CardBody>
-            </Card>
-            <Card bg="white" borderRadius="xl" boxShadow="sm" border="1px solid" borderColor={colors.border}>
-              <CardBody p={5}>
-                <HStack spacing={4}>
-                  <Flex w="50px" h="50px" bg="blue.50" borderRadius="xl" align="center" justify="center">
-                    <Icon as={FaHourglassHalf} color="blue.500" boxSize={6} />
-                  </Flex>
-                  <Box>
-                    <Text fontSize="2xl" fontWeight="700" color={colors.dark}>{activeDrives}</Text>
-                    <Text fontSize="sm" color={colors.secondary}>Active Drives</Text>
-                  </Box>
-                </HStack>
-              </CardBody>
-            </Card>
-            <Card bg="white" borderRadius="xl" boxShadow="sm" border="1px solid" borderColor={colors.border}>
-              <CardBody p={5}>
-                <HStack spacing={4}>
-                  <Flex w="50px" h="50px" bg="green.50" borderRadius="xl" align="center" justify="center">
-                    <Icon as={FaUsers} color="green.500" boxSize={6} />
-                  </Flex>
-                  <Box>
-                    <Text fontSize="2xl" fontWeight="700" color={colors.dark}>{totalRegistrations}</Text>
-                    <Text fontSize="sm" color={colors.secondary}>Total Registrations</Text>
-                  </Box>
-                </HStack>
-              </CardBody>
-            </Card>
-          </SimpleGrid>
+        <Box as="main" className="placement-events-main">
+          {/* Tabs: Current Drives | Drive History */}
+          <div className="placement-events-tabs">
+            <button
+              type="button"
+              className={statusTab === 'current' ? 'tab-active' : ''}
+              onClick={() => setStatusTab('current')}
+            >
+              Current Drives
+            </button>
+            <button
+              type="button"
+              className={statusTab === 'history' ? 'tab-active' : ''}
+              onClick={() => setStatusTab('history')}
+            >
+              Drive History
+            </button>
+          </div>
 
-          {/* Filters */}
-          <Card bg="white" borderRadius="xl" boxShadow="sm" border="1px solid" borderColor={colors.border} mb={6}>
-            <CardBody p={4}>
-              <Flex gap={4} wrap="wrap" align="center">
-                <InputGroup maxW="300px" size="md">
-                  <InputLeftElement pointerEvents="none">
-                    <SearchIcon color="gray.400" />
-                  </InputLeftElement>
-                  <Input
-                    placeholder="Search drives..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    borderRadius="lg"
-                    borderColor={colors.border}
-                    _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
-                  />
-                </InputGroup>
-                <Select
-                  w="160px"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  borderRadius="lg"
-                  borderColor={colors.border}
-                >
-                  <option value="all">All Status</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="scheduled">Scheduled</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </Select>
-                <Select
-                  w="160px"
-                  value={jobTypeFilter}
-                  onChange={(e) => setJobTypeFilter(e.target.value)}
-                  borderRadius="lg"
-                  borderColor={colors.border}
-                >
-                  <option value="all">All Types</option>
-                  <option value="full-time">Full-Time</option>
-                  <option value="internship">Internship</option>
-                </Select>
-                <Text fontSize="sm" color={colors.secondary} ml="auto">
-                  Showing {filteredDrives.length} of {totalDrives} drives
-                </Text>
-              </Flex>
-            </CardBody>
-          </Card>
-
-          {/* Drives List */}
-          {filteredDrives.length === 0 ? (
-            <Card bg="white" borderRadius="2xl" boxShadow="sm" border="1px solid" borderColor={colors.border}>
-              <CardBody py={16}>
-                <VStack spacing={4}>
-                  <Flex
-                    w="100px"
-                    h="100px"
-                    borderRadius="full"
-                    bg={colors.accentLight}
-                    align="center"
-                    justify="center"
-                  >
-                    <Icon as={FaBriefcase} boxSize={12} color={colors.accent} opacity={0.6} />
-                  </Flex>
-                  <Heading size="md" color={colors.dark}>No placement drives found</Heading>
-                  <Text color={colors.secondary} textAlign="center" maxW="400px">
-                    {drives.length === 0 
-                      ? "You don't have any placement drives yet. Contact the placement office to schedule your first drive."
-                      : "No drives match your current filters. Try adjusting your search criteria."}
-                  </Text>
-                </VStack>
-              </CardBody>
-            </Card>
-          ) : (
-            <VStack spacing={4} align="stretch">
-              {filteredDrives.map((drive) => {
-                const statusConfig = getStatusConfig(drive.placement_status);
-                const ctc = formatCTC(drive.ctc_structure);
-                const stipend = formatStipend(drive.stipend_structure);
-                const registrationProgress = drive.number_of_openings 
-                  ? Math.min(100, ((drive.number_of_registrations || 0) / drive.number_of_openings) * 100)
-                  : 0;
-
-                return (
-                  <Card 
-                    key={drive.id} 
-                    bg="white" 
-                    borderRadius="2xl" 
-                    boxShadow="sm" 
-                    border="1px solid" 
-                    borderColor={colors.border}
-                    _hover={{ boxShadow: 'md', borderColor: colors.accent }}
-                    transition="all 0.2s"
-                    cursor="pointer"
-                    onClick={() => navigate(`/company/drive/${drive.id}`)}
-                  >
-                    <CardBody p={6}>
-                      <Flex justify="space-between" align="start" mb={4} flexWrap="wrap" gap={3}>
-                        <Box flex="1">
-                          <HStack spacing={3} mb={2} flexWrap="wrap">
-                            <Badge 
-                              colorScheme={statusConfig.color}
-                              fontSize="sm"
-                              px={3}
-                              py={1}
-                              borderRadius="full"
-                            >
-                              <HStack spacing={1}>
-                                <Icon as={statusConfig.icon} boxSize={3} />
-                                <Text>{statusConfig.label}</Text>
-                              </HStack>
-                            </Badge>
-                            <Badge 
-                              bg={colors.accentLight}
-                              color={colors.accent}
-                              fontSize="sm"
-                              px={3}
-                              py={1}
-                              borderRadius="full"
-                            >
-                              {drive.job_type || 'Job'}
-                            </Badge>
-                            {drive.type_of_hiring && (
-                              <Badge colorScheme="purple" fontSize="xs" borderRadius="full">
-                                {drive.type_of_hiring}
-                              </Badge>
-                            )}
-                          </HStack>
-                          <Heading size="md" color={colors.dark} mb={2}>
-                            {drive.job_description || 'Placement Drive'}
-                          </Heading>
-                          <HStack spacing={4} color={colors.secondary} fontSize="sm" flexWrap="wrap">
-                            {drive.job_location && (
-                              <HStack spacing={1}>
-                                <Icon as={FaMapMarkerAlt} boxSize={3} />
-                                <Text>{drive.job_location}</Text>
-                              </HStack>
-                            )}
-                            <HStack spacing={1}>
-                              <CalendarIcon boxSize={3} />
-                              <Text>{drive.academic_year || '—'}</Text>
-                            </HStack>
-                          </HStack>
-                        </Box>
-                        <Button
-                          leftIcon={<ViewIcon />}
-                          variant="outline"
-                          colorScheme="gray"
-                          size="sm"
-                          borderRadius="lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/company/drive/${drive.id}`);
-                          }}
+          {/* Table (same structure as admin placement drive table) */}
+          <Box className="placement-events-table-wrap">
+            <Table size="sm" variant="unstyled" className="placement-events-table" minW="1450px">
+              <Thead>
+                <Tr>
+                  {TABLE_COLUMNS.map((col) => (
+                    <Th key={col.id} textAlign={col.id === 'actions' ? 'right' : 'left'}>
+                      {col.label}
+                    </Th>
+                  ))}
+                </Tr>
+              </Thead>
+              <Tbody>
+                {loading ? (
+                  <Tr>
+                    <Td colSpan={TABLE_COLUMNS.length} textAlign="center" py={8}>
+                      <Spinner />
+                    </Td>
+                  </Tr>
+                ) : drivesByTab.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={TABLE_COLUMNS.length} textAlign="center" py={8} color="gray.500">
+                      {statusTab === 'current'
+                        ? 'No current drives'
+                        : 'No drives in history'}
+                    </Td>
+                  </Tr>
+                ) : (
+                  drivesByTab.map((drive) => (
+                    <Tr
+                      key={drive.id}
+                      bg="white"
+                      _hover={{ bg: '#f8fafc', cursor: 'pointer' }}
+                      transition="background 0.15s ease"
+                      onClick={() => navigate(`/company/drive/${drive.id}`)}
+                    >
+                      {TABLE_COLUMNS.map((col) => (
+                        <Td
+                          key={col.id}
+                          textAlign={col.id === 'actions' ? 'right' : 'left'}
+                          maxW={col.id === 'location_description' ? '350px' : undefined}
                         >
-                          View Details
-                        </Button>
-                      </Flex>
-
-                      <Divider my={4} />
-
-                      <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-                        {/* Compensation */}
-                        <Box>
-                          <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>
-                            {drive.job_type?.toLowerCase() === 'internship' ? 'STIPEND' : 'CTC'}
-                          </Text>
-                          <HStack spacing={1}>
-                            <Icon as={FaRupeeSign} color={colors.accent} boxSize={4} />
-                            <Text fontSize="sm" fontWeight="600" color={colors.dark}>
-                              {drive.job_type?.toLowerCase() === 'internship' 
-                                ? (stipend || 'Not specified')
-                                : (ctc || 'Not specified')}
-                            </Text>
-                          </HStack>
-                        </Box>
-
-                        {/* Openings */}
-                        <Box>
-                          <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>OPENINGS</Text>
-                          <Text fontSize="sm" fontWeight="600" color={colors.dark}>
-                            {drive.number_of_openings || '—'}
-                          </Text>
-                        </Box>
-
-                        {/* Registrations */}
-                        <Box>
-                          <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>REGISTRATIONS</Text>
-                          <Text fontSize="sm" fontWeight="600" color={colors.dark}>
-                            {drive.number_of_registrations || 0}
-                          </Text>
-                          {drive.number_of_openings && (
-                            <Progress 
-                              value={registrationProgress} 
-                              size="xs" 
-                              colorScheme={registrationProgress >= 100 ? 'green' : 'blue'}
-                              borderRadius="full"
-                              mt={1}
-                            />
-                          )}
-                        </Box>
-
-                        {/* Event Date */}
-                        <Box>
-                          <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>EVENT DATE</Text>
-                          <Text fontSize="sm" fontWeight="600" color={colors.dark}>
-                            {formatDate(drive.event_datetime)}
-                          </Text>
-                        </Box>
-                      </SimpleGrid>
-                    </CardBody>
-                  </Card>
-                );
-              })}
-            </VStack>
-          )}
-        </Container>
+                          {renderTableCell(drive, col.id)}
+                        </Td>
+                      ))}
+                    </Tr>
+                  ))
+                )}
+              </Tbody>
+            </Table>
+          </Box>
+        </Box>
       </Box>
     </CompanyLayout>
   );
