@@ -258,6 +258,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                 isDisabled={!isEditing}
                 rows={3}
                 _placeholder={{ opacity: 0.7, color: "inherit" }}
+              />
             </Field>
 
             <Field label="Evidence Document" errorText={getError("evidence_document") || getError("evidenceDocument")}>
