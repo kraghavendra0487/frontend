@@ -815,7 +815,7 @@ const DriveDetails = () => {
             }}
           />
         )}
-        <Box flex="1" h="100%" bg="gray.100" p={6} overflowY="auto">
+        <Box flex="1" h="100%" bg="#f0f0f0" p={6} overflowY="auto">
             <Box
               p={6}
               bg="white"

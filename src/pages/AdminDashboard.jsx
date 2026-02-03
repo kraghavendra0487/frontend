@@ -528,7 +528,7 @@ const AdminDashboard = () => {
 
   return (
     <AdminLayout>
-      <Box bg="#f4f6f8" minH="100vh" pb={10}>
+      <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <VStack spacing={8} align="stretch">
             

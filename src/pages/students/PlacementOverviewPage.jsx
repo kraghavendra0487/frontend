@@ -38,7 +38,7 @@ export default function PlacementOverviewPage() {
   return (
     <AdminLayout>
       <Box
-        bg="linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)"
+        bg="#f0f0f0"
         minH="100vh"
         py={6}
         px={{ base: 4, md: 6 }}

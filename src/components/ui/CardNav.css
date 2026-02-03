@@ -27,7 +27,7 @@
 }
 
 .card-nav.open {
-  height: 300px; /* Increased height */
+  height: 420px; /* Tall enough for all nav groups and links */
   background-color: #172e36; /* Same as navbar - no color difference */
   box-shadow: 
     0 20px 25px -5px rgba(0, 0, 0, 0.1),

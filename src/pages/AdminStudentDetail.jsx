@@ -101,7 +101,7 @@ const AdminStudentDetail = () => {
   if (loading) {
     return (
       <AdminLayout fullWidth>
-        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="gray.50">
+        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0">
           <Spinner size="xl" color="#20343c" thickness="3px" />
         </Flex>
       </AdminLayout>
@@ -111,7 +111,7 @@ const AdminStudentDetail = () => {
   if (!profile) {
     return (
       <AdminLayout fullWidth>
-        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="gray.50" direction="column" gap={4}>
+        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0" direction="column" gap={4}>
           <Text color="gray.500">Student not found.</Text>
           <Button leftIcon={<ChevronLeftIcon />} onClick={() => navigate('/placement/students')} colorScheme="blue">
             Back to Students
@@ -836,7 +836,7 @@ const AdminStudentDetail = () => {
           >
             <Box
               className="admin-student-sidebar"
-              bg="#f8f9fa"
+              bg="#f0f0f0"
               borderRight="1px solid"
               borderColor="gray.200"
               py={6}
@@ -875,7 +875,7 @@ const AdminStudentDetail = () => {
               className="admin-student-content"
               p={{ base: 4, lg: 8 }}
               overflowY="auto"
-              bg="gray.50"
+              bg="#f0f0f0"
               minH="0"
             >
               <Box maxW="1200px">

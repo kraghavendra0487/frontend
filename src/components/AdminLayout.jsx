@@ -32,7 +32,6 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       textColor: "#fff",
       links: [
         { label: "Dashboard", path: "/placement/dashboard", ariaLabel: "Placement Dashboard" },
-        { label: "Placement Overview", path: "/placement/overview", ariaLabel: "Placement Overview Statistics" },
         { label: "Events", path: "/events", ariaLabel: "Events" },
         { label: "Calendar of Events", path: "/placement/calendar", ariaLabel: "Calendar of Events" },
         { label: "Monthly Reports", path: "/placement/reports", ariaLabel: "Monthly Placement Reports" }
@@ -43,9 +42,11 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       bgColor: "#2a4d5c",
       textColor: "#fff",
       links: [
+        { label: "Placement Overview", path: "/placement/overview", ariaLabel: "Placement Overview Statistics" },
         { label: "Placement Drives", path: "/placement/events", ariaLabel: "Placement Drives" },
         { label: "Job Offers", path: "/placement/job-offers", ariaLabel: "Job Offers" },
-        { label: "Companies", path: "/placement/companies", ariaLabel: "Companies" }
+        { label: "Companies", path: "/placement/companies", ariaLabel: "Companies" },
+        { label: "Placement Violations", path: "/placement/violations", ariaLabel: "Eligibility logs, placement violations, disciplinary records" }
       ]
     },
     {
@@ -69,14 +70,6 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
         { label: "Alumni Connect", path: "/placement/alumni-connect", ariaLabel: "Connect with Alumni" }
       ]
     },
-    {
-      label: "Violations",
-      bgColor: "#3d5a6c",
-      textColor: "#fff",
-      links: [
-        { label: "Violations", path: "/placement/violations", ariaLabel: "Eligibility logs, placement violations, disciplinary records" }
-      ]
-    }
   ];
 
   const isActive = (path) => location.pathname === path;

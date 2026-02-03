@@ -145,7 +145,7 @@ const CalendarOfEvents = () => {
   return (
     <AdminLayout compactTop fullWidth>
       <Box
-        bg="#f7f7fa"
+        bg="#f0f0f0"
         h="calc(100vh - 72px)"
         overflow="hidden"
         display="flex"

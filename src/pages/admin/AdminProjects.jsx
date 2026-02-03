@@ -298,7 +298,7 @@ const AdminProjects = () => {
 
   return (
     <AdminLayout>
-      <Box bg="white" minH="100vh" py={6} color="gray.800">
+      <Box bg="#f0f0f0" minH="100vh" py={6} color="gray.800">
         <Container maxW="6xl">
           <Heading size="lg" mb={1} color="gray.800" fontFamily="inherit">
             Student Projects

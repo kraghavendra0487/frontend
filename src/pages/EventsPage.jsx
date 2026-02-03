@@ -304,7 +304,7 @@ export default function EventsPage() {
   const currentList = byStatus(TABS.find((t) => t.id === activeTab)?.status);
 
   const pageContent = (
-    <Box bg="gray.50" minH="100vh" py={8}>
+    <Box bg="#f0f0f0" minH="100vh" py={8}>
       <Container maxW="container.xl">
         <Flex justify="space-between" align="center" mb={6} flexWrap="wrap" gap={4}>
           <Heading size="lg" color="#172e36">Events</Heading>

@@ -4,7 +4,7 @@
 /* Full screen: use entire page, no extra top padding */
 .placement-events-page {
   font-family: 'Inter', sans-serif;
-  background-color: #f8fafc;
+  background-color: #f0f0f0;
   min-height: calc(100vh - 72px);
   height: 100%;
   width: 100%;

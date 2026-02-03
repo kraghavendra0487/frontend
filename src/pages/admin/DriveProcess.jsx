@@ -661,7 +661,7 @@ const DriveProcess = () => {
 
   return (
     <AdminLayout>
-      <Box className="drive-process-page" bg="#f1f5f9" color="gray.800" minH="100vh" py={0}>
+      <Box className="drive-process-page" bg="#f0f0f0" color="gray.800" minH="100vh" py={0}>
         <Container maxW="100%" py={4} px={6}>
           <VStack align="stretch" spacing={4}>
             {/* Compact Header with Back Button and Placement Status */}
