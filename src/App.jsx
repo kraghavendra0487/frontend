@@ -10,7 +10,6 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import ViewAllStudents from './pages/ViewAllStudents';
-import AddStudents from './pages/AddStudents';
 import AdminStudentDetail from './pages/AdminStudentDetail';
 import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
@@ -444,7 +443,6 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <ViewAllStudents /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
-          { path: "add", element: <AddStudents /> },
           { path: "academic", element: <ManageAcademicPage /> },
           { path: ":usn", element: <AdminStudentDetail /> },
         ],

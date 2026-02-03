@@ -35,12 +35,64 @@ import {
   FormControl,
   FormLabel,
   Icon,
+  useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  Checkbox,
+  CheckboxGroup,
+  Divider,
 } from '@chakra-ui/react';
-import { SearchIcon, ViewIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon } from '@chakra-ui/icons';
+import { SearchIcon, ViewIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, AddIcon } from '@chakra-ui/icons';
+import './ViewAllStudents.css';
 import { StudentProfileService } from '../services/studentProfile.service';
 import { PlacementService } from '../services/placement.service';
 import { getFileUrl } from '../utils/fileUrl';
 import { useBackgroundRefresh } from '../hooks/useBackgroundRefresh';
+
+// student_basic_details columns for Add Students (from database.txt), categorized
+const ADD_STUDENTS_COLUMNS = {
+  mandatory: [
+    { key: 'usn', label: 'usn', table: 'student_basic_details', description: 'Primary key, unique' },
+    { key: 'full_name', label: 'full_name', table: 'student_basic_details', description: 'Required' },
+    { key: 'college_email', label: 'college_email', table: 'student_basic_details', description: 'Required, unique, valid email' },
+    { key: 'school_id', label: 'school_id', table: 'student_basic_details', description: 'FK → schools.id (use school id)' },
+    { key: 'program_id', label: 'program_id', table: 'student_basic_details', description: 'FK → programs.id (use program id)' },
+    { key: 'year_of_joining', label: 'year_of_joining', table: 'student_basic_details', description: 'Required' },
+    { key: 'current_year', label: 'current_year', table: 'student_basic_details', description: 'Computed from year_of_joining if not provided' },
+    { key: 'current_semester', label: 'current_semester', table: 'student_basic_details', description: 'Computed from year_of_joining if not provided' },
+  ],
+  optionalAcademic: [
+    { key: 'major_id', label: 'major_id', table: 'student_basic_details', description: 'FK → majors.id (use major id)' },
+    { key: 'minor_id', label: 'minor_id', table: 'student_basic_details', description: 'FK → minors.id (use minor id)' },
+    { key: 'specialization_id', label: 'specialization_id', table: 'student_basic_details', description: 'FK → specializations.id (use specialization id)' },
+    { key: 'section', label: 'section', table: 'student_basic_details', description: 'Optional' },
+  ],
+  optionalContact: [
+    { key: 'phone_country_code', label: 'phone_country_code', table: 'student_basic_details', description: 'e.g. +91' },
+    { key: 'phone_number', label: 'phone_number', table: 'student_basic_details', description: '7–15 digits' },
+    { key: 'personal_email', label: 'personal_email', table: 'student_basic_details', description: 'Valid email if provided' },
+  ],
+  optionalPersonal: [
+    { key: 'gender', label: 'gender', table: 'student_basic_details', description: 'Optional' },
+    { key: 'date_of_birth', label: 'date_of_birth', table: 'student_basic_details', description: 'Optional' },
+    { key: 'blood_group', label: 'blood_group', table: 'student_basic_details', description: 'Optional' },
+    { key: 'languages', label: 'languages', table: 'student_basic_details', description: 'Optional' },
+    { key: 'specially_abled', label: 'specially_abled', table: 'student_basic_details', description: 'Optional, boolean' },
+  ],
+  optionalOther: [
+    { key: 'is_registered', label: 'is_registered', table: 'student_basic_details', description: 'Default false' },
+    { key: 'is_active', label: 'is_active', table: 'student_basic_details', description: 'Default true' },
+    { key: 'opt_in', label: 'opt_in', table: 'student_basic_details', description: 'Default false' },
+    { key: 'has_agreed_placement_policy', label: 'has_agreed_placement_policy', table: 'student_basic_details', description: 'Default false' },
+    { key: 'profile_lock', label: 'profile_lock', table: 'student_basic_details', description: 'Default false' },
+    { key: 'social_links', label: 'social_links', table: 'student_basic_details', description: 'JSONB' },
+    { key: 'profile_image', label: 'profile_image', table: 'student_basic_details', description: 'Optional' },
+  ],
+};
 
 // Placement Overview tab: table by school / program / year with batch strength and salary stats (exported for PlacementOverviewPage)
 export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selectedYear, onYearChange }) => {
@@ -298,6 +350,8 @@ const ViewAllStudents = () => {
   const [yearOfJoining, setYearOfJoining] = useState('');
   const [yearOfJoiningDebounced, setYearOfJoiningDebounced] = useState('');
   const [isActive, setIsActive] = useState('');
+  const { isOpen: isAddStudentsOpen, onOpen: onAddStudentsOpen, onClose: onAddStudentsClose } = useDisclosure();
+  const [addStudentsSelectedOptional, setAddStudentsSelectedOptional] = useState([]);
 
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -391,6 +445,16 @@ const ViewAllStudents = () => {
 
   return (
     <Box w="full">
+          <Flex justify="flex-end" mb={4}>
+            <Button
+              leftIcon={<AddIcon />}
+              colorScheme="blue"
+              size="sm"
+              onClick={onAddStudentsOpen}
+            >
+              Add Students
+            </Button>
+          </Flex>
           {/* Filters card */}
           <Card
             bg="white"
@@ -712,6 +776,149 @@ const ViewAllStudents = () => {
               </HStack>
             </Flex>
           )}
+
+          <Modal isOpen={isAddStudentsOpen} onClose={onAddStudentsClose} size="6xl" scrollBehavior="inside">
+            <ModalOverlay />
+            <ModalContent maxW="90vw" minH="80vh">
+              <ModalHeader>Add Students</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody pt={2} pb={6}>
+                <Text fontWeight="medium" color="gray.700" mb={4} fontSize="md" bg="blue.50" p={3} borderRadius="md" borderLeft="4px solid" borderColor="blue.400">
+                  If you wanted to add minors, majors, specializations, replace them with the ids to insert into the database.
+                </Text>
+
+                <Text fontWeight="bold" fontSize="sm" color="gray.800" mt={6} mb={2}>Step 1: Select columns to include</Text>
+                <Text fontSize="sm" color="gray.600" mb={3}>Mandatory columns are always included. Choose any optional columns you want to provide.</Text>
+
+                <Box className="add-students-columns-scroll">
+                  <Box className="add-students-mandatory-section">
+                    <Text className="add-students-table-title">Mandatory (student_basic_details)</Text>
+                    <TableContainer>
+                      <Table className="add-students-table" size="sm">
+                        <Thead>
+                          <Tr>
+                            <Th>Column</Th>
+                            <Th>Description</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {ADD_STUDENTS_COLUMNS.mandatory.map((col) => (
+                            <Tr key={col.key}>
+                              <Td className="col-column">{col.label}</Td>
+                              <Td className="col-description">{col.description}</Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+
+                  <CheckboxGroup value={addStudentsSelectedOptional} onChange={setAddStudentsSelectedOptional}>
+                    <Box className="add-students-optional-section">
+                      <Text className="add-students-table-title">Optional — Academic (use IDs from Manage Academic)</Text>
+                      <TableContainer>
+                        <Table className="add-students-table" size="sm">
+                          <Thead>
+                            <Tr>
+                              <Th className="col-include">Include</Th>
+                              <Th>Column</Th>
+                              <Th>Description</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {ADD_STUDENTS_COLUMNS.optionalAcademic.map((col) => (
+                              <Tr key={col.key}>
+                                <Td className="col-include">
+                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
+                                </Td>
+                                <Td className="col-column">{col.label}</Td>
+                                <Td className="col-description">{col.description}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                    <Box className="add-students-optional-section">
+                      <Text className="add-students-table-title">Optional — Contact</Text>
+                      <TableContainer>
+                        <Table className="add-students-table" size="sm">
+                          <Thead>
+                            <Tr>
+                              <Th className="col-include">Include</Th>
+                              <Th>Column</Th>
+                              <Th>Description</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {ADD_STUDENTS_COLUMNS.optionalContact.map((col) => (
+                              <Tr key={col.key}>
+                                <Td className="col-include">
+                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
+                                </Td>
+                                <Td className="col-column">{col.label}</Td>
+                                <Td className="col-description">{col.description}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                    <Box className="add-students-optional-section">
+                      <Text className="add-students-table-title">Optional — Personal</Text>
+                      <TableContainer>
+                        <Table className="add-students-table" size="sm">
+                          <Thead>
+                            <Tr>
+                              <Th className="col-include">Include</Th>
+                              <Th>Column</Th>
+                              <Th>Description</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {ADD_STUDENTS_COLUMNS.optionalPersonal.map((col) => (
+                              <Tr key={col.key}>
+                                <Td className="col-include">
+                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
+                                </Td>
+                                <Td className="col-column">{col.label}</Td>
+                                <Td className="col-description">{col.description}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                    <Box className="add-students-optional-section">
+                      <Text className="add-students-table-title">Optional — Other</Text>
+                      <TableContainer>
+                        <Table className="add-students-table" size="sm">
+                          <Thead>
+                            <Tr>
+                              <Th className="col-include">Include</Th>
+                              <Th>Column</Th>
+                              <Th>Description</Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {ADD_STUDENTS_COLUMNS.optionalOther.map((col) => (
+                              <Tr key={col.key}>
+                                <Td className="col-include">
+                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
+                                </Td>
+                                <Td className="col-column">{col.label}</Td>
+                                <Td className="col-description">{col.description}</Td>
+                              </Tr>
+                            ))}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  </CheckboxGroup>
+                </Box>
+              </ModalBody>
+            </ModalContent>
+          </Modal>
     </Box>
   );
 };

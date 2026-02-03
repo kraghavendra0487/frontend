@@ -6,7 +6,6 @@ import AdminLayout from './AdminLayout';
 const tabPaths = [
   { path: '/placement/students', label: 'View All Students', end: true },
   { path: '/placement/students/eligibility', label: 'Placement eligibility track', end: false },
-  { path: '/placement/students/add', label: 'Add Students', end: false },
   { path: '/placement/students/academic', label: 'Manage Academic', end: false },
 ];
 
@@ -33,7 +32,7 @@ export default function StudentsLayout() {
               Students
             </Heading>
             <Text color="gray.600" fontSize="md">
-              View all students, eligibility track, or add students.
+              View all students, eligibility track, or manage academic.
             </Text>
 
             <Flex
