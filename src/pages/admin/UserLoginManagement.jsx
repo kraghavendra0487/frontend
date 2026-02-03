@@ -382,7 +382,7 @@ const UserLoginManagement = () => {
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <Heading size="lg" color="gray.800" mb={1}>
-            User Login Management
+            Login Settings
           </Heading>
           <Text color="gray.500" fontSize="sm" mb={4}>
             Manage all users, students without login, and company login credentials.

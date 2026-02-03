@@ -27,7 +27,7 @@
 }
 
 .card-nav.open {
-  height: 420px; /* Tall enough for all nav groups and links */
+  height: 300px; /* Compact height for nav groups and links */
   background-color: #172e36; /* Same as navbar - no color difference */
   box-shadow: 
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -120,10 +120,10 @@
   right: 0;
   top: 72px; 
   bottom: 0;
-  padding: 0.5rem 2.5rem 1rem 2.5rem; /* Reduced padding for compactness */
+  padding: 0.4rem 2.5rem 0.75rem 2.5rem; /* Tighter padding for shorter boxes */
   display: flex;
   align-items: stretch; /* Cards stretch to fill height */
-  gap: 20px;
+  gap: 16px;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -142,12 +142,12 @@
 .nav-card {
   flex: 1;
   min-width: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 16px; /* Reduced padding */
-  gap: 12px;
+  padding: 10px 12px; /* Shorter box padding */
+  gap: 8px;
   user-select: none;
   background-color: rgba(255, 255, 255, 0.03) !important; 
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -168,14 +168,14 @@
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 4px; /* Reduced margin */
+  margin-bottom: 2px;
 }
 
 .nav-card-links {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Reduced gap */
+  gap: 2px;
 }
 
 .nav-card-link {
@@ -187,11 +187,11 @@
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  justify-content: flex-start; /* Ensure left alignment */
-  gap: 12px;
+  justify-content: flex-start;
+  gap: 10px;
   color: white !important; 
-  padding: 8px 12px; /* Reduced padding */
-  border-radius: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
   background-color: transparent;
   max-width: 100%;
 }

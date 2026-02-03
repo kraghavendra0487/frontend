@@ -27,6 +27,7 @@ import CompanyDetails from './pages/admin/CompanyDetails';
 import Notifications from './pages/admin/Notifications';
 import NotificationDetail from './pages/admin/NotificationDetail';
 import BulkEmail from './pages/admin/BulkEmail';
+import CronJobs from './pages/admin/CronJobs';
 import UserLoginManagement from './pages/admin/UserLoginManagement';
 import AdminProjects from './pages/admin/AdminProjects';
 import AdminHrRecommendations from './pages/admin/AdminHrRecommendations';
@@ -247,6 +248,14 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole="admin">
             <BulkEmail />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/cron-jobs",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <CronJobs />
           </PlacementProtectedRoute>
         )
       },

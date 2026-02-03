@@ -363,7 +363,7 @@ const BulkEmail = () => {
       <Container maxW="container.xl" py={6}>
         <VStack spacing={6} align="stretch">
           <Heading size="lg" color="#20343c">
-            Bulk Email
+            Email
           </Heading>
           <Text color="gray.600">
             Filter by category (students, parents, alumni, staff), apply filters, select recipients, and copy emails for Gmail bulk mailing.
