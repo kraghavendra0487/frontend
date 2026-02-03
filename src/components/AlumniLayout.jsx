@@ -34,7 +34,7 @@ const AlumniLayout = ({ children }) => {
     { path: '/placement/alumni-profile', label: 'My Profile', icon: ViewIcon },
     { path: '/placement/alumni-directory', label: 'Directory', icon: ViewIcon },
     { path: '/placement/alumni-projects', label: 'Student Projects', icon: StarIcon },
-    { path: '/placement/alumni-referral', label: 'Refer HR', icon: EmailIcon },
+    { path: '/placement/alumni-hr-recommendations', label: 'HR Recommendations', icon: EmailIcon },
   ];
 
   const isActive = (path) => location.pathname === path;

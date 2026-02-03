@@ -201,7 +201,7 @@ const ReferralForm = () => {
           >
             <Box>
               <Heading color={colors.dark} size="xl" fontWeight="700" mb={1}>
-                HR Referrals
+                HR Recommendations
               </Heading>
               <Text color={colors.secondary} fontSize="md">
                 Connect the placement team with HR professionals from your network
@@ -217,7 +217,7 @@ const ReferralForm = () => {
                 borderRadius="full"
                 fontWeight="600"
               >
-                {myRecommendations.length} Referrals
+                {myRecommendations.length} Recommendations
               </Badge>
             </HStack>
           </Flex>

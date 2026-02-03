@@ -56,7 +56,7 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
         { label: "View All Students", path: "/placement/students", ariaLabel: "View Students" },
         { label: "Student Projects", path: "/placement/gallery", ariaLabel: "Student Projects" },
         { label: "Alumni", path: "/placement/alumni", ariaLabel: "Alumni Network" },
-        { label: "User Login Management", path: "/placement/user-login", ariaLabel: "Manage user logins and active status" }
+        { label: "HR Recommendations", path: "/placement/hr-recommendations", ariaLabel: "View HR recommendations from alumni" }
       ]
     },
     {
@@ -64,7 +64,8 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       bgColor: "#2d4a54",
       textColor: "#fff",
       links: [
-        { label: "Bulk Email", path: "/placement/email", ariaLabel: "Filter and copy emails for bulk mailing" }
+        { label: "Bulk Email", path: "/placement/email", ariaLabel: "Filter and copy emails for bulk mailing" },
+        { label: "User Login Management", path: "/placement/user-login", ariaLabel: "Manage user logins and active status" }
       ]
     },
     {

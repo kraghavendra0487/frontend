@@ -28,6 +28,7 @@ import NotificationDetail from './pages/admin/NotificationDetail';
 import BulkEmail from './pages/admin/BulkEmail';
 import UserLoginManagement from './pages/admin/UserLoginManagement';
 import AdminProjects from './pages/admin/AdminProjects';
+import AdminHrRecommendations from './pages/admin/AdminHrRecommendations';
 import Violations from './pages/admin/Violations';
 import JobOffers from './pages/admin/JobOffers';
 import { Companies } from './pages/Companies';
@@ -322,7 +323,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: "/placement/alumni-referral",
+        path: "/placement/alumni-hr-recommendations",
         element: (
           <PlacementProtectedRoute requiredRole="alumni">
             <ReferralForm />
@@ -430,6 +431,14 @@ const router = createBrowserRouter([
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "add", element: <AddStudents /> },
         ],
+      },
+      {
+        path: "/placement/hr-recommendations",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <AdminHrRecommendations />
+          </PlacementProtectedRoute>
+        )
       },
       {
         path: "/placement/students/:usn",
