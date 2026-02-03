@@ -177,6 +177,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Tech Innovations Inc."
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Job Role (Required)" required>
@@ -186,6 +187,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Summer Intern"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Location">
@@ -195,6 +197,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Bangalore"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Stipend">
@@ -205,6 +208,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="0"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Start Date *" errorText={getError("start_date") || getError("startDate")}>
@@ -243,6 +247,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. 03"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Mentor Name">
@@ -252,6 +257,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Dr. Priya Sharma"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Skills (comma separated)">
@@ -261,6 +267,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Python, Machine Learning"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Proof Document">
@@ -362,6 +369,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                 rows={2}
                 isDisabled={!isEditing}
                 placeholder="Details about the organization..."
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
             </Field>
             <Field label="Description">
@@ -372,6 +380,7 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
                 rows={3}
                 isDisabled={!isEditing}
                 placeholder="Describe your work and learnings..."
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
             </Field>
           </VStack>
