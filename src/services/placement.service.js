@@ -725,4 +725,13 @@ export const PlacementService = {
     });
     return response.data;
   },
+
+  /** Alumni: Create connection request */
+  createAlumniConnectionRequest: async (data) => {
+    const response = await apiFetch('/placement/alumni/connect', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
 };

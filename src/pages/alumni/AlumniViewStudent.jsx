@@ -28,6 +28,11 @@ import {
   WrapItem,
   IconButton,
   Container,
+  FormControl,
+  FormLabel,
+  Input,
+  Textarea,
+  Select,
 } from '@chakra-ui/react';
 import { ChevronLeftIcon, ViewIcon, StarIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import {
@@ -129,6 +134,66 @@ const AlumniViewStudent = () => {
   const [detailSnapIndex, setDetailSnapIndex] = useState(0);
   const [likingId, setLikingId] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isConnectOpen, onOpen: onConnectOpen, onClose: onConnectClose } = useDisclosure();
+  const [connectFormData, setConnectFormData] = useState({
+    connection_purpose: '',
+    message_to_po: '',
+    preferred_contact_date: '',
+    preferred_time_slot: '',
+    contact_mode: '',
+  });
+  const [connectLoading, setConnectLoading] = useState(false);
+
+  const handleConnectChange = (e) => {
+    const { name, value } = e.target;
+    setConnectFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleConnectSubmit = async () => {
+    if (!connectFormData.connection_purpose || !connectFormData.message_to_po) {
+      toast({
+        title: 'Missing fields',
+        description: 'Please fill in Connection Purpose and Message to PO.',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setConnectLoading(true);
+    try {
+      await PlacementService.createAlumniConnectionRequest({
+        student_usn: decodeURIComponent(usn),
+        ...connectFormData
+      });
+      toast({
+        title: 'Request Sent',
+        description: 'Your connection request has been submitted successfully.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onConnectClose();
+      setConnectFormData({
+        connection_purpose: '',
+        message_to_po: '',
+        preferred_contact_date: '',
+        preferred_time_slot: '',
+        contact_mode: '',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to submit request',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setConnectLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!usn) return;
@@ -413,6 +478,17 @@ const AlumniViewStudent = () => {
                       </HStack>
                     </VStack>
                   </Box>
+
+                  {/* Connect Button */}
+                  <Button
+                    colorScheme="blue"
+                    size="md"
+                    width="full"
+                    mb={5}
+                    onClick={onConnectOpen}
+                  >
+                    Connect
+                  </Button>
 
                   {/* Social Links */}
                   {socialLinks.length > 0 && (
@@ -916,6 +992,86 @@ const AlumniViewStudent = () => {
               isLoading={likingId === selectedProject?.id}
             >
               {selectedProject?.is_liked ? 'Liked' : 'Like'}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Connection Request Modal */}
+      <Modal isOpen={isConnectOpen} onClose={onConnectClose} size="lg">
+        <ModalOverlay />
+        <ModalContent borderRadius="xl">
+          <ModalHeader>Connect with Student</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Connection Purpose</FormLabel>
+                <Input
+                  name="connection_purpose"
+                  value={connectFormData.connection_purpose}
+                  onChange={handleConnectChange}
+                  placeholder="e.g., Mentorship, Hiring, Project Collaboration"
+                />
+              </FormControl>
+
+              <FormControl isRequired>
+                <FormLabel>Message to Placement Officer</FormLabel>
+                <Textarea
+                  name="message_to_po"
+                  value={connectFormData.message_to_po}
+                  onChange={handleConnectChange}
+                  placeholder="Explain why you want to connect with this student..."
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Preferred Contact Date</FormLabel>
+                <Input
+                  name="preferred_contact_date"
+                  type="date"
+                  value={connectFormData.preferred_contact_date}
+                  onChange={handleConnectChange}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Preferred Time Slot</FormLabel>
+                <Input
+                  name="preferred_time_slot"
+                  value={connectFormData.preferred_time_slot}
+                  onChange={handleConnectChange}
+                  placeholder="e.g., 10:00 AM - 11:00 AM"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Contact Mode</FormLabel>
+                <Select
+                  name="contact_mode"
+                  value={connectFormData.contact_mode}
+                  onChange={handleConnectChange}
+                  placeholder="Select mode"
+                >
+                  <option value="Email">Email</option>
+                  <option value="Phone">Phone</option>
+                  <option value="Video Call">Video Call</option>
+                  <option value="In Person">In Person</option>
+                </Select>
+              </FormControl>
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onConnectClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleConnectSubmit}
+              isLoading={connectLoading}
+            >
+              Submit Request
             </Button>
           </ModalFooter>
         </ModalContent>
