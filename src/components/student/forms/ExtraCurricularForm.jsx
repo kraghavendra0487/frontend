@@ -183,6 +183,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "activityName", e.target.value)}
                             placeholder="e.g. Hackathon, Debate Club"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Activity Type" required errorText={getError("activity_type") || getError("activityType")}>
@@ -191,6 +192,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "activityType", e.target.value)}
                             placeholder="e.g. Competition, Club, Volunteering"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                 </SimpleGrid>
@@ -202,6 +204,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "role", e.target.value)}
                             placeholder="e.g. Participant, Organizer, Lead"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Organization" errorText={getError("organization")}>
@@ -210,6 +213,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "organization", e.target.value)}
                             placeholder="e.g. College Name, IEEE"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                 </SimpleGrid>
@@ -243,6 +247,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "achievements", e.target.value)}
                         placeholder="List your key achievements..."
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 
@@ -252,6 +257,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "skills", e.target.value)}
                         placeholder="e.g. Leadership, Public Speaking, Coding"
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 
@@ -261,6 +267,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "description", e.target.value)}
                         placeholder="Brief description of the activity..."
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 

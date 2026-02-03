@@ -178,6 +178,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                   value={item.title || ""} 
                   onChange={(e) => onChange(index, "title", e.target.value)}
                   isDisabled={!isEditing}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Institution/Organization *" errorText={getError("institution")}>
@@ -185,6 +186,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                   value={item.institution || ""} 
                   onChange={(e) => onChange(index, "institution", e.target.value)}
                   isDisabled={!isEditing}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
             </SimpleGrid>
@@ -195,6 +197,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                     onChange={(e) => onChange(index, "training_type", e.target.value)}
                     isDisabled={!isEditing}
                     placeholder="e.g. Technical Workshop, Soft Skills, Bootcamp"
+                    _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
             </Field>
 
@@ -229,6 +232,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                     onChange={(e) => onChange(index, "skills", e.target.value)}
                     isDisabled={!isEditing}
                     placeholder="e.g. Leadership, Python, Public Speaking"
+                    _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
             </Field>
 
@@ -238,6 +242,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                 onChange={(e) => onChange(index, "description", e.target.value)}
                 isDisabled={!isEditing}
                 rows={3}
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
             </Field>
 

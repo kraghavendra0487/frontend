@@ -212,6 +212,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. Google"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Job Role *" errorText={getError("job_role") || getError("jobRole")}>
@@ -221,6 +222,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. Software Engineering Intern"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Location" errorText={getError("location")}>
@@ -230,6 +232,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. Bangalore"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Stipend" errorText={getError("stipend")}>
@@ -246,6 +249,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="0 (max 5 lakh)"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Start Date *" errorText={getError("start_date") || getError("startDate")}>
@@ -284,6 +288,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. 06"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Mentor Name" errorText={getError("mentor_name") || getError("mentorName")}>
@@ -293,6 +298,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. John Doe"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Skills (comma separated)">
@@ -302,6 +308,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                             variant="flushed"
                             isDisabled={!isEditing}
                             placeholder="e.g. React, Node.js"
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Proof Document (PDF/Image) *" errorText={getError("proof_document") || getError("proofDocument")}>
@@ -377,6 +384,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                         rows={2}
                         isDisabled={!isEditing}
                         placeholder="Details about the organization..."
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
                 <Field label="Description">
@@ -387,6 +395,7 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                         rows={3}
                         isDisabled={!isEditing}
                         placeholder="Describe your work and achievements..."
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
             </VStack>

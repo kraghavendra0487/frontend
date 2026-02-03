@@ -195,6 +195,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 variant="flushed"
                                 isDisabled={!isEditing}
                                 placeholder="e.g. AWS Solutions Architect"
+                                _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
 
@@ -205,6 +206,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 variant="flushed"
                                 isDisabled={!isEditing}
                                 placeholder="e.g. Amazon Web Services"
+                                _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
 
@@ -215,6 +217,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 variant="flushed"
                                 isDisabled={!isEditing}
                                 placeholder="e.g. Technical / Professional"
+                                _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
 
@@ -225,6 +228,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 variant="flushed"
                                 isDisabled={!isEditing}
                                 placeholder="e.g. Cloud Computing, Architecture"
+                                _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
 
@@ -234,6 +238,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "score", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
 

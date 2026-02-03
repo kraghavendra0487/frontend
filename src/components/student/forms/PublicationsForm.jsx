@@ -162,6 +162,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                   value={item.title || ""} 
                   onChange={(e) => onChange(index, "title", e.target.value)}
                   isDisabled={!isEditing}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Publication Name (Journal/Conf)" required errorText={getError("publication_name")}>
@@ -169,6 +170,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                   value={item.publication_name || ""} 
                   onChange={(e) => onChange(index, "publication_name", e.target.value)}
                   isDisabled={!isEditing}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
             </SimpleGrid>
@@ -180,6 +182,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         onChange={(e) => onChange(index, "publication_type", e.target.value)}
                         isDisabled={!isEditing}
                         placeholder="e.g. Journal, Conference, Article"
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
                 <Field label="Publication Date" errorText={getError("publication_date")}>
@@ -225,6 +228,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={item.mentor_name || ""}
                         onChange={(e) => onChange(index, "mentor_name", e.target.value)}
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
                 <Field label="Link (DOI/URL)" errorText={getError("link")}>
@@ -232,6 +236,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={item.link || ""}
                         onChange={(e) => onChange(index, "link", e.target.value)}
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
             </SimpleGrid>
@@ -242,6 +247,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                     onChange={(e) => onChange(index, "skills", e.target.value)}
                     isDisabled={!isEditing}
                     placeholder="e.g. Research, Data Analysis"
+                    _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
             </Field>
 
@@ -251,7 +257,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                 onChange={(e) => onChange(index, "description", e.target.value)}
                 isDisabled={!isEditing}
                 rows={3}
-              />
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
             </Field>
 
             <Field label="Evidence Document" errorText={getError("evidence_document") || getError("evidenceDocument")}>

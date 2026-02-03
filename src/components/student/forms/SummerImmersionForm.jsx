@@ -211,6 +211,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Tech Innovations Inc."
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Job Role (Required)" required errorText={getError("job_role")}>
@@ -220,6 +221,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Data Science Intern"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Location">
@@ -229,6 +231,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Bangalore"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Stipend" errorText={getError("stipend")}>
@@ -242,6 +245,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="0"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                   min={0}
                   max={999999999999}
                   step="any"
@@ -289,6 +293,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder={kind === "Immersion" ? "e.g. 12" : "e.g. 03"}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Mentor Name (letters only, no numbers)" errorText={getError("mentor_name")}>
@@ -298,6 +303,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Dr. Priya Sharma"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Skills (comma separated)">
@@ -307,6 +313,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   variant="flushed"
                   isDisabled={!isEditing}
                   placeholder="e.g. Python, Machine Learning"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               <Field label="Proof Document (PDF/Image)">
@@ -382,6 +389,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                 rows={2}
                 isDisabled={!isEditing}
                 placeholder="Details about the organization..."
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
             </Field>
             <Field label="Description">
@@ -392,6 +400,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                 rows={3}
                 isDisabled={!isEditing}
                 placeholder="Describe your work and learnings..."
+                _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
             </Field>
           </VStack>

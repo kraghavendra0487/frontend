@@ -98,13 +98,13 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                 </Select>
             </Field>
             <Field label="Institute Name *">
-                <Input value={item.instituteName ?? item.institute_name ?? ""} onChange={(e) => handleChange("instituteName", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter institute name" />
+                <Input value={item.instituteName ?? item.institute_name ?? ""} onChange={(e) => handleChange("instituteName", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter institute name" _placeholder={{ opacity: 0.7, color: "inherit" }} />
             </Field>
             <Field label="Board *">
-                <Input value={item.board ?? ""} onChange={(e) => handleChange("board", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter board" />
+                <Input value={item.board ?? ""} onChange={(e) => handleChange("board", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter board" _placeholder={{ opacity: 0.7, color: "inherit" }} />
             </Field>
             <Field label="City *">
-                <Input value={item.city ?? ""} onChange={(e) => handleChange("city", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter city" />
+                <Input value={item.city ?? ""} onChange={(e) => handleChange("city", e.target.value)} variant="flushed" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} placeholder="Enter city" _placeholder={{ opacity: 0.7, color: "inherit" }} />
             </Field>
             <FormControl isInvalid={!!getError('year_of_passing')}>
               <Field label="Year of Passing *">
@@ -151,6 +151,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                   isDisabled={!isEditing} 
                   _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
                   placeholder={`e.g. ${new Date().getFullYear()}`}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               {(getError('year_of_passing') || yearError) && (
@@ -199,6 +200,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                   step="0.01"
                   min={0}
                   max={item.resultType === "CGPA" ? 10 : 100}
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               {getError('result') && (
@@ -220,6 +222,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                   isDisabled={!isEditing} 
                   _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
                   placeholder="e.g. Physics, Chemistry, Mathematics"
+                  _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
               {getError('subjects') && (
@@ -283,6 +286,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                         maxLength="2"
                         borderColor={gapError ? "red.400" : undefined}
                         _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
                 <Field label="Reason" helperText="e.g. N/A or reason">
@@ -295,6 +299,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                       placeholder="N/A if no gap"
                       borderColor={gapError ? "red.400" : undefined}
                       _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
+                      _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
             </SimpleGrid>

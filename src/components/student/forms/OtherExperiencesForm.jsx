@@ -180,6 +180,7 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "title", e.target.value)}
                             placeholder="e.g. Volunteer, Club Member"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                     <Field label="Organization" required errorText={getError("organization")}>
@@ -188,6 +189,7 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "organization", e.target.value)}
                             placeholder="e.g. NGO Name, Student Body"
                             isDisabled={!isEditing}
+                            _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
                 </SimpleGrid>
@@ -198,6 +200,7 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "location", e.target.value)}
                         placeholder="e.g. Bangalore, Remote"
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 
@@ -230,6 +233,7 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "skills", e.target.value)}
                         placeholder="e.g. Teamwork, Event Management"
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 
@@ -239,6 +243,7 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "description", e.target.value)}
                         placeholder="Brief description of your role and contributions..."
                         isDisabled={!isEditing}
+                        _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
 
