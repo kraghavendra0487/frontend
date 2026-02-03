@@ -45,6 +45,9 @@ import {
 import CompanyLayout from '../../components/CompanyLayout';
 import { CompanyService } from '../../services/company.service';
 import { getFileUrl } from '../../utils/fileUrl';
+import { ProjectShowcase } from '../../components/student/projects/ProjectShowcase';
+import '../../pages/student/profile/ProjectsProfile.css';
+import './CompanyStudentView.css';
 
 const colors = {
   accent: '#d4a960',
@@ -58,22 +61,22 @@ const colors = {
   border: '#e2e8f0',
 };
 
-const SectionCard = ({ icon, title, children, isEmpty }) => (
-  <Card bg="white" borderRadius="2xl" boxShadow="sm" border="1px solid" borderColor={colors.border}>
-    <CardBody p={6}>
-      <HStack spacing={3} mb={5}>
-        <Flex w="40px" h="40px" bg={colors.accentLight} borderRadius="xl" align="center" justify="center">
-          <Icon as={icon} color={colors.accent} boxSize={5} />
-        </Flex>
-        <Text fontWeight="700" color={colors.dark} fontSize="lg">{title}</Text>
-      </HStack>
-      {isEmpty ? (
-        <Text color={colors.secondary} fontSize="sm" textAlign="center" py={4}>
-          No information available
-        </Text>
-      ) : children}
-    </CardBody>
-  </Card>
+const SectionHead = ({ icon, title }) => (
+  <div className="company-student-view-section-head">
+    <div className="section-icon">
+      <Icon as={icon} boxSize={5} />
+    </div>
+    <h2 className="section-title">{title}</h2>
+  </div>
+);
+
+const SectionCard = ({ icon, title, children, isEmpty, className = '' }) => (
+  <div className={`company-student-view-section-card ${className}`.trim()}>
+    <SectionHead icon={icon} title={title} />
+    {isEmpty ? (
+      <p className="company-student-view-empty">No information available</p>
+    ) : children}
+  </div>
 );
 
 const CompanyStudentView = () => {
@@ -114,6 +117,17 @@ const CompanyStudentView = () => {
     });
   };
 
+  const MandatoryDetailRow = ({ label, value }) => (
+    <div className="company-student-view-row">
+      <Text as="dt" fontSize="sm" fontWeight="600" color={colors.secondary}>
+        {label}
+      </Text>
+      <Text as="dd" fontSize="sm" color={colors.dark}>
+        {value ?? '—'}
+      </Text>
+    </div>
+  );
+
   if (loading) {
     return (
       <CompanyLayout>
@@ -142,10 +156,10 @@ const CompanyStudentView = () => {
 
   return (
     <CompanyLayout>
-      <Box bg={colors.pageBg} minH="100vh" py={8}>
+      <Box className="company-student-view-page" minH="100vh" py={8}>
         <Container maxW="1200px">
-          {/* Header */}
           <Button
+            className="company-student-view-back"
             leftIcon={<ArrowBackIcon />}
             variant="ghost"
             size="sm"
@@ -156,7 +170,7 @@ const CompanyStudentView = () => {
           </Button>
 
           {/* Profile Header Card */}
-          <Card bg="white" borderRadius="2xl" boxShadow="md" border="1px solid" borderColor={colors.border} mb={6}>
+          <Card className="company-student-view-header-card" mb={6}>
             <CardBody p={8}>
               <Flex gap={6} align="start" flexWrap={{ base: 'wrap', md: 'nowrap' }}>
                 <Avatar
@@ -214,7 +228,43 @@ const CompanyStudentView = () => {
             </CardBody>
           </Card>
 
-          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+          {/* Mandatory details for company view */}
+          <Box className="company-student-view-mandatory-wrap" mb={6}>
+            <SectionHead icon={FaUserGraduate} title="Mandatory Details" />
+            <Box as="dl" className="company-student-view-dl">
+              <MandatoryDetailRow label="USN" value={student.usn} />
+              <MandatoryDetailRow label="Full Name" value={student.full_name} />
+              <MandatoryDetailRow label="Degree 1" value={student.program_name} />
+              <MandatoryDetailRow label="Degree 1 Primary Specializations" value={student.specialization_name} />
+              <MandatoryDetailRow label="Gender" value={student.gender} />
+              <MandatoryDetailRow label="Official Email" value={student.official_email ?? student.college_email} />
+              <MandatoryDetailRow
+                label="Personal Emails"
+                value={Array.isArray(student.personal_emails) ? student.personal_emails.join(', ') : student.personal_email}
+              />
+              <MandatoryDetailRow label="Official Phone" value={student.official_phone} />
+              <MandatoryDetailRow label="Date of Birth (DD-MM-YYYY)" value={student.date_of_birth_formatted} />
+              <MandatoryDetailRow label="10th - Aggregate Marks" value={student.tenth_aggregate_marks} />
+              <MandatoryDetailRow label="12th - Aggregate Marks" value={student.twelfth_aggregate_marks} />
+              <MandatoryDetailRow label="Diploma - Aggregate Marks" value={student.diploma_aggregate_marks} />
+              <MandatoryDetailRow label="Current Academics Aggregate Marks" value={student.current_aggregate_marks} />
+              <MandatoryDetailRow label="Current Academics Live Backlogs" value={student.current_live_backlogs != null ? String(student.current_live_backlogs) : null} />
+              <div className="company-student-view-row">
+                <Text as="dt" fontSize="sm" fontWeight="600" color={colors.secondary}>Resume Link</Text>
+                <Box as="dd">
+                  {resumeUrl ? (
+                    <Link href={resumeUrl} isExternal color="blue.600" fontWeight="500" fontSize="sm">
+                      View Resume <ExternalLinkIcon mx="2px" />
+                    </Link>
+                  ) : (
+                    <Text color={colors.secondary} fontSize="sm">—</Text>
+                  )}
+                </Box>
+              </div>
+            </Box>
+          </Box>
+
+          <SimpleGrid className="company-student-view-grid-wrap" columns={{ base: 1, lg: 2 }} spacing={6}>
             {/* Profile Summary */}
             <SectionCard 
               icon={FaLightbulb} 
@@ -223,26 +273,20 @@ const CompanyStudentView = () => {
             >
               {student.profile?.brief_summary && (
                 <Box mb={4}>
-                  <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={2}>ABOUT</Text>
-                  <Text fontSize="sm" color={colors.dark} lineHeight="1.7">
-                    {student.profile.brief_summary}
-                  </Text>
+                  <p className="company-student-view-summary-label">About</p>
+                  <p className="company-student-view-summary-text">{student.profile.brief_summary}</p>
                 </Box>
               )}
               {student.profile?.key_expertise && (
                 <Box mb={4}>
-                  <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={2}>KEY EXPERTISE</Text>
-                  <Text fontSize="sm" color={colors.dark} lineHeight="1.7">
-                    {student.profile.key_expertise}
-                  </Text>
+                  <p className="company-student-view-summary-label">Key expertise</p>
+                  <p className="company-student-view-summary-text">{student.profile.key_expertise}</p>
                 </Box>
               )}
               {student.profile?.career_objective && (
                 <Box>
-                  <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={2}>CAREER OBJECTIVE</Text>
-                  <Text fontSize="sm" color={colors.dark} lineHeight="1.7">
-                    {student.profile.career_objective}
-                  </Text>
+                  <p className="company-student-view-summary-label">Career objective</p>
+                  <p className="company-student-view-summary-text">{student.profile.career_objective}</p>
                 </Box>
               )}
             </SectionCard>
@@ -253,19 +297,19 @@ const CompanyStudentView = () => {
               title="Education History"
               isEmpty={!student.education || student.education.length === 0}
             >
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={3} align="stretch">
                 {student.education?.map((edu, idx) => (
-                  <Box key={idx} p={4} bg={colors.pageBg} borderRadius="xl">
-                    <HStack justify="space-between" mb={2}>
-                      <Badge colorScheme="blue" borderRadius="full">
+                  <Box key={idx} className="company-student-view-block">
+                    <HStack justify="space-between" mb={1}>
+                      <Badge colorScheme="blue" borderRadius="full" fontSize="xs">
                         {edu.education_level}
                       </Badge>
-                      <Text fontSize="sm" color={colors.secondary}>{edu.year_of_passing}</Text>
+                      <Text className="block-meta" fontSize="sm">{edu.year_of_passing}</Text>
                     </HStack>
-                    <Text fontWeight="600" color={colors.dark} fontSize="sm">{edu.institute_name}</Text>
-                    {edu.result && (
-                      <Text fontSize="sm" color={colors.accent} fontWeight="600">
-                        {edu.result} {edu.result_type}
+                    <Text className="block-title" fontSize="sm">{edu.institute_name}</Text>
+                    {edu.result != null && (
+                      <Text className="block-highlight" fontSize="sm">
+                        {edu.result} {edu.result_type || ''}
                       </Text>
                     )}
                   </Box>
@@ -273,86 +317,17 @@ const CompanyStudentView = () => {
               </VStack>
             </SectionCard>
 
-            {/* Projects - Full Width */}
-            <Box gridColumn={{ lg: 'span 2' }}>
+            {/* Projects - Full Width (showcase style like student side) */}
+            <Box gridColumn={{ lg: 'span 2' }} className="company-student-view-projects-section">
               <SectionCard 
                 icon={FaProjectDiagram} 
                 title={`Projects (${student.projects?.length || 0})`}
-                isEmpty={!student.projects || student.projects.length === 0}
+                isEmpty={false}
               >
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  {student.projects?.map((project) => (
-                    <Card 
-                      key={project.id} 
-                      border="1px solid" 
-                      borderColor={colors.border} 
-                      borderRadius="xl"
-                      _hover={{ borderColor: colors.accent, transform: 'translateY(-2px)' }}
-                      transition="all 0.2s"
-                    >
-                      <CardBody p={4}>
-                        {/* Project Snapshot */}
-                        {project.project_snaps && project.project_snaps.length > 0 && (
-                          <Image
-                            src={getFileUrl(project.project_snaps[0])}
-                            alt={project.title}
-                            borderRadius="lg"
-                            mb={3}
-                            h="150px"
-                            w="100%"
-                            objectFit="cover"
-                          />
-                        )}
-                        <Heading size="sm" color={colors.dark} mb={2}>{project.title}</Heading>
-                        <Text fontSize="sm" color={colors.secondary} mb={3} noOfLines={2}>
-                          {project.one_line_description}
-                        </Text>
-                        
-                        {/* Technologies */}
-                        {project.technologies && project.technologies.length > 0 && (
-                          <Wrap spacing={1} mb={3}>
-                            {project.technologies.slice(0, 4).map((tech, idx) => (
-                              <WrapItem key={idx}>
-                                <Badge size="sm" colorScheme="gray" borderRadius="full">
-                                  {tech}
-                                </Badge>
-                              </WrapItem>
-                            ))}
-                            {project.technologies.length > 4 && (
-                              <WrapItem>
-                                <Badge size="sm" colorScheme="gray" borderRadius="full">
-                                  +{project.technologies.length - 4}
-                                </Badge>
-                              </WrapItem>
-                            )}
-                          </Wrap>
-                        )}
-
-                        {/* Rating & Links */}
-                        <HStack justify="space-between" mt={2}>
-                          <HStack spacing={1}>
-                            <StarIcon color={colors.accent} boxSize={3} />
-                            <Text fontSize="sm" fontWeight="600" color={colors.dark}>
-                              {project.self_rating}/10
-                            </Text>
-                          </HStack>
-                          <HStack spacing={2}>
-                            {project.github_repo && (
-                              <Link href={project.github_repo} isExternal>
-                                <Icon as={FaGithub} color={colors.secondary} _hover={{ color: colors.dark }} />
-                              </Link>
-                            )}
-                            {project.hosted_link && (
-                              <Link href={project.hosted_link} isExternal>
-                                <Icon as={FaExternalLinkAlt} color={colors.secondary} _hover={{ color: colors.accent }} />
-                              </Link>
-                            )}
-                          </HStack>
-                        </HStack>
-                      </CardBody>
-                    </Card>
-                  ))}
-                </SimpleGrid>
+                <ProjectShowcase
+                  projects={student.projects || []}
+                  studentName={student.full_name}
+                />
               </SectionCard>
             </Box>
 
@@ -362,37 +337,37 @@ const CompanyStudentView = () => {
               title={`Internships (${(student.internships?.length || 0) + (student.summer_internships?.length || 0)})`}
               isEmpty={(!student.internships || student.internships.length === 0) && (!student.summer_internships || student.summer_internships.length === 0)}
             >
-              <VStack spacing={4} align="stretch">
+              <VStack spacing={3} align="stretch">
                 {student.internships?.map((intern, idx) => (
-                  <Box key={`int-${idx}`} p={4} bg={colors.pageBg} borderRadius="xl">
-                    <Heading size="sm" color={colors.dark} mb={1}>{intern.job_role}</Heading>
-                    <HStack spacing={2} mb={2}>
+                  <Box key={`int-${idx}`} className="company-student-view-block">
+                    <Text className="block-title">{intern.job_role}</Text>
+                    <HStack spacing={2} mb={1}>
                       <Icon as={FaBuilding} color={colors.accent} boxSize={3} />
-                      <Text fontSize="sm" fontWeight="500" color={colors.dark}>{intern.organization}</Text>
+                      <Text className="block-meta" fontSize="sm">{intern.organization}</Text>
                     </HStack>
-                    <Text fontSize="xs" color={colors.secondary}>
-                      {formatDate(intern.start_date)} - {formatDate(intern.end_date)}
+                    <Text className="block-meta" fontSize="xs">
+                      {formatDate(intern.start_date)} – {formatDate(intern.end_date)}
                       {intern.duration_months && ` (${intern.duration_months} months)`}
                     </Text>
                     {intern.skills && (
-                      <Text fontSize="xs" color={colors.secondary} mt={2}>
+                      <Text className="block-meta" fontSize="xs" mt={2}>
                         <strong>Skills:</strong> {intern.skills}
                       </Text>
                     )}
                   </Box>
                 ))}
                 {student.summer_internships?.map((intern, idx) => (
-                  <Box key={`summer-${idx}`} p={4} bg={colors.pageBg} borderRadius="xl">
+                  <Box key={`summer-${idx}`} className="company-student-view-block">
                     <HStack justify="space-between" mb={1}>
-                      <Heading size="sm" color={colors.dark}>{intern.job_role}</Heading>
+                      <Text className="block-title">{intern.job_role}</Text>
                       <Badge colorScheme="orange" fontSize="xs">Summer</Badge>
                     </HStack>
-                    <HStack spacing={2} mb={2}>
+                    <HStack spacing={2} mb={1}>
                       <Icon as={FaBuilding} color={colors.accent} boxSize={3} />
-                      <Text fontSize="sm" fontWeight="500" color={colors.dark}>{intern.organization}</Text>
+                      <Text className="block-meta" fontSize="sm">{intern.organization}</Text>
                     </HStack>
-                    <Text fontSize="xs" color={colors.secondary}>
-                      {formatDate(intern.start_date)} - {formatDate(intern.end_date)}
+                    <Text className="block-meta" fontSize="xs">
+                      {formatDate(intern.start_date)} – {formatDate(intern.end_date)}
                     </Text>
                   </Box>
                 ))}
@@ -407,13 +382,11 @@ const CompanyStudentView = () => {
             >
               <VStack spacing={3} align="stretch">
                 {student.certifications?.map((cert, idx) => (
-                  <Box key={idx} p={4} bg={colors.pageBg} borderRadius="xl">
-                    <Heading size="sm" color={colors.dark} mb={1}>{cert.title}</Heading>
-                    <Text fontSize="sm" color={colors.secondary}>{cert.organization}</Text>
+                  <Box key={idx} className="company-student-view-block">
+                    <Text className="block-title">{cert.title}</Text>
+                    <Text className="block-meta" fontSize="sm">{cert.organization}</Text>
                     <HStack justify="space-between" mt={2}>
-                      <Text fontSize="xs" color={colors.secondary}>
-                        Issued: {formatDate(cert.issue_date)}
-                      </Text>
+                      <Text className="block-meta" fontSize="xs">Issued: {formatDate(cert.issue_date)}</Text>
                       {cert.score && (
                         <Badge colorScheme="green" fontSize="xs">{cert.score}</Badge>
                       )}
@@ -426,15 +399,15 @@ const CompanyStudentView = () => {
             {/* Capstone */}
             {student.capstone && student.capstone.length > 0 && (
               <SectionCard icon={FaGraduationCap} title="Capstone / Final Year Project">
-                <VStack spacing={4} align="stretch">
+                <VStack spacing={3} align="stretch">
                   {student.capstone.map((cap, idx) => (
-                    <Box key={idx} p={4} bg={colors.pageBg} borderRadius="xl">
-                      <HStack spacing={2} mb={2}>
-                        <Icon as={FaBuilding} color={colors.accent} />
-                        <Heading size="sm" color={colors.dark}>{cap.company_name}</Heading>
+                    <Box key={idx} className="company-student-view-block">
+                      <HStack spacing={2} mb={1}>
+                        <Icon as={FaBuilding} color={colors.accent} boxSize={3} />
+                        <Text className="block-title">{cap.company_name}</Text>
                       </HStack>
-                      <Text fontSize="sm" fontWeight="500" color={colors.dark}>{cap.designation}</Text>
-                      <Text fontSize="xs" color={colors.secondary} mt={1}>
+                      <Text className="block-meta" fontSize="sm">{cap.designation}</Text>
+                      <Text className="block-meta" fontSize="xs" mt={1}>
                         {cap.internship_duration_months} months • {cap.academic_year}
                       </Text>
                     </Box>

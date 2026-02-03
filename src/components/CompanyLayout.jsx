@@ -55,8 +55,7 @@ const CompanyLayout = ({ children }) => {
 
   const navItems = [
     { path: '/company/dashboard', label: 'Dashboard', icon: FaTachometerAlt },
-    { path: '/company/profile', label: 'Company Profile', icon: FaBuilding },
-    { path: '/company/contacts', label: 'Contacts', icon: FaUsers },
+    { path: '/company/profile', label: 'Profile & Contacts', icon: FaBuilding },
     { path: '/company/drives', label: 'Placement Drives', icon: FaBriefcase },
     { path: '/company/offers', label: 'Offers', icon: FaHandshake },
     { path: '/company/notifications', label: 'Notifications', icon: FaBell },

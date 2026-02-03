@@ -67,7 +67,6 @@ import ReferralForm from './pages/alumni/ReferralForm';
 // Company pages
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import CompanyProfile from './pages/company/CompanyProfile';
-import CompanyContacts from './pages/company/CompanyContacts';
 import CompanyDrives from './pages/company/CompanyDrives';
 import CompanyDriveDetail from './pages/company/CompanyDriveDetail';
 import CompanyStudentView from './pages/company/CompanyStudentView';
@@ -361,14 +360,6 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole="company">
             <CompanyProfile />
-          </PlacementProtectedRoute>
-        )
-      },
-      {
-        path: "/company/contacts",
-        element: (
-          <PlacementProtectedRoute requiredRole="company">
-            <CompanyContacts />
           </PlacementProtectedRoute>
         )
       },
