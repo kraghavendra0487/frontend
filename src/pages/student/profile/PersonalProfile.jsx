@@ -121,6 +121,21 @@ export const PersonalProfile = () => {
   const handleSave = async () => {
     if (saving) return
     if (!hasUnsavedChanges) return
+    // Front-end validation: gender must be present
+    const genderVal = (data?.gender || "").toString().trim()
+    if (!genderVal) {
+      setFieldErrors({ gender: "Gender is required." })
+      toast({ title: "Validation error", description: "Gender is required.", status: "warning", duration: 4000, isClosable: true })
+      return false
+    }
+
+    // Front-end validation: blood group must be present
+    const bloodGroupVal = (data?.bloodGroup ?? data?.blood_group ?? "").toString().trim()
+    if (!bloodGroupVal) {
+      setFieldErrors({ blood_group: "Blood group is required." })
+      toast({ title: "Validation error", description: "Blood group is required.", status: "warning", duration: 4000, isClosable: true })
+      return false
+    }
     setSaving(true)
     try {
       let payload = { ...data }
@@ -168,7 +183,16 @@ export const PersonalProfile = () => {
       const parsed = parseApiError(error)
       const msg = parsed.message || "Error saving data"
       if (parsed.fieldErrors) {
-        setFieldErrors(mapFieldErrorsToForm(parsed.fieldErrors, { fullName: "full_name", full_name: "full_name", phoneNumber: "phone_number", dateOfBirth: "date_of_birth", personalEmail: "personal_email", phoneCountryCode: "phone_country_code" }))
+        setFieldErrors(mapFieldErrorsToForm(parsed.fieldErrors, {
+          fullName: "full_name",
+          full_name: "full_name",
+          phoneNumber: "phone_number",
+          dateOfBirth: "date_of_birth",
+          personalEmail: "personal_email",
+          phoneCountryCode: "phone_country_code",
+          bloodGroup: "blood_group",
+          blood_group: "blood_group"
+        }))
       } else {
         setFieldErrors(null)
       }
@@ -244,6 +268,26 @@ export const PersonalProfile = () => {
     }
     setOptInSaving(true)
     try {
+      // Double-check required fields before sending opt-in request
+      const latestPersonal = await fetchProfileSection(usn, 'personal', true)
+      const latestContact = await fetchProfileSection(usn, 'contact', true)
+      const fullName = (latestPersonal?.full_name || latestPersonal?.fullName || data?.full_name || data?.fullName || "").toString().trim()
+      const personalEmail = (latestContact?.personal_email || latestContact?.personalEmail || "").toString().trim()
+      const phoneNumber = (latestContact?.phone_number || latestContact?.phoneNumber || "").toString().replace(/\D/g, "")
+
+      if (!fullName) {
+        setFieldErrors({ full_name: "Full name is required before opting in." })
+        toast({ title: "Cannot opt in", description: "Full name is required before opting in.", status: "warning", duration: 5000, isClosable: true })
+        setOptInSaving(false)
+        return
+      }
+      if (!personalEmail && !phoneNumber) {
+        setFieldErrors({ contact: "Provide at least one contact (email or phone) before opting in." })
+        toast({ title: "Cannot opt in", description: "Provide at least one contact (email or phone) before opting in.", status: "warning", duration: 5000, isClosable: true })
+        setOptInSaving(false)
+        return
+      }
+
       await StudentProfileService.saveSection(usn, "personal", {
         ...data,
         opt_in: true,
@@ -269,7 +313,11 @@ export const PersonalProfile = () => {
         isClosable: true,
       })
     } catch (err) {
-      const msg = getProfileErrorMessage(err)
+      const parsed = parseApiError(err)
+      const msg = parsed.message || getProfileErrorMessage(err)
+      if (parsed.fieldErrors) {
+        setFieldErrors(mapFieldErrorsToForm(parsed.fieldErrors, { fullName: "full_name", full_name: "full_name", personalEmail: "personal_email", phoneNumber: "phone_number" }))
+      }
       toast({
         title: "Failed to opt in",
         description: msg,

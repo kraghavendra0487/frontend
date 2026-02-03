@@ -65,7 +65,8 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       textColor: "#fff",
       links: [
         { label: "Bulk Email", path: "/placement/email", ariaLabel: "Filter and copy emails for bulk mailing" },
-        { label: "User Login Management", path: "/placement/user-login", ariaLabel: "Manage user logins and active status" }
+        { label: "User Login Management", path: "/placement/user-login", ariaLabel: "Manage user logins and active status" },
+        { label: "Alumni Connect", path: "/placement/alumni-connect", ariaLabel: "Connect with Alumni" }
       ]
     },
     {

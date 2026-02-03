@@ -34,7 +34,7 @@ import { getFileUrl } from "../../../utils/fileUrl"
 
 const MAX_PROJECT_IMAGES = 4
 
-/** Priority: optional; when present must be positive integer. No decimals, no zero, no negative. */
+/** Priority: must be sequential (1 to total number of projects) */
 function parsePriority(value) {
   if (value === undefined || value === null) return null
   const s = String(value).trim()
@@ -42,6 +42,16 @@ function parsePriority(value) {
   const n = parseInt(s, 10)
   if (Number.isNaN(n) || s !== String(n) || n < 1) return undefined
   return n
+}
+
+/** Get next available priority (1, 2, 3... based on current projects) */
+function getNextPriority(items) {
+  return (Array.isArray(items) ? items.length : 0) + 1
+}
+
+/** Get max allowed priority (equals total number of projects) */
+function getMaxPriority(items) {
+  return Array.isArray(items) ? items.length : 0
 }
 
 function validateProject(item, items, editingIndex) {
@@ -58,14 +68,43 @@ function validateProject(item, items, editingIndex) {
     if (parsed === undefined) {
       errors.priority = "Priority must be a positive integer."
     } else {
-      const duplicateIndex = (Array.isArray(items) ? items : [])
-        .findIndex((p, i) => i !== editingIndex && parsePriority(p?.priority) === parsed)
-      if (duplicateIndex !== -1) {
-        errors.priority = "Priority must be unique for your projects."
+      const maxAllowed = getMaxPriority(items)
+      if (parsed > maxAllowed || parsed < 1) {
+        errors.priority = `Priority must be between 1 and ${maxAllowed}.`
+      } else {
+        const duplicateIndex = (Array.isArray(items) ? items : [])
+          .findIndex((p, i) => i !== editingIndex && parsePriority(p?.priority) === parsed)
+        if (duplicateIndex !== -1) {
+          errors.priority = "Priority must be unique for your projects."
+        }
       }
     }
   }
   return errors
+}
+
+/** Auto-reorder priorities when one changes. Fills gaps sequentially. */
+function reorderPriorities(items, changedIndex) {
+  if (!Array.isArray(items) || items.length === 0) return items
+  const withPriorities = items.map((item, i) => {
+    const p = parsePriority(item?.priority)
+    return { ...item, priority: p, index: i }
+  })
+  // Get all valid priorities
+  const validPriorities = withPriorities
+    .filter(p => p.priority !== null && p.priority !== undefined)
+    .sort((a, b) => a.priority - b.priority)
+  // Reassign 1, 2, 3... to projects with priorities
+  let newPriority = 1
+  validPriorities.forEach(p => {
+    withPriorities[p.index].priority = newPriority
+    newPriority++
+  })
+  // Return items in original structure
+  return withPriorities.map(p => {
+    const { index, priority, ...rest } = p
+    return { ...rest, priority: priority === null || priority === undefined ? "" : priority }
+  })
 }
 
 export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSelect, apiFieldErrors = null, onPriorityValidationChange = null }) => {
@@ -133,7 +172,13 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
   const handleChange = (index, field, value) => {
     const newItems = [...items]
     newItems[index] = { ...newItems[index], [field]: value }
-    onUpdate(newItems)
+    // If priority changed, auto-reorder to keep sequential
+    if (field === "priority") {
+      const reordered = reorderPriorities(newItems, index)
+      onUpdate(reordered)
+    } else {
+      onUpdate(newItems)
+    }
   }
 
   const handleAdd = () => {
@@ -144,7 +189,7 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
       genre: "",
       visibility: "PRIVATE",
       self_rating: 5,
-      priority: "",
+      priority: getNextPriority(items),
       hosted_link: "",
       github_repo: "",
       mentor_name: "",
@@ -410,7 +455,7 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
             className="projects-edit-input"
           />
         </Field>
-        <Field label="PRIORITY" errorText={fieldErrors.priority}>
+        <Field label="PRIORITY" errorText={fieldErrors.priority} helperText={`1-${getMaxPriority(items)} (auto-ordered)`}>
           <Input
             type="text"
             inputMode="numeric"
@@ -421,15 +466,30 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
                 onChange(index, "priority", "")
                 return
               }
-              if (/^\d+$/.test(v)) onChange(index, "priority", v)
+              if (/^\d+$/.test(v)) {
+                const n = parseInt(v, 10)
+                const maxAllowed = getMaxPriority(items)
+                if (n >= 1 && n <= maxAllowed) {
+                  onChange(index, "priority", n)
+                }
+              }
             }}
             onBlur={(e) => {
               const v = e.target.value.trim()
               if (v === "") return
               const n = parseInt(v, 10)
-              if (!Number.isNaN(n) && n >= 1) onChange(index, "priority", n)
+              if (!Number.isNaN(n)) {
+                const maxAllowed = getMaxPriority(items)
+                if (n >= 1 && n <= maxAllowed) {
+                  onChange(index, "priority", n)
+                } else if (n > maxAllowed) {
+                  onChange(index, "priority", maxAllowed)
+                } else if (n < 1) {
+                  onChange(index, "priority", 1)
+                }
+              }
             }}
-            placeholder="Optional (e.g. 1, 2, 3)"
+            placeholder={`e.g. 1 to ${getMaxPriority(items)}`}
             className="projects-edit-input"
           />
         </Field>

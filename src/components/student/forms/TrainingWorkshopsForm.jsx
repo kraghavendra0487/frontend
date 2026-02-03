@@ -47,8 +47,7 @@ export const TrainingWorkshopsForm = ({ data = {}, onUpdate, isEditing = false, 
         endDate: "",
         skills: "",
         description: "",
-        proof_document: "",
-        proofDocument: ""
+        proof_document: ""
       }
     ])
   }

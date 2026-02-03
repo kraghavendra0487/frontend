@@ -21,6 +21,7 @@ import DriveProcess from './pages/admin/DriveProcess';
 import Process from './pages/admin/Process';
 import AlumniList from './pages/admin/AlumniList';
 import AlumniDetails from './pages/admin/AlumniDetails';
+import AlumniConnect from './pages/admin/AlumniConnect';
 import AdminCompanies from './pages/admin/Companies';
 import CompanyDetails from './pages/admin/CompanyDetails';
 import Notifications from './pages/admin/Notifications';
@@ -247,6 +248,14 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole="admin">
             <BulkEmail />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/alumni-connect",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <AlumniConnect />
           </PlacementProtectedRoute>
         )
       },

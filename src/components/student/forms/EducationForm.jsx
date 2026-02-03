@@ -229,8 +229,8 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
           <Field label="Upload Marksheet/Certificate *">
             <EducationFileInput
                 isEditing={isEditing}
-                value={item.proofFile}
-                onChange={(url) => handleChange("proofFile", url)}
+                value={item.marksheet_file}
+                onChange={(url) => handleChange("marksheet_file", url)}
                 onFileSelect={onFileSelect ? (file) => onFileSelect(index, file) : undefined}
             />
           </Field>
@@ -317,7 +317,7 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
       resultType: item.resultType ?? item.result_type ?? "PERCENTAGE",
       result: item.result ?? item.result_value ?? "",
       subjects: item.subjects ?? "",
-      proofFile: item.proofFile ?? item.marksheet_file ?? "",
+      marksheet_file: item.marksheet_file ?? item.proofFile ?? "",
       gapType: item.gapType ?? item.gap_type ?? "",
       gapDurationMonths: item.gapDurationMonths ?? item.gap_duration_months ?? "",
       gapReason: item.gapReason ?? item.gap_reason ?? ""
@@ -346,7 +346,6 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
               resultType: "PERCENTAGE",
               result: "",
               subjects: "",
-              proofFile: "",
               marksheet_file: "",
               gapType: "",
               gapDurationMonths: "",
@@ -369,8 +368,7 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
         const newItems = [...items]
         newItems[index] = { 
             ...newItems[index], 
-            proofFile: url, 
-            marksheet_file: url 
+            marksheet_file: url
         }
         onUpdate(newItems)
         toast({

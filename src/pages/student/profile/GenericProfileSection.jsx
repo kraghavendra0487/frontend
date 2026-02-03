@@ -702,7 +702,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
                       const url = result?.url || result?.path
                       if (url) {
                           if (sectionKey === "education") {
-                            updatedItems[index] = { ...target, marksheet_file: url, proofFile: url }
+                            updatedItems[index] = { ...target, marksheet_file: url }
                           } else {
                             // For academics, DB expects jsonb array
                             updatedItems[index] = { ...target, provisional_result_upload_links: [url], resultUploadLink: [url] }

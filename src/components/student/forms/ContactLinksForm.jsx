@@ -106,7 +106,12 @@ export const ContactLinksForm = ({
             </FormControl>
 
             <FormControl isInvalid={!!(fe.personal_email || fe.personalEmail)}>
-              <FormLabel fontWeight="semibold" color="gray.600">Personal Email</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.600">
+                Personal Email
+                {isEditing && (
+                  <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
+                )}
+              </FormLabel>
               <Input
                 value={formData.personalEmail || ""}
                 onChange={(e) => handleChange("personalEmail", e.target.value)}
@@ -120,10 +125,18 @@ export const ContactLinksForm = ({
               {(fe.personal_email || fe.personalEmail) && (
                 <Text fontSize="sm" color="red.500" mt={1}>{fe.personal_email || fe.personalEmail}</Text>
               )}
+              {isEditing && (
+                <Text fontSize="sm" color="gray.500" mt={1}>Personal email is required and cannot be cleared.</Text>
+              )}
             </FormControl>
 
             <FormControl isInvalid={phoneInvalid}>
-              <FormLabel fontWeight="semibold" color="gray.600">Phone</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.600">
+                Phone
+                {isEditing && (
+                  <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
+                )}
+              </FormLabel>
               <Input
                 value={phoneDisplay}
                 onChange={(e) => handlePhoneChange(e.target.value)}
@@ -139,6 +152,12 @@ export const ContactLinksForm = ({
               />
               {phoneInvalid && (
                 <Text fontSize="sm" color="red.500" mt={1}>Enter exactly 10 digits.</Text>
+              )}
+              {(fe.phoneNumber || fe.phone_number) && (
+                <Text fontSize="sm" color="red.500" mt={1}>{fe.phoneNumber || fe.phone_number}</Text>
+              )}
+              {isEditing && (
+                <Text fontSize="sm" color="gray.500" mt={1}>Phone number is required and cannot be cleared.</Text>
               )}
             </FormControl>
           </SimpleGrid>

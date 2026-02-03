@@ -75,24 +75,17 @@ export const SummerImmersionForm = ({ data, onUpdate, isEditing = false, onFileS
       ...immersionItems,
       {
         job_role: "",
-        jobRole: "",
         organization: "",
         organization_details: "",
-        organizationDetails: "",
         duration_weeks: "",
-        durationWeeks: "",
         start_date: "",
-        startDate: "",
         end_date: "",
-        endDate: "",
         location: "",
         stipend: "",
         skills: "",
         description: "",
         mentor_name: "",
-        mentorName: "",
-        proof_document: "",
-        proofDocument: ""
+        proof_document: ""
       }
     ])
   }

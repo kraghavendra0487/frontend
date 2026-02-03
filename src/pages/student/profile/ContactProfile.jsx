@@ -106,15 +106,22 @@ export const ContactProfile = () => {
       const personalEmail = (data?.personalEmail ?? data?.personal_email ?? "").toString().trim()
       const phoneNumber = (data?.phoneNumber ?? data?.phone_number ?? "").toString().replace(/\D/g, "")
       const collegeEmail = (data?.collegeEmail ?? data?.college_email ?? "").toString().trim()
-      if (!personalEmail && !phoneNumber && !collegeEmail) {
-          toast({
-              title: "At least one contact required",
-              description: "Provide personal email, phone number, or college email.",
-              status: "warning",
-              duration: 5000,
-              isClosable: true,
-          })
-          return
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      const errors = {}
+
+      // Email and phone are ALWAYS mandatory (never allow null/empty)
+      if (!personalEmail || !emailRegex.test(personalEmail)) {
+        errors.personalEmail = "Enter a valid personal email (cannot be cleared).";
+      }
+      if (!phoneNumber || phoneNumber.length !== 10) {
+        errors.phoneNumber = "Enter a valid 10-digit phone number (cannot be cleared).";
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors)
+        toast({ title: "Validation error", description: "Please fix contact details before saving.", status: "warning", duration: 5000, isClosable: true })
+        return
       }
       setSaving(true)
       try {
@@ -193,13 +200,13 @@ export const ContactProfile = () => {
     )
   }
 
-  return (
-    <Box maxW="5xl" mx="auto" position="relative" pt={8}>
-        <HStack spacing={2} mb={6}>
-          <Icon as={FaAddressBook} color="#d4a960" boxSize={6} />
-          <Heading size="md">Contact Details</Heading>
-        </HStack>
-        <ContactLinksForm
+    return (
+      <Box maxW="5xl" mx="auto" position="relative" pt={8}>
+          <HStack spacing={2} mb={6}>
+            <Icon as={FaAddressBook} color="#d4a960" boxSize={6} />
+            <Heading size="md">Contact Details</Heading>
+          </HStack>
+          <ContactLinksForm
             data={data}
             onUpdate={handleUpdate}
             isEditing={isEditing}

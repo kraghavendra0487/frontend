@@ -333,22 +333,9 @@ export const PersonalInformationForm = ({
                 <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
                   Full Name *
                 </FormLabel>
-                <Input
-                  value={formData.fullName || formData.full_name || ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Remove any numbers from the input
-                    const sanitized = value.replace(/[0-9]/g, '');
-                    handleChange({ fullName: sanitized, full_name: sanitized });
-                  }}
-                  variant={inputVariant}
-                  focusBorderColor={focusBorderColor}
-                  px={inputPadding}
-                  fontSize="xl"
-                  fontWeight="semibold"
-                  isDisabled={!isEditing}
-                  _disabled={{ opacity: 1, bg: "transparent", px: 0, color: "gray.900", cursor: "default" }}
-                />
+                <Text fontSize="xl" fontWeight="semibold" color="gray.900" py={1}>
+                  {formData.fullName || formData.full_name || ""}
+                </Text>
                 {(fe.full_name || fe.fullName) && (
                   <Text fontSize="sm" color="red.500" mt={1}>{fe.full_name || fe.fullName}</Text>
                 )}
@@ -421,22 +408,29 @@ export const PersonalInformationForm = ({
 
       <Section title="Basic Details" bg={bg} icon={FaIdCard}>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-          <FormControl>
+          <FormControl isInvalid={!!(fe.gender)}>
             <FormLabel fontWeight="semibold" color="gray.600">Gender</FormLabel>
-            <Select
-              variant={inputVariant}
-              focusBorderColor={focusBorderColor}
-              isDisabled={!isEditing}
-              _disabled={{ opacity: 1, color: "gray.800", cursor: "default", bg: "transparent" }}
-              value={formData.gender || ""}
-              onChange={(e) => handleChange({ gender: e.target.value })}
-              icon={!isEditing ? "none" : undefined}
-            >
-              <option value="">Select</option>
-              <option value="MALE">MALE</option>
-              <option value="FEMALE">FEMALE</option>
-              <option value="Other">Other</option>
-            </Select>
+            {isEditing ? (
+              <Select
+                variant={inputVariant}
+                focusBorderColor={focusBorderColor}
+                isDisabled={!isEditing}
+                _disabled={{ opacity: 1, color: "gray.800", cursor: "default", bg: "transparent" }}
+                value={formData.gender || ""}
+                onChange={(e) => handleChange({ gender: e.target.value })}
+                icon={!isEditing ? "none" : undefined}
+              >
+                <option value="">Select</option>
+                <option value="MALE">MALE</option>
+                <option value="FEMALE">FEMALE</option>
+                <option value="Other">Other</option>
+              </Select>
+            ) : (
+              <Text fontSize="lg" color="gray.800" py={1}>{formData.gender || "—"}</Text>
+            )}
+            {fe.gender && (
+              <Text fontSize="sm" color="red.500" mt={1}>{fe.gender}</Text>
+            )}
           </FormControl>
 
           <FormControl isInvalid={!!(fe.date_of_birth || fe.dateOfBirth)}>
@@ -462,8 +456,13 @@ export const PersonalInformationForm = ({
             )}
           </FormControl>
 
-          <FormControl>
-            <FormLabel fontWeight="semibold" color="gray.600">Blood Group</FormLabel>
+          <FormControl isInvalid={!!(fe.blood_group || fe.bloodGroup)}>
+            <FormLabel fontWeight="semibold" color="gray.600">
+              Blood Group
+              {isEditing && (
+                <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
+              )}
+            </FormLabel>
             <Select
               value={formData.bloodGroup || ""}
               onChange={(e) => handleChange({ bloodGroup: e.target.value })}
@@ -483,6 +482,9 @@ export const PersonalInformationForm = ({
               <option value="O+">O+</option>
               <option value="O-">O-</option>
             </Select>
+            {(fe.blood_group || fe.bloodGroup) && (
+              <Text fontSize="sm" color="red.500" mt={1}>{fe.blood_group || fe.bloodGroup}</Text>
+            )}
           </FormControl>
 
           <FormControl>
