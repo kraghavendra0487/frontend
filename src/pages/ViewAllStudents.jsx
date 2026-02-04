@@ -51,6 +51,8 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Progress,
+  Tooltip,
 } from '@chakra-ui/react';
 import { SearchIcon, ViewIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, AddIcon, DownloadIcon, AttachmentIcon } from '@chakra-ui/icons';
 import { MdViewColumn } from 'react-icons/md';
@@ -320,11 +322,20 @@ export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selecte
 
 // Placement eligibility track: batch policies (exported for StudentEligibilityPage)
 export const StudentEligibilityTab = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [policies, setPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modifiedPolicies, setModifiedPolicies] = useState({});
   const [filters, setFilters] = useState({ year: '', school: '' });
+  
+  // Confirmation modal state
+  const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
+  const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0, results: [], saving: false });
+  
+  // System sync modal state
+  const { isOpen: isSyncModalOpen, onOpen: onSyncModalOpen, onClose: onSyncModalClose } = useDisclosure();
+  const [syncStatus, setSyncStatus] = useState({ loading: false, preview: null, result: null });
 
   const fetchData = useCallback(async (opts = {}) => {
     const { silent = false } = opts;
@@ -362,21 +373,132 @@ export const StudentEligibilityTab = () => {
     setModifiedPolicies((prev) => ({ ...prev, [policy.id]: updated }));
   };
 
-  const handleSaveChanges = async () => {
+  // Get changes summary for a policy
+  const getPolicyChanges = (policy) => {
+    const original = policies.find(p => p.id === policy.id);
+    if (!original) return [];
+    const changes = [];
+    if (original.summer_immersion !== policy.summer_immersion) {
+      changes.push({ field: 'Immersion', from: original.summer_immersion, to: policy.summer_immersion });
+    }
+    if (original.summer_internship !== policy.summer_internship) {
+      changes.push({ field: 'Internship', from: original.summer_internship, to: policy.summer_internship });
+    }
+    if (original.capstone !== policy.capstone) {
+      changes.push({ field: 'Capstone', from: original.capstone, to: policy.capstone });
+    }
+    if (original.placement !== policy.placement) {
+      changes.push({ field: 'Placement', from: original.placement, to: policy.placement });
+    }
+    return changes;
+  };
+
+  const handleSaveClick = () => {
     const updates = Object.values(modifiedPolicies);
     if (updates.length === 0) {
       toast({ title: 'No changes to save', status: 'info' });
       return;
     }
-    try {
-      setLoading(true);
-      await Promise.all(updates.map((p) => PlacementService.upsertPolicy(p)));
-      toast({ title: 'Changes saved', status: 'success' });
+    // Open confirmation modal
+    setSaveProgress({ current: 0, total: updates.length, results: [], saving: false });
+    onConfirmOpen();
+  };
+
+  const handleConfirmSave = async () => {
+    const updates = Object.values(modifiedPolicies);
+    setSaveProgress({ current: 0, total: updates.length, results: [], saving: true });
+    
+    const results = [];
+    for (let i = 0; i < updates.length; i++) {
+      const policy = updates[i];
+      try {
+        const response = await PlacementService.upsertPolicy(policy);
+        results.push({
+          policy,
+          success: true,
+          studentsUpdated: response.students_updated || 0
+        });
+      } catch (err) {
+        results.push({
+          policy,
+          success: false,
+          error: err?.message || 'Failed'
+        });
+      }
+      setSaveProgress(prev => ({ ...prev, current: i + 1, results: [...results] }));
+    }
+    
+    setSaveProgress(prev => ({ ...prev, saving: false }));
+    
+    const totalStudents = results.reduce((sum, r) => sum + (r.studentsUpdated || 0), 0);
+    const successCount = results.filter(r => r.success).length;
+    
+    if (successCount === updates.length) {
+      toast({ 
+        title: 'All changes saved successfully', 
+        description: `Updated eligibility for ${totalStudents} students across ${successCount} batches`,
+        status: 'success',
+        duration: 5000
+      });
       setModifiedPolicies({});
+      fetchData({ silent: true });
+    } else {
+      toast({ 
+        title: 'Some changes failed', 
+        description: `${successCount}/${updates.length} batches updated`,
+        status: 'warning' 
+      });
+    }
+  };
+
+  const handleCloseConfirm = () => {
+    if (!saveProgress.saving) {
+      onConfirmClose();
+      if (saveProgress.results.length > 0) {
+        fetchData({ silent: true });
+      }
+    }
+  };
+
+  // System sync handlers
+  const handleOpenSyncModal = async () => {
+    setSyncStatus({ loading: true, preview: null, result: null });
+    onSyncModalOpen();
+    try {
+      const preview = await PlacementService.previewEligibilitySync();
+      setSyncStatus({ loading: false, preview, result: null });
     } catch (e) {
-      toast({ title: 'Error saving', description: e?.message, status: 'error' });
-    } finally {
-      setLoading(false);
+      toast({ title: 'Failed to load preview', status: 'error' });
+      setSyncStatus({ loading: false, preview: null, result: null });
+    }
+  };
+
+  const handleRunSystemSync = async () => {
+    setSyncStatus(prev => ({ ...prev, loading: true }));
+    try {
+      const result = await PlacementService.runEligibilitySync(false);
+      setSyncStatus(prev => ({ ...prev, loading: false, result }));
+      if (result.studentsUpdated > 0) {
+        toast({ 
+          title: 'System sync complete', 
+          description: `Updated ${result.studentsUpdated} students`,
+          status: 'success',
+          duration: 5000
+        });
+        fetchData({ silent: true });
+      } else {
+        toast({ title: 'No updates needed', status: 'info' });
+      }
+    } catch (e) {
+      toast({ title: 'Sync failed', description: e?.message, status: 'error' });
+      setSyncStatus(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleCloseSyncModal = () => {
+    if (!syncStatus.loading) {
+      onSyncModalClose();
+      setSyncStatus({ loading: false, preview: null, result: null });
     }
   };
 
@@ -412,6 +534,9 @@ export const StudentEligibilityTab = () => {
             {uniqueSchools.map((s) => <option key={s} value={s}>{s}</option>)}
           </Select>
           <Button colorScheme="purple" size="sm" onClick={handleSyncPolicies} isLoading={loading}>Sync All Programs</Button>
+          <Button colorScheme="teal" size="sm" onClick={handleOpenSyncModal} leftIcon={<Icon viewBox="0 0 24 24" boxSize={4}><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></Icon>}>
+            Run System Sync
+          </Button>
         </HStack>
       </HStack>
       {loading && policies.length === 0 ? (
@@ -429,7 +554,7 @@ export const StudentEligibilityTab = () => {
                   <Th textAlign="center">Internship</Th>
                   <Th textAlign="center">Capstone</Th>
                   <Th textAlign="center">Placement</Th>
-                  <Th textAlign="center">Alumni</Th>
+                  <Th textAlign="center">Alumni conversion %</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -451,7 +576,53 @@ export const StudentEligibilityTab = () => {
                       <Button size="xs" colorScheme={policy.placement ? 'green' : 'red'} onClick={() => handleTogglePolicy(policy, 'placement')} variant="solid" w="60px">{policy.placement ? 'Yes' : 'No'}</Button>
                     </Td>
                     <Td textAlign="center">
-                      <Button size="xs" colorScheme={policy.alumni ? 'green' : 'red'} onClick={() => handleTogglePolicy(policy, 'alumni')} variant="solid" w="60px">{policy.alumni ? 'Yes' : 'No'}</Button>
+                      <Tooltip 
+                        label={`${policy.alumni_count || 0} of ${policy.student_count || 0} students converted — Click to manage`}
+                        hasArrow
+                        placement="top"
+                      >
+                        <Box 
+                          position="relative" 
+                          w="120px" 
+                          h="32px" 
+                          borderRadius="md" 
+                          overflow="hidden"
+                          bg="#1a7a6c"
+                          cursor="pointer"
+                          mx="auto"
+                          onClick={() => navigate(`/placement/alumni?tab=conversions&school_id=${policy.school_id}&program_id=${policy.program_id}`)}
+                          _hover={{ transform: 'scale(1.05)', boxShadow: 'md' }}
+                          transition="all 0.2s"
+                        >
+                          <Box
+                            position="absolute"
+                            top={0}
+                            left={0}
+                            h="100%"
+                            w={`${Math.min(100, typeof policy.alumni_conversion_pct === 'number' ? policy.alumni_conversion_pct : 0)}%`}
+                            bg="#2a9d8f"
+                            transition="width 0.3s ease"
+                          />
+                          <Flex
+                            position="absolute"
+                            top={0}
+                            left={0}
+                            right={0}
+                            bottom={0}
+                            align="center"
+                            justify="center"
+                          >
+                            <Text 
+                              fontWeight="600" 
+                              fontSize="sm" 
+                              color="white"
+                              textShadow="0 1px 2px rgba(0,0,0,0.2)"
+                            >
+                              {typeof policy.alumni_conversion_pct === 'number' ? `${policy.alumni_conversion_pct}%` : '0%'}
+                            </Text>
+                          </Flex>
+                        </Box>
+                      </Tooltip>
                     </Td>
                   </Tr>
                 ))}
@@ -459,13 +630,286 @@ export const StudentEligibilityTab = () => {
             </Table>
           </TableContainer>
           <Flex justify="flex-end">
-            <Button colorScheme="blue" size="md" onClick={handleSaveChanges} isDisabled={Object.keys(modifiedPolicies).length === 0} isLoading={loading}>Save Changes</Button>
+            <Button colorScheme="blue" size="md" onClick={handleSaveClick} isDisabled={Object.keys(modifiedPolicies).length === 0} isLoading={loading}>Save Changes</Button>
           </Flex>
         </>
       )}
       {!loading && policies.length === 0 && (
         <Text color="gray.500" py={4}>No policies yet. Use &quot;Sync All Programs&quot; to create policies from schools and programs.</Text>
       )}
+
+      {/* Confirmation Modal with Live Progress */}
+      <Modal isOpen={isConfirmOpen} onClose={handleCloseConfirm} size="xl" closeOnOverlayClick={!saveProgress.saving}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            {saveProgress.saving ? 'Updating Student Eligibility...' : saveProgress.results.length > 0 ? 'Update Complete' : 'Confirm Changes'}
+          </ModalHeader>
+          {!saveProgress.saving && <ModalCloseButton />}
+          <ModalBody>
+            {/* Before saving - show preview */}
+            {!saveProgress.saving && saveProgress.results.length === 0 && (
+              <>
+                <Alert status="info" mb={4} borderRadius="md">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>You are about to update {Object.keys(modifiedPolicies).length} batch(es)</AlertTitle>
+                    <AlertDescription>
+                      This will update eligibility flags for all students in the selected batches.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+                <Box maxH="300px" overflowY="auto">
+                  {Object.values(modifiedPolicies).map((policy) => {
+                    const changes = getPolicyChanges(policy);
+                    return (
+                      <Box key={policy.id} p={3} mb={2} bg="gray.50" borderRadius="md" border="1px" borderColor="gray.200">
+                        <HStack justify="space-between" mb={2}>
+                          <Text fontWeight="600" fontSize="sm">
+                            {policy.school_name} - {policy.program_name} ({policy.joining_year})
+                          </Text>
+                          <Badge colorScheme="blue">{policy.student_count || 0} students</Badge>
+                        </HStack>
+                        <Wrap spacing={2}>
+                          {changes.map((c, idx) => (
+                            <WrapItem key={idx}>
+                              <Badge colorScheme={c.to ? 'green' : 'red'} fontSize="xs">
+                                {c.field}: {c.from ? 'ON' : 'OFF'} → {c.to ? 'ON' : 'OFF'}
+                              </Badge>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </>
+            )}
+
+            {/* During saving - show progress */}
+            {saveProgress.saving && (
+              <>
+                <Box mb={4}>
+                  <HStack justify="space-between" mb={2}>
+                    <Text fontWeight="500">Processing batches...</Text>
+                    <Text fontSize="sm" color="gray.600">{saveProgress.current} / {saveProgress.total}</Text>
+                  </HStack>
+                  <Progress 
+                    value={(saveProgress.current / saveProgress.total) * 100} 
+                    size="lg" 
+                    colorScheme="blue" 
+                    borderRadius="md"
+                    hasStripe
+                    isAnimated
+                  />
+                </Box>
+                <Box maxH="250px" overflowY="auto">
+                  {saveProgress.results.map((result, idx) => (
+                    <HStack key={idx} p={2} bg={result.success ? 'green.50' : 'red.50'} borderRadius="md" mb={2}>
+                      <Icon 
+                        viewBox="0 0 24 24" 
+                        color={result.success ? 'green.500' : 'red.500'}
+                        boxSize={5}
+                      >
+                        {result.success ? (
+                          <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        ) : (
+                          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        )}
+                      </Icon>
+                      <Box flex={1}>
+                        <Text fontSize="sm" fontWeight="500">
+                          {result.policy.school_name} - {result.policy.program_name} ({result.policy.joining_year})
+                        </Text>
+                        {result.success && (
+                          <Text fontSize="xs" color="green.600">{result.studentsUpdated} students updated</Text>
+                        )}
+                        {!result.success && (
+                          <Text fontSize="xs" color="red.600">{result.error}</Text>
+                        )}
+                      </Box>
+                    </HStack>
+                  ))}
+                </Box>
+              </>
+            )}
+
+            {/* After saving - show results */}
+            {!saveProgress.saving && saveProgress.results.length > 0 && (
+              <>
+                <Alert 
+                  status={saveProgress.results.every(r => r.success) ? 'success' : 'warning'} 
+                  mb={4} 
+                  borderRadius="md"
+                >
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle>
+                      {saveProgress.results.filter(r => r.success).length} / {saveProgress.results.length} batches updated
+                    </AlertTitle>
+                    <AlertDescription>
+                      Total students affected: {saveProgress.results.reduce((sum, r) => sum + (r.studentsUpdated || 0), 0)}
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+                <Box maxH="250px" overflowY="auto">
+                  {saveProgress.results.map((result, idx) => (
+                    <HStack key={idx} p={2} bg={result.success ? 'green.50' : 'red.50'} borderRadius="md" mb={2}>
+                      <Icon 
+                        viewBox="0 0 24 24" 
+                        color={result.success ? 'green.500' : 'red.500'}
+                        boxSize={5}
+                      >
+                        {result.success ? (
+                          <path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        ) : (
+                          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                        )}
+                      </Icon>
+                      <Box flex={1}>
+                        <Text fontSize="sm" fontWeight="500">
+                          {result.policy.school_name} - {result.policy.program_name} ({result.policy.joining_year})
+                        </Text>
+                        {result.success && (
+                          <Text fontSize="xs" color="green.600">{result.studentsUpdated} students updated</Text>
+                        )}
+                        {!result.success && (
+                          <Text fontSize="xs" color="red.600">{result.error}</Text>
+                        )}
+                      </Box>
+                    </HStack>
+                  ))}
+                </Box>
+              </>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {/* Before saving */}
+            {!saveProgress.saving && saveProgress.results.length === 0 && (
+              <>
+                <Button variant="ghost" mr={3} onClick={handleCloseConfirm}>Cancel</Button>
+                <Button colorScheme="blue" onClick={handleConfirmSave}>
+                  Confirm & Update Students
+                </Button>
+              </>
+            )}
+            {/* After saving */}
+            {!saveProgress.saving && saveProgress.results.length > 0 && (
+              <Button colorScheme="blue" onClick={handleCloseConfirm}>Done</Button>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* System Sync Modal */}
+      <Modal isOpen={isSyncModalOpen} onClose={handleCloseSyncModal} size="xl" closeOnOverlayClick={!syncStatus.loading}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>System Eligibility Sync</ModalHeader>
+          {!syncStatus.loading && <ModalCloseButton />}
+          <ModalBody>
+            <Alert status="info" mb={4} borderRadius="md">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>One-Way Sync (false → true only)</AlertTitle>
+                <AlertDescription fontSize="sm">
+                  This job syncs eligibility from batch policies to students. It only converts <Badge colorScheme="red" fontSize="xs">OFF</Badge> → <Badge colorScheme="green" fontSize="xs">ON</Badge>, never the reverse. This ensures manual eligibility grants are never revoked automatically.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            <Alert status="purple" variant="left-accent" mb={4} borderRadius="md" bg="purple.50">
+              <AlertIcon color="purple.500" />
+              <Box>
+                <AlertTitle color="purple.700" fontSize="sm">Automatic Scheduling</AlertTitle>
+                <AlertDescription fontSize="xs" color="purple.600">
+                  This job runs automatically every 10 minutes. Use manual sync only if you need immediate updates.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            {syncStatus.loading && !syncStatus.result && (
+              <Flex justify="center" py={6}>
+                <Spinner size="lg" color="teal.500" />
+                <Text ml={3} color="gray.600">Loading preview...</Text>
+              </Flex>
+            )}
+
+            {syncStatus.preview && !syncStatus.result && (
+              <>
+                <Box p={4} bg="gray.50" borderRadius="md" mb={4}>
+                  <HStack justify="space-between" mb={2}>
+                    <Text fontWeight="600">Preview Summary</Text>
+                    <Badge colorScheme={syncStatus.preview.studentsUpdated > 0 ? 'green' : 'gray'} fontSize="md" px={3} py={1}>
+                      {syncStatus.preview.studentsUpdated} students to update
+                    </Badge>
+                  </HStack>
+                  <Text fontSize="sm" color="gray.600">
+                    {syncStatus.preview.policiesProcessed} policies processed, {syncStatus.preview.updates?.length || 0} batches have pending updates
+                  </Text>
+                </Box>
+
+                {syncStatus.preview.updates?.length > 0 && (
+                  <Box maxH="200px" overflowY="auto">
+                    {syncStatus.preview.updates.map((update, idx) => (
+                      <Box key={idx} p={2} mb={2} bg="green.50" borderRadius="md" border="1px" borderColor="green.200">
+                        <HStack justify="space-between">
+                          <Text fontSize="sm" fontWeight="500">
+                            School {update.school_id} / Program {update.program_id} / Year {update.joining_year}
+                          </Text>
+                          <Badge colorScheme="green">{update.studentsAffected} students</Badge>
+                        </HStack>
+                        <Wrap spacing={1} mt={1}>
+                          {update.fieldsUpdated?.map((f, i) => (
+                            <WrapItem key={i}>
+                              <Badge colorScheme="teal" fontSize="xs">{f.field}: {f.studentsToUpdate || f.studentsUpdated}</Badge>
+                            </WrapItem>
+                          ))}
+                        </Wrap>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {syncStatus.preview.studentsUpdated === 0 && (
+                  <Alert status="success" borderRadius="md">
+                    <AlertIcon />
+                    <Text fontSize="sm">All students are already synced with their batch policies. No updates needed.</Text>
+                  </Alert>
+                )}
+              </>
+            )}
+
+            {syncStatus.result && (
+              <Alert status={syncStatus.result.success ? 'success' : 'error'} borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>{syncStatus.result.success ? 'Sync Complete' : 'Sync Failed'}</AlertTitle>
+                  <AlertDescription>{syncStatus.result.message}</AlertDescription>
+                </Box>
+              </Alert>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {!syncStatus.result && (
+              <>
+                <Button variant="ghost" mr={3} onClick={handleCloseSyncModal} isDisabled={syncStatus.loading}>Cancel</Button>
+                <Button 
+                  colorScheme="teal" 
+                  onClick={handleRunSystemSync} 
+                  isLoading={syncStatus.loading}
+                  isDisabled={!syncStatus.preview || syncStatus.preview.studentsUpdated === 0}
+                >
+                  Run Sync Now
+                </Button>
+              </>
+            )}
+            {syncStatus.result && (
+              <Button colorScheme="teal" onClick={handleCloseSyncModal}>Done</Button>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

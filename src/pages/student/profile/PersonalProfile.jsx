@@ -11,7 +11,7 @@ import { PersonalInformationForm } from "../../../components/student/forms/Perso
 import { calculateProfileCompletion } from "../../../utils/profileHelper"
 import { getProfileErrorMessage, parseApiError, mapFieldErrorsToForm } from "../../../utils/profileErrorHelper"
 
-/** Eligibility for opt-in: 95% completion and batch/academy must allow placement for that batch. */
+/** Eligibility for opt-in: 95% completion and student must be marked eligible for placement/capstone. */
 const MIN_COMPLETION_TO_OPT_IN = 95
 
 export const PersonalProfile = () => {
@@ -21,8 +21,9 @@ export const PersonalProfile = () => {
   const { policy: batchPolicy, refetch: refetchPlacementPolicy } = usePlacementTrackPolicy()
   const usn = user?.usn
 
-  /** Show opt-in section only when batch academic policy allows placement or capstone. */
-  const canOptInToPlacement = Boolean(batchPolicy && (batchPolicy.placement === true || batchPolicy.capstone === true))
+  /** Show opt-in section only when student is individually marked as eligible for placement or capstone.
+   *  This is set when admin saves the batch policy from the eligibility track page. */
+  const canOptInToPlacement = Boolean(batchPolicy && (batchPolicy.is_placement_eligible === true || batchPolicy.is_capstone_eligible === true))
 
   const [data, setData] = useState(() => null)
   const [pageLoading, setPageLoading] = useState(false)

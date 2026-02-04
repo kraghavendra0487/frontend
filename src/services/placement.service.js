@@ -220,6 +220,17 @@ export const PlacementService = {
     }
   },
 
+  /** GET /placement/students/overview-table - per-student placement overview table (admin) */
+  getStudentsOverviewTable: async (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.search) q.set('search', params.search);
+    if (params.limit) q.set('limit', params.limit);
+    if (params.school) q.set('school', params.school);
+    if (params.program) q.set('program', params.program);
+    const response = await apiFetch(`/placement/students/overview-table${q.toString() ? `?${q}` : ''}`);
+    return response.data ?? { rows: [], roundColumns: [] };
+  },
+
   /** Get student process list for a student (their applications) */
   getStudentProcessList: async (usn) => {
     try {
@@ -535,6 +546,32 @@ export const PlacementService = {
     }
   },
 
+  getAlumniConversions: async (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.school_id != null && params.school_id !== '') q.set('school_id', params.school_id);
+    if (params.program_id != null && params.program_id !== '') q.set('program_id', params.program_id);
+    const response = await apiFetch(`/placement/alumni/conversions${q.toString() ? `?${q}` : ''}`);
+    return response.data ?? { schools: [], programs: [], rows: [] };
+  },
+
+  convertToAlumni: async (usns) => {
+    const response = await apiFetch('/placement/alumni/convert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usns }),
+    });
+    return response.data;
+  },
+
+  getAlumniConversionLogs: async (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.batch_id) q.set('batch_id', params.batch_id);
+    if (params.status) q.set('status', params.status);
+    if (params.limit != null) q.set('limit', params.limit);
+    const response = await apiFetch(`/placement/alumni/conversion-logs${q.toString() ? `?${q}` : ''}`);
+    return response.data?.logs ?? [];
+  },
+
   addAlumni: async (data) => {
     const response = await apiFetch('/placement/alumni', {
       method: 'POST',
@@ -733,5 +770,46 @@ export const PlacementService = {
       body: JSON.stringify(data),
     });
     return response.data;
+  },
+
+  // ========== System Jobs ==========
+
+  /** Get status of all scheduled jobs */
+  getJobsStatus: async () => {
+    const response = await apiFetch('/jobs/status');
+    return response;
+  },
+
+  /** Preview eligibility sync (dry run) */
+  previewEligibilitySync: async () => {
+    const response = await apiFetch('/jobs/eligibility-sync/preview', {
+      method: 'POST',
+    });
+    return response;
+  },
+
+  /** Run eligibility sync manually */
+  runEligibilitySync: async (dryRun = false) => {
+    const response = await apiFetch('/jobs/eligibility-sync', {
+      method: 'POST',
+      body: JSON.stringify({ dryRun }),
+    });
+    return response;
+  },
+
+  /** Stop a scheduled job */
+  stopJob: async (jobName) => {
+    const response = await apiFetch(`/jobs/${jobName}/stop`, {
+      method: 'POST',
+    });
+    return response;
+  },
+
+  /** Start a scheduled job */
+  startJob: async (jobName) => {
+    const response = await apiFetch(`/jobs/${jobName}/start`, {
+      method: 'POST',
+    });
+    return response;
   },
 };

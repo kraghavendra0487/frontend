@@ -5,7 +5,8 @@ import { FaCheckCircle, FaInfoCircle } from "react-icons/fa"
 
 export const StudentPlacementPolicy = () => {
   const { policy: batchPolicy, loading: policyLoading } = usePlacementTrackPolicy()
-  const canOptIn = Boolean(batchPolicy && (batchPolicy.placement === true || batchPolicy.capstone === true))
+  /** Show opt-in option only when student is individually marked as eligible for placement or capstone */
+  const canOptIn = Boolean(batchPolicy && (batchPolicy.is_placement_eligible === true || batchPolicy.is_capstone_eligible === true))
 
   return (
       <Box bg="white" p={8} borderRadius="xl" shadow="sm" minH="80vh">

@@ -1,11 +1,7 @@
 import React from 'react';
-import { Box } from '@chakra-ui/react';
-import { StudentEligibilityTab } from '../ViewAllStudents';
+import { Navigate } from 'react-router-dom';
 
 export default function StudentEligibilityPage() {
-  return (
-    <Box w="full">
-      <StudentEligibilityTab />
-    </Box>
-  );
+  // Moved into /placement/overview (tab=eligibility)
+  return <Navigate to="/placement/overview?tab=eligibility" replace />;
 }

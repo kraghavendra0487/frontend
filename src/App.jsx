@@ -15,6 +15,8 @@ import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
 import ManageAcademicPage from './pages/students/ManageAcademicPage';
+import StudentsOverviewTable from './pages/students/StudentsOverviewTable';
+import StudentsDashboardInsights from './pages/students/StudentsDashboardInsights';
 import CalendarOfEvents from './pages/admin/CalendarOfEvents';
 import Events from './pages/admin/Events';
 import DriveRegistrations from './pages/admin/DriveRegistrations';
@@ -442,6 +444,8 @@ const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <ViewAllStudents /> },
+          { path: "dashboard-insights", element: <StudentsDashboardInsights /> },
+          { path: "overview", element: <StudentsOverviewTable /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "academic", element: <ManageAcademicPage /> },
           { path: ":usn", element: <AdminStudentDetail /> },

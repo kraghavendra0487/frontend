@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -32,9 +32,19 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  Select,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Checkbox,
+  Switch,
 } from '@chakra-ui/react';
 import { SearchIcon, AddIcon, ExternalLinkIcon, CopyIcon, EmailIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
 import AlumniRegistrationCodes from './AlumniRegistrationCodes';
@@ -42,12 +52,30 @@ import AlumniRegistrationCodes from './AlumniRegistrationCodes';
 const AlumniList = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isConvertOpen, onOpen: onConvertOpen, onClose: onConvertClose } = useDisclosure();
 
-  const [tabIndex, setTabIndex] = useState(0);
+  // Read initial values from URL query params
+  const initialSchoolId = searchParams.get('school_id') || '';
+  const initialProgramId = searchParams.get('program_id') || '';
+  const initialTab = searchParams.get('tab');
+  const [tabIndex, setTabIndex] = useState(initialTab === 'conversions' ? 2 : 0);
   const [alumni, setAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversionsSchools, setConversionsSchools] = useState([]);
+  const [conversionsPrograms, setConversionsPrograms] = useState([]);
+  const [conversionsRows, setConversionsRows] = useState([]);
+  const [conversionsSchoolId, setConversionsSchoolId] = useState(initialSchoolId);
+  const [conversionsProgramId, setConversionsProgramId] = useState(initialProgramId);
+  const [conversionsLoading, setConversionsLoading] = useState(false);
+  const [conversionsFilterPersonalEmail, setConversionsFilterPersonalEmail] = useState(false);
+  const [conversionsSelectedUsns, setConversionsSelectedUsns] = useState(new Set());
+  const [convertLoading, setConvertLoading] = useState(false);
+  const [convertResult, setConvertResult] = useState(null);
+  const [conversionLogs, setConversionLogs] = useState([]);
+  const [conversionLogsLoading, setConversionLogsLoading] = useState(false);
 
   const [newAlumni, setNewAlumni] = useState({
     usn: '',
@@ -67,7 +95,27 @@ const AlumniList = () => {
     fetchAlumni();
   }, []);
 
-  const handleTabsChange = (index) => setTabIndex(index);
+  // Auto-load conversions if URL params are present
+  useEffect(() => {
+    if (initialTab === 'conversions' && initialSchoolId && initialProgramId) {
+      // Fetch meta first, then data will be fetched by another effect
+      fetchConversionsMeta();
+    }
+  }, []);
+
+  const handleTabsChange = (index) => {
+    setTabIndex(index);
+    // Update URL when changing tabs
+    const next = new URLSearchParams(searchParams);
+    if (index === 2) {
+      next.set('tab', 'conversions');
+    } else {
+      next.delete('tab');
+      next.delete('school_id');
+      next.delete('program_id');
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const fetchAlumni = async () => {
     setLoading(true);
@@ -143,6 +191,157 @@ const AlumniList = () => {
 
   const linkId = (a) => a.student_id || a.usn || a.id;
 
+  const fetchConversionsMeta = useCallback(async () => {
+    try {
+      const data = await PlacementService.getAlumniConversions();
+      setConversionsSchools(data.schools || []);
+      setConversionsPrograms(data.programs || []);
+    } catch (e) {
+      toast({ title: 'Error loading schools/programs', status: 'error' });
+    }
+  }, [toast]);
+
+  const fetchConversionsData = useCallback(async () => {
+    const sid = conversionsSchoolId && conversionsSchoolId !== '' ? conversionsSchoolId : null;
+    const pid = conversionsProgramId && conversionsProgramId !== '' ? conversionsProgramId : null;
+    if (sid == null || pid == null) {
+      setConversionsRows([]);
+      return;
+    }
+    setConversionsLoading(true);
+    setConversionsSelectedUsns(new Set());
+    try {
+      const data = await PlacementService.getAlumniConversions({ school_id: sid, program_id: pid });
+      setConversionsRows(data.rows || []);
+      if (!conversionsSchools.length) setConversionsSchools(data.schools || []);
+      if (!conversionsPrograms.length) setConversionsPrograms(data.programs || []);
+    } catch (e) {
+      toast({ title: 'Error loading conversions data', status: 'error' });
+      setConversionsRows([]);
+    } finally {
+      setConversionsLoading(false);
+    }
+  }, [conversionsSchoolId, conversionsProgramId, toast, conversionsSchools.length, conversionsPrograms.length]);
+
+  useEffect(() => {
+    if (tabIndex === 2) fetchConversionsMeta();
+  }, [tabIndex, fetchConversionsMeta]);
+
+  const fetchConversionLogs = useCallback(async () => {
+    setConversionLogsLoading(true);
+    try {
+      const logs = await PlacementService.getAlumniConversionLogs({ limit: 300 });
+      setConversionLogs(logs || []);
+    } catch (e) {
+      toast({ title: 'Failed to load conversion logs', status: 'error' });
+    } finally {
+      setConversionLogsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (tabIndex === 3) fetchConversionLogs();
+  }, [tabIndex, fetchConversionLogs]);
+
+  useEffect(() => {
+    if (tabIndex === 2 && (conversionsSchoolId || conversionsProgramId)) fetchConversionsData();
+  }, [tabIndex, conversionsSchoolId, conversionsProgramId]);
+
+  const conversionsProgramsFiltered = conversionsSchoolId
+    ? (conversionsPrograms || []).filter((p) => String(p.school_id) === String(conversionsSchoolId))
+    : (conversionsPrograms || []);
+
+  const conversionsRowsFiltered = conversionsFilterPersonalEmail
+    ? (conversionsRows || []).filter((r) => r.personal_email && String(r.personal_email).trim() !== '')
+    : (conversionsRows || []);
+
+  const conversionsSelectAll = conversionsRowsFiltered.length > 0 && conversionsRowsFiltered.every((r) => conversionsSelectedUsns.has(r.usn));
+  const conversionsSelectSome = conversionsRowsFiltered.some((r) => conversionsSelectedUsns.has(r.usn));
+
+  const toggleConversionsSelectAll = () => {
+    if (conversionsSelectAll) {
+      setConversionsSelectedUsns((prev) => {
+        const next = new Set(prev);
+        conversionsRowsFiltered.forEach((r) => next.delete(r.usn));
+        return next;
+      });
+    } else {
+      setConversionsSelectedUsns((prev) => {
+        const next = new Set(prev);
+        conversionsRowsFiltered.forEach((r) => next.add(r.usn));
+        return next;
+      });
+    }
+  };
+
+  const toggleConversionsSelectOne = (usn) => {
+    setConversionsSelectedUsns((prev) => {
+      const next = new Set(prev);
+      if (next.has(usn)) next.delete(usn);
+      else next.add(usn);
+      return next;
+    });
+  };
+
+  const usnsToConvert = conversionsRowsFiltered.map((r) => r.usn).filter(Boolean);
+  const rowsWithPersonalEmail = conversionsRowsFiltered.filter((r) => r.personal_email && String(r.personal_email).trim());
+  const usnsWithPersonalEmail = rowsWithPersonalEmail.map((r) => r.usn);
+  const usnsSelectedForConvert =
+    conversionsSelectedUsns.size > 0
+      ? usnsToConvert.filter((u) => conversionsSelectedUsns.has(u))
+      : usnsToConvert;
+  const usnsToSend = usnsSelectedForConvert.filter((u) => usnsWithPersonalEmail.includes(u));
+  const hasSelectedWithoutEmail =
+    usnsSelectedForConvert.length > 0 && usnsToSend.length < usnsSelectedForConvert.length;
+  const showConvertButton = conversionsRows.length > 0;
+
+  const handleConvertToAlumni = async () => {
+    if (usnsToSend.length === 0) {
+      toast({
+        title: hasSelectedWithoutEmail ? 'Select only students with personal mail id' : 'Select students to convert',
+        description: hasSelectedWithoutEmail ? 'Only students with a personal email can be converted to alumni.' : undefined,
+        status: 'error',
+        isClosable: true,
+        duration: 5000,
+      });
+      return;
+    }
+    setConvertLoading(true);
+    setConvertResult(null);
+    try {
+      const data = await PlacementService.convertToAlumni(usnsToSend);
+      setConvertResult(data);
+      if (data.converted > 0) {
+        toast({ title: `${data.converted} converted to alumni`, status: 'success' });
+        setConversionsSelectedUsns(new Set());
+        fetchConversionsData();
+      }
+    } catch (e) {
+      toast({ title: e.message || 'Convert failed', status: 'error' });
+      setConvertResult({ total: 0, converted: 0, failed: usnsToSend.length, failed_list: [{ usn: '', error_message: e.message || 'Request failed' }] });
+    } finally {
+      setConvertLoading(false);
+    }
+  };
+
+  const openConvertModal = () => {
+    setConvertResult(null);
+    if (hasSelectedWithoutEmail && usnsToSend.length === 0) {
+      toast({
+        title: 'Select only students with personal mail id',
+        description: 'Only students with a personal email can be converted to alumni.',
+        status: 'error',
+        isClosable: true,
+        duration: 5000,
+      });
+    }
+    onConvertOpen();
+  };
+  const closeConvertModal = () => {
+    setConvertResult(null);
+    onConvertClose();
+  };
+
   return (
     <AdminLayout>
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
@@ -168,6 +367,8 @@ const AlumniList = () => {
             <TabList mb={4}>
               <Tab fontWeight="bold">Current Alumni</Tab>
               <Tab fontWeight="bold">Manage Registrations</Tab>
+              <Tab fontWeight="bold">Alumni Conversions</Tab>
+              <Tab fontWeight="bold">Conversion logs</Tab>
             </TabList>
 
             <TabPanels>
@@ -223,6 +424,12 @@ const AlumniList = () => {
                               <Text fontSize="md" fontWeight="medium" color="#20343c">{alum.current_designation || 'N/A'}</Text>
                               <Text fontSize="sm" color="blue.600">{alum.current_company || 'N/A'}</Text>
                             </Box>
+                            <Flex mt={3} align="center" gap={2}>
+                              <Text fontSize="xs" fontWeight="600" color="gray.500" textTransform="uppercase" letterSpacing="wide">Profile / Data</Text>
+                              <Badge size="sm" colorScheme={alum.profile_data_added ? 'green' : 'gray'} variant={alum.profile_data_added ? 'solid' : 'subtle'}>
+                                {alum.profile_data_added ? 'Added' : 'Pending'}
+                              </Badge>
+                            </Flex>
                             <HStack mt={4} spacing={4} color="gray.400">
                               {alum.personal_email && <Icon as={EmailIcon} title={alum.personal_email} />}
                               {alum.linkedin && <Icon as={ExternalLinkIcon} title="LinkedIn" />}
@@ -242,6 +449,182 @@ const AlumniList = () => {
 
               <TabPanel p={0}>
                 <AlumniRegistrationCodes />
+              </TabPanel>
+
+              <TabPanel p={0}>
+                <Box mb={4}>
+                  <HStack spacing={4} flexWrap="wrap" align="end">
+                    <FormControl w="200px">
+                      <FormLabel fontSize="sm">School</FormLabel>
+                      <Select
+                        placeholder="Select school"
+                        value={conversionsSchoolId}
+                        onChange={(e) => {
+                          setConversionsSchoolId(e.target.value);
+                          setConversionsProgramId('');
+                        }}
+                        size="sm"
+                      >
+                        {(conversionsSchools || []).map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl w="240px">
+                      <FormLabel fontSize="sm">Program</FormLabel>
+                      <Select
+                        placeholder="Select program"
+                        value={conversionsProgramId}
+                        onChange={(e) => setConversionsProgramId(e.target.value)}
+                        size="sm"
+                      >
+                        {conversionsProgramsFiltered.map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <Button size="sm" colorScheme="blue" onClick={fetchConversionsData} isDisabled={!conversionsSchoolId || !conversionsProgramId}>
+                      Load
+                    </Button>
+                    {!conversionsLoading && conversionsRows.length > 0 && (
+                      <FormControl display="flex" alignItems="center" w="auto">
+                        <FormLabel fontSize="sm" mb={0} whiteSpace="nowrap">Personal emails only</FormLabel>
+                        <Switch
+                          size="sm"
+                          isChecked={conversionsFilterPersonalEmail}
+                          onChange={(e) => setConversionsFilterPersonalEmail(e.target.checked)}
+                        />
+                      </FormControl>
+                    )}
+                  </HStack>
+                </Box>
+                {conversionsLoading ? (
+                  <Flex justify="center" py={8}><Spinner /></Flex>
+                ) : (
+                  <TableContainer overflowX="auto">
+                    <Table variant="simple" size="sm">
+                      <Thead bg="gray.50">
+                        <Tr>
+                          <Th px={2} w="40px">
+                            <Checkbox
+                              isChecked={conversionsSelectAll}
+                              isIndeterminate={conversionsSelectSome && !conversionsSelectAll}
+                              onChange={toggleConversionsSelectAll}
+                              aria-label="Select all"
+                            />
+                          </Th>
+                          <Th>USN</Th>
+                          <Th>Name</Th>
+                          <Th>RVU mail id</Th>
+                          <Th>Personal mail id</Th>
+                          <Th>Program</Th>
+                          <Th>Year of joining</Th>
+                          <Th>Program year</Th>
+                          <Th>Opt in</Th>
+                          <Th>Is placed</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {conversionsRowsFiltered.map((row) => (
+                          <Tr key={row.usn}>
+                            <Td px={2}>
+                              <Checkbox
+                                isChecked={conversionsSelectedUsns.has(row.usn)}
+                                onChange={() => toggleConversionsSelectOne(row.usn)}
+                                aria-label={`Select ${row.usn}`}
+                              />
+                            </Td>
+                            <Td fontFamily="mono" fontSize="xs">{row.usn || '—'}</Td>
+                            <Td fontWeight="medium">{row.full_name || '—'}</Td>
+                            <Td fontSize="sm">{row.college_email || '—'}</Td>
+                            <Td fontSize="sm">{row.personal_email || '—'}</Td>
+                            <Td fontSize="sm">{row.program || '—'}</Td>
+                            <Td>{row.year_of_joining ?? '—'}</Td>
+                            <Td fontSize="sm">[{row.course_year_min ?? 0}-{row.course_year_max ?? 0}]</Td>
+                            <Td>
+                              <Badge colorScheme={row.opt_in ? 'green' : 'gray'} size="sm">{row.opt_in ? 'Yes' : 'No'}</Badge>
+                            </Td>
+                            <Td>
+                              <Badge colorScheme={row.is_placed ? 'green' : 'gray'} size="sm">{row.is_placed ? 'Yes' : 'No'}</Badge>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                )}
+                {!conversionsLoading && conversionsRows.length === 0 && (conversionsSchoolId && conversionsProgramId) && (
+                  <Text color="gray.500" py={4}>No students found for this school and program.</Text>
+                )}
+                {!conversionsLoading && conversionsRows.length > 0 && conversionsRowsFiltered.length === 0 && conversionsFilterPersonalEmail && (
+                  <Text color="gray.500" py={4}>No students with personal email in this list.</Text>
+                )}
+                {!conversionsLoading && conversionsRows.length === 0 && !conversionsSchoolId && (
+                  <Text color="gray.500" py={4}>Select a school and program to view students.</Text>
+                )}
+                {showConvertButton && (
+                  <Flex mt={4} justify="flex-end">
+                    <Button size="md" colorScheme="green" onClick={openConvertModal}>
+                      Convert to Alumni
+                    </Button>
+                  </Flex>
+                )}
+              </TabPanel>
+
+              <TabPanel p={0}>
+                <Box mb={4}>
+                  <Text fontSize="sm" color="gray.600" mb={2}>Alumni conversion log (role change + alumni record creation).</Text>
+                </Box>
+                {conversionLogsLoading ? (
+                  <Flex justify="center" py={8}><Spinner /></Flex>
+                ) : (
+                  <TableContainer overflowX="auto">
+                    <Table variant="simple" size="sm">
+                      <Thead bg="gray.50">
+                        <Tr>
+                          <Th>#</Th>
+                          <Th>Batch ID</Th>
+                          <Th>USN</Th>
+                          <Th>RVU email</Th>
+                          <Th>Personal email</Th>
+                          <Th>Alumni migrated</Th>
+                          <Th>Role converted</Th>
+                          <Th>Personal row created</Th>
+                          <Th>Status</Th>
+                          <Th>Error</Th>
+                          <Th>Created</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {conversionLogs.map((log, i) => {
+                          const migrated = log.status === 'success';
+                          return (
+                            <Tr key={log.id}>
+                              <Td>{i + 1}</Td>
+                              <Td fontFamily="mono" fontSize="xs">{String(log.batch_id || '').slice(0, 8)}…</Td>
+                              <Td fontFamily="mono" fontSize="xs">{log.usn || '—'}</Td>
+                              <Td fontSize="sm">{log.rvu_email || '—'}</Td>
+                              <Td fontSize="sm">{log.personal_email || '—'}</Td>
+                              <Td>
+                                <Badge colorScheme={migrated ? 'green' : 'red'} variant={migrated ? 'solid' : 'subtle'} size="sm">
+                                  {migrated ? 'Yes' : 'No'}
+                                </Badge>
+                              </Td>
+                              <Td>{log.role_converted ? 'Yes' : 'No'}</Td>
+                              <Td>{log.personal_mail_row_created ? 'Yes' : 'No'}</Td>
+                              <Td><Badge colorScheme={log.status === 'success' ? 'green' : log.status === 'failed' ? 'red' : 'gray'} size="sm">{log.status}</Badge></Td>
+                              <Td fontSize="xs" maxW="200px" isTruncated title={log.error_message}>{log.error_message || '—'}</Td>
+                              <Td fontSize="xs">{log.created_at ? new Date(log.created_at).toLocaleString() : '—'}</Td>
+                            </Tr>
+                          );
+                        })}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                )}
+                {!conversionLogsLoading && conversionLogs.length === 0 && (
+                  <Text color="gray.500" py={4}>No conversion logs yet.</Text>
+                )}
               </TabPanel>
             </TabPanels>
           </Tabs>
@@ -308,6 +691,65 @@ const AlumniList = () => {
               <ModalFooter>
                 <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
                 <Button colorScheme="green" bg="#22c35e" onClick={handleAddAlumni}>Save alumni</Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+
+          <Modal isOpen={isConvertOpen} onClose={closeConvertModal} size="lg" isCentered>
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>Convert to Alumni</ModalHeader>
+              <ModalCloseButton isDisabled={convertLoading} />
+              <ModalBody>
+                {!convertResult ? (
+                  <>
+                    <Text mb={4}>
+                      {usnsToSend.length === 0
+                        ? (hasSelectedWithoutEmail ? 'Select only students with personal mail id. Only students with a personal email can be converted to alumni.' : 'Select students to convert.')
+                        : `Convert ${usnsToSend.length} student(s) to alumni? Their RVU login will be set to alumni role and their details will be added to the alumni table. Failed conversions will be reverted automatically.`}
+                    </Text>
+                    {convertLoading && (
+                      <Flex align="center" gap={3} py={2}>
+                        <Spinner size="sm" />
+                        <Text>Converting…</Text>
+                      </Flex>
+                    )}
+                  </>
+                ) : (
+                  <Box>
+                    <Text fontWeight="bold" mb={2}>
+                      Conversion complete: {convertResult.success_rate_pct ?? 0}% success
+                    </Text>
+                    <Text fontSize="sm" color="gray.600" mb={3}>
+                      {convertResult.converted} converted, {convertResult.failed} failed (reverted to student).
+                    </Text>
+                    {convertResult.failed_list && convertResult.failed_list.length > 0 && (
+                      <Box mt={3}>
+                        <Text fontSize="sm" fontWeight="semibold" mb={2}>Failed (reverted to student):</Text>
+                        <Box as="ul" pl={4} fontSize="sm" maxH="200px" overflowY="auto">
+                          {convertResult.failed_list.map((f, i) => (
+                            <Box as="li" key={i} mb={1}>
+                              <Badge fontFamily="mono" mr={2}>{f.usn}</Badge>
+                              {f.error_message}
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                {!convertResult ? (
+                  <>
+                    <Button variant="ghost" onClick={closeConvertModal} isDisabled={convertLoading}>Cancel</Button>
+                    <Button colorScheme="green" onClick={handleConvertToAlumni} isLoading={convertLoading} isDisabled={usnsToSend.length === 0}>
+                      Convert
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={closeConvertModal}>Close</Button>
+                )}
               </ModalFooter>
             </ModalContent>
           </Modal>

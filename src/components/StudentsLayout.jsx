@@ -4,8 +4,9 @@ import { Box, Container, VStack, Heading, Text, Flex } from '@chakra-ui/react';
 import AdminLayout from './AdminLayout';
 
 const tabPaths = [
+  { path: '/placement/students/dashboard-insights', label: 'Dashboard insights', end: true },
+  { path: '/placement/students/overview', label: 'Overview', end: true },
   { path: '/placement/students', label: 'View All Students', end: true },
-  { path: '/placement/students/eligibility', label: 'Placement eligibility track', end: false },
   { path: '/placement/students/academic', label: 'Manage Academic', end: false },
 ];
 
@@ -32,7 +33,7 @@ export default function StudentsLayout() {
               Students
             </Heading>
             <Text color="gray.600" fontSize="md">
-              View all students, eligibility track, or manage academic.
+              Dashboard insights, overview, view all students, or manage academic.
             </Text>
 
             <Flex
