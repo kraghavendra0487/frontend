@@ -25,6 +25,7 @@ import {
   Icon,
   Image,
   Link,
+  Divider,
 } from '@chakra-ui/react';
 import { ChevronLeftIcon } from '@chakra-ui/icons';
 import {
@@ -45,6 +46,7 @@ import {
 } from 'react-icons/fa';
 import AdminLayout from '../components/AdminLayout';
 import { StudentProfileService } from '../services/studentProfile.service';
+import { PlacementService } from '../services/placement.service';
 import { getFileUrl } from '../utils/fileUrl';
 import { calculateProfileCompletion } from '../utils/profileHelper';
 import './admin/AdminStudentDetail.css';
@@ -73,6 +75,8 @@ const AdminStudentDetail = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('overview');
+  const [placementData, setPlacementData] = useState({ offers: [], processList: [], violations: [], disciplinary: [] });
+  const [placementDataLoading, setPlacementDataLoading] = useState(false);
 
   useEffect(() => {
     if (!usn) return;
@@ -97,6 +101,42 @@ const AdminStudentDetail = () => {
     })();
     return () => { cancelled = true; };
   }, [usn, toast]);
+
+  useEffect(() => {
+    const decodedUsn = usn ? decodeURIComponent(usn) : '';
+    if (!decodedUsn) return;
+    let cancelled = false;
+    setPlacementDataLoading(true);
+    (async () => {
+      try {
+        const [allOffers, allProcess, allViolations, allDisciplinary] = await Promise.all([
+          PlacementService.getAllJobOffers().catch(() => []),
+          PlacementService.getAllProcessList().catch(() => []),
+          PlacementService.getPlacementViolations().catch(() => []),
+          PlacementService.getDisciplinaryRecords().catch(() => []),
+        ]);
+        if (cancelled) return;
+        const offers = (Array.isArray(allOffers) ? allOffers : []).filter(
+          (o) => String(o.usn || o.student_id || '').toLowerCase() === decodedUsn.toLowerCase()
+        );
+        const processList = (Array.isArray(allProcess) ? allProcess : []).filter(
+          (p) => String(p.usn || p.student_id || '').toLowerCase() === decodedUsn.toLowerCase()
+        );
+        const violations = (Array.isArray(allViolations) ? allViolations : []).filter(
+          (v) => String(v.usn || '').toLowerCase() === decodedUsn.toLowerCase()
+        );
+        const disciplinary = (Array.isArray(allDisciplinary) ? allDisciplinary : []).filter(
+          (d) => String(d.usn || '').toLowerCase() === decodedUsn.toLowerCase()
+        );
+        setPlacementData({ offers, processList, violations, disciplinary });
+      } catch (_) {
+        if (!cancelled) setPlacementData({ offers: [], processList: [], violations: [], disciplinary: [] });
+      } finally {
+        if (!cancelled) setPlacementDataLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [usn]);
 
   if (loading) {
     return (
@@ -879,6 +919,220 @@ const AdminStudentDetail = () => {
               minH="0"
             >
               <Box maxW="1200px">
+                {/* Placement Overview — at top */}
+                <Box
+                  mb={8}
+                  bg="white"
+                  borderRadius="xl"
+                  shadow="sm"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                  overflow="hidden"
+                >
+                  <Box px={6} py={4} bg="#20343c" borderBottomWidth="1px" borderColor="gray.200">
+                    <Heading size="md" color="white" fontWeight="600">
+                      Placement Overview
+                    </Heading>
+                    <Text fontSize="sm" color="whiteAlpha.800" mt={1}>
+                      Basic details and placement-related summary
+                    </Text>
+                  </Box>
+                  <Box p={6}>
+                    {placementDataLoading ? (
+                      <Flex justify="center" py={8}><Spinner size="lg" color="#20343c" /></Flex>
+                    ) : (
+                      <VStack align="stretch" spacing={6}>
+                        {/* Basic details */}
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2} textTransform="uppercase" letterSpacing="wider">
+                            Basic details
+                          </Text>
+                          <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} gap={3}>
+                            {[
+                              { label: 'USN', value: profile.usn || personal.usn },
+                              { label: 'Name', value: personal.full_name },
+                              { label: 'Email', value: personal.college_email },
+                              { label: 'School', value: personal.schoolName },
+                              { label: 'Program', value: personal.programName },
+                              { label: 'Year of joining', value: personal.year_of_joining },
+                              { label: 'Section', value: personal.section },
+                            ].map(({ label, value }) => (
+                              <Box key={label} py={2} px={3} bg="gray.50" borderRadius="md">
+                                <Text fontSize="xs" color="gray.500" fontWeight="600">{label}</Text>
+                                <Text fontSize="sm" mt={0.5}>{value ?? '—'}</Text>
+                              </Box>
+                            ))}
+                          </SimpleGrid>
+                        </Box>
+                        <Divider />
+                        {/* Placement metrics */}
+                        <SimpleGrid columns={{ base: 2, sm: 3, md: 4 }} gap={4}>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Offers received</Text>
+                            <Text fontSize="2xl" fontWeight="bold" color="gray.800">{placementData.offers.length}</Text>
+                          </Box>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Drives appeared</Text>
+                            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                              {new Set((placementData.processList || []).map((p) => p.drive_id || p.placement_drive_id)).size}
+                            </Text>
+                          </Box>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Companies approached</Text>
+                            <Text fontSize="2xl" fontWeight="bold" color="gray.800">
+                              {new Set((placementData.processList || []).map((p) => p.company_name || p.drive?.company?.company_name).filter(Boolean)).size}
+                            </Text>
+                          </Box>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Opt-in for placement</Text>
+                            <Text fontSize="lg" fontWeight="bold" color={personal.opt_in ? 'green.600' : 'gray.500'}>{personal.opt_in ? 'Yes' : 'No'}</Text>
+                          </Box>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Profile completion</Text>
+                            <Text fontSize="2xl" fontWeight="bold" color="gray.800">{profileCompletion}%</Text>
+                          </Box>
+                          <Box p={4} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.100">
+                            <Text fontSize="xs" color="gray.500" fontWeight="600" textTransform="uppercase">Placement status</Text>
+                            <Text fontSize="lg" fontWeight="bold" color={placementData.offers.length > 0 ? 'green.600' : 'gray.600'}>
+                              {placementData.offers.length > 0 ? 'Has offer(s)' : 'No offers yet'}
+                            </Text>
+                          </Box>
+                        </SimpleGrid>
+                        {/* Offers table */}
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2} textTransform="uppercase" letterSpacing="wider">
+                            Offers received
+                          </Text>
+                          {placementData.offers.length === 0 ? (
+                            <Text color="gray.500" fontSize="sm">No offers.</Text>
+                          ) : (
+                            <TableContainer borderWidth="1px" borderRadius="md" borderColor="gray.200" overflowX="auto">
+                              <Table size="sm">
+                                <Thead bg="gray.50">
+                                  <Tr>
+                                    <Th>Company</Th>
+                                    <Th>Designation</Th>
+                                    <Th>Job type</Th>
+                                    <Th>CTC (LPA)</Th>
+                                    <Th>Status</Th>
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  {placementData.offers.slice(0, 20).map((o) => (
+                                    <Tr key={o.id || o.placement_id}>
+                                      <Td>{o.company_name || o.company?.company_name || '—'}</Td>
+                                      <Td>{o.designation || '—'}</Td>
+                                      <Td>{o.job_type || '—'}</Td>
+                                      <Td>{o.ctc_min_lpa != null || o.ctc_max_lpa != null ? `${o.ctc_min_lpa ?? '-'}–${o.ctc_max_lpa ?? '-'}` : '—'}</Td>
+                                      <Td>{o.is_accepted === true ? 'Accepted' : o.is_accepted === false ? 'Rejected' : o.offer_letter_status || '—'}</Td>
+                                    </Tr>
+                                  ))}
+                                </Tbody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </Box>
+                        {/* Process table overview */}
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2} textTransform="uppercase" letterSpacing="wider">
+                            Process table overview
+                          </Text>
+                          {placementData.processList.length === 0 ? (
+                            <Text color="gray.500" fontSize="sm">No drive registrations.</Text>
+                          ) : (
+                            <TableContainer borderWidth="1px" borderRadius="md" borderColor="gray.200" overflowX="auto" maxH="240px" overflowY="auto">
+                              <Table size="sm">
+                                <Thead bg="gray.50" position="sticky" top={0} zIndex={1}>
+                                  <Tr>
+                                    <Th>Drive / Company</Th>
+                                    <Th>Job type</Th>
+                                    <Th>Status</Th>
+                                    <Th>Stage</Th>
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  {placementData.processList.slice(0, 50).map((p, idx) => (
+                                    <Tr key={p.id || idx}>
+                                      <Td>{p.company_name || p.drive?.company?.company_name || `Drive ${p.drive_id || p.placement_drive_id}`}</Td>
+                                      <Td>{p.job_type || p.drive?.job_type || '—'}</Td>
+                                      <Td>{p.drive?.placement_status || '—'}</Td>
+                                      <Td>{p.stage || p.current_stage || '—'}</Td>
+                                    </Tr>
+                                  ))}
+                                </Tbody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </Box>
+                        {/* Malpractice / Disciplinary */}
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2} textTransform="uppercase" letterSpacing="wider">
+                            Malpractice / Disciplinary
+                          </Text>
+                          {placementData.disciplinary.length === 0 ? (
+                            <Text color="gray.500" fontSize="sm">None.</Text>
+                          ) : (
+                            <TableContainer borderWidth="1px" borderRadius="md" borderColor="gray.200" overflowX="auto">
+                              <Table size="sm">
+                                <Thead bg="gray.50">
+                                  <Tr>
+                                    <Th>Type</Th>
+                                    <Th>Severity</Th>
+                                    <Th>Description</Th>
+                                    <Th>Period</Th>
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  {placementData.disciplinary.map((d, idx) => (
+                                    <Tr key={d.id || idx}>
+                                      <Td>{d.violation_type || '—'}</Td>
+                                      <Td><Badge colorScheme={d.severity === 'CRITICAL' ? 'red' : d.severity === 'MAJOR' ? 'orange' : 'gray'}>{d.severity || '—'}</Badge></Td>
+                                      <Td>{d.description || '—'}</Td>
+                                      <Td>{d.start_date ? `${d.start_date}${d.end_date ? ` – ${d.end_date}` : ''}` : '—'}</Td>
+                                    </Tr>
+                                  ))}
+                                </Tbody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </Box>
+                        {/* Placement violations */}
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2} textTransform="uppercase" letterSpacing="wider">
+                            Placement violations
+                          </Text>
+                          {placementData.violations.length === 0 ? (
+                            <Text color="gray.500" fontSize="sm">None.</Text>
+                          ) : (
+                            <TableContainer borderWidth="1px" borderRadius="md" borderColor="gray.200" overflowX="auto">
+                              <Table size="sm">
+                                <Thead bg="gray.50">
+                                  <Tr>
+                                    <Th>Type</Th>
+                                    <Th>Penalty</Th>
+                                    <Th>Remarks</Th>
+                                    <Th>Drive</Th>
+                                  </Tr>
+                                </Thead>
+                                <Tbody>
+                                  {placementData.violations.map((v, idx) => (
+                                    <Tr key={v.id || idx}>
+                                      <Td>{v.violation_type || '—'}</Td>
+                                      <Td><Badge colorScheme={v.penalty_type === 'PERMANENT_BAN' ? 'red' : v.penalty_type === 'TEMP_BAN' ? 'orange' : 'yellow'}>{v.penalty_type || '—'}{v.penalty_days ? ` (${v.penalty_days}d)` : ''}</Badge></Td>
+                                      <Td>{v.remarks || '—'}</Td>
+                                      <Td>{v.drive?.company?.company_name || v.placement_drive_id || '—'}</Td>
+                                    </Tr>
+                                  ))}
+                                </Tbody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </Box>
+                      </VStack>
+                    )}
+                  </Box>
+                </Box>
+
                 {renderSectionContent()}
               </Box>
             </Box>

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import {
   Box,
   Container,
@@ -41,58 +42,195 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   ModalCloseButton,
   Checkbox,
   CheckboxGroup,
   Divider,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
-import { SearchIcon, ViewIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, AddIcon } from '@chakra-ui/icons';
+import { SearchIcon, ViewIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, AddIcon, DownloadIcon, AttachmentIcon } from '@chakra-ui/icons';
+import { MdViewColumn } from 'react-icons/md';
 import './ViewAllStudents.css';
 import { StudentProfileService } from '../services/studentProfile.service';
 import { PlacementService } from '../services/placement.service';
 import { getFileUrl } from '../utils/fileUrl';
 import { useBackgroundRefresh } from '../hooks/useBackgroundRefresh';
 
-// student_basic_details columns for Add Students (from database.txt), categorized
-const ADD_STUDENTS_COLUMNS = {
-  mandatory: [
-    { key: 'usn', label: 'usn', table: 'student_basic_details', description: 'Primary key, unique' },
-    { key: 'full_name', label: 'full_name', table: 'student_basic_details', description: 'Required' },
-    { key: 'college_email', label: 'college_email', table: 'student_basic_details', description: 'Required, unique, valid email' },
-    { key: 'school_id', label: 'school_id', table: 'student_basic_details', description: 'FK → schools.id (use school id)' },
-    { key: 'program_id', label: 'program_id', table: 'student_basic_details', description: 'FK → programs.id (use program id)' },
-    { key: 'year_of_joining', label: 'year_of_joining', table: 'student_basic_details', description: 'Required' },
-    { key: 'current_year', label: 'current_year', table: 'student_basic_details', description: 'Computed from year_of_joining if not provided' },
-    { key: 'current_semester', label: 'current_semester', table: 'student_basic_details', description: 'Computed from year_of_joining if not provided' },
+// Display columns for View All Students table — categorized, user can select which to show
+const VIEW_STUDENTS_COLUMNS = {
+  basic: [
+    { id: 'student', label: 'Student' },
+    { id: 'usn', label: 'USN' },
+    { id: 'full_name', label: 'Full name' },
+    { id: 'college_email', label: 'Email' },
+    { id: 'school', label: 'School' },
+    { id: 'program', label: 'Program' },
+    { id: 'year_of_joining', label: 'Year of joining' },
+    { id: 'current_year', label: 'Current year' },
+    { id: 'current_semester', label: 'Current semester' },
   ],
-  optionalAcademic: [
-    { key: 'major_id', label: 'major_id', table: 'student_basic_details', description: 'FK → majors.id (use major id)' },
-    { key: 'minor_id', label: 'minor_id', table: 'student_basic_details', description: 'FK → minors.id (use minor id)' },
-    { key: 'specialization_id', label: 'specialization_id', table: 'student_basic_details', description: 'FK → specializations.id (use specialization id)' },
-    { key: 'section', label: 'section', table: 'student_basic_details', description: 'Optional' },
+  academic: [
+    { id: 'section', label: 'Section' },
+    { id: 'major', label: 'Major' },
+    { id: 'minor', label: 'Minor' },
+    { id: 'specialization', label: 'Specialization' },
   ],
-  optionalContact: [
-    { key: 'phone_country_code', label: 'phone_country_code', table: 'student_basic_details', description: 'e.g. +91' },
-    { key: 'phone_number', label: 'phone_number', table: 'student_basic_details', description: '7–15 digits' },
-    { key: 'personal_email', label: 'personal_email', table: 'student_basic_details', description: 'Valid email if provided' },
-  ],
-  optionalPersonal: [
-    { key: 'gender', label: 'gender', table: 'student_basic_details', description: 'Optional' },
-    { key: 'date_of_birth', label: 'date_of_birth', table: 'student_basic_details', description: 'Optional' },
-    { key: 'blood_group', label: 'blood_group', table: 'student_basic_details', description: 'Optional' },
-    { key: 'languages', label: 'languages', table: 'student_basic_details', description: 'Optional' },
-    { key: 'specially_abled', label: 'specially_abled', table: 'student_basic_details', description: 'Optional, boolean' },
-  ],
-  optionalOther: [
-    { key: 'is_registered', label: 'is_registered', table: 'student_basic_details', description: 'Default false' },
-    { key: 'is_active', label: 'is_active', table: 'student_basic_details', description: 'Default true' },
-    { key: 'opt_in', label: 'opt_in', table: 'student_basic_details', description: 'Default false' },
-    { key: 'has_agreed_placement_policy', label: 'has_agreed_placement_policy', table: 'student_basic_details', description: 'Default false' },
-    { key: 'profile_lock', label: 'profile_lock', table: 'student_basic_details', description: 'Default false' },
-    { key: 'social_links', label: 'social_links', table: 'student_basic_details', description: 'JSONB' },
-    { key: 'profile_image', label: 'profile_image', table: 'student_basic_details', description: 'Optional' },
+  other: [
+    { id: 'is_active', label: 'Status' },
+    { id: 'is_registered', label: 'Is registered' },
+    { id: 'created_at', label: 'Created at' },
   ],
 };
+const VIEW_STUDENTS_DEFAULT_VISIBLE = ['student', 'usn', 'college_email', 'school', 'program', 'year_of_joining', 'is_active'];
+
+// student_basic_details columns for Add Students — admin selects which to include (categorized, no highlight)
+const ADD_STUDENTS_COLUMNS = {
+  basic: [
+    { key: 'usn', label: 'usn', description: 'Primary key, unique' },
+    { key: 'full_name', label: 'full_name', description: 'Student full name' },
+    { key: 'college_email', label: 'college_email', description: 'College email, unique' },
+    { key: 'school_id', label: 'school_id', description: 'FK → schools.id (use IDs from Manage Academic)' },
+    { key: 'program_id', label: 'program_id', description: 'FK → programs.id' },
+    { key: 'year_of_joining', label: 'year_of_joining', description: 'Year of joining' },
+  ],
+  contact: [
+    { key: 'personal_email', label: 'personal_email', description: 'Personal email' },
+    { key: 'phone_country_code', label: 'phone_country_code', description: 'e.g. +91' },
+    { key: 'phone_number', label: 'phone_number', description: '7–15 digits' },
+  ],
+  academic: [
+    { key: 'specialization_id', label: 'specialization_id', description: 'FK → specializations.id' },
+    { key: 'major_id', label: 'major_id', description: 'FK → majors.id' },
+    { key: 'minor_id', label: 'minor_id', description: 'FK → minors.id' },
+    { key: 'section', label: 'section', description: 'Section' },
+  ],
+  personal: [
+    { key: 'gender', label: 'gender', description: 'Gender' },
+    { key: 'date_of_birth', label: 'date_of_birth', description: 'Date of birth' },
+    { key: 'blood_group', label: 'blood_group', description: 'Blood group' },
+    { key: 'languages', label: 'languages', description: 'Languages' },
+    { key: 'specially_abled', label: 'specially_abled', description: 'Boolean' },
+  ],
+};
+
+function parseExcelFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+        if (json.length === 0) {
+          resolve({ headers: [], rows: [] });
+          return;
+        }
+        const headers = (json[0] || []).map((h) => String(h || '').trim());
+        const rows = [];
+        for (let i = 1; i < json.length; i++) {
+          const values = json[i] || [];
+          const obj = {};
+          headers.forEach((h, j) => {
+            obj[h] = values[j] !== undefined ? String(values[j] ?? '').trim() : '';
+          });
+          rows.push(obj);
+        }
+        resolve({ headers, rows });
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function normalizeHeader(h) {
+  return String(h || '').toLowerCase().replace(/\s+/g, '_').trim();
+}
+
+function mapRowToSelectedColumns(row, fileHeaders, selectedColumns) {
+  const keyMap = {};
+  fileHeaders.forEach((h) => {
+    keyMap[normalizeHeader(h)] = h;
+  });
+  const out = {};
+  selectedColumns.forEach((col) => {
+    const key = keyMap[col] || keyMap[col.replace(/_/g, ' ')];
+    const raw = key !== undefined ? row[key] : row[col];
+    out[col] = raw != null ? String(raw).trim() : '';
+  });
+  return out;
+}
+
+function getTestDataRow(selectedColumns, rowIndex) {
+  const samples = {
+    usn: `TEST${String(rowIndex).padStart(3, '0')}_24`,
+    full_name: `Test Student ${rowIndex}`,
+    college_email: `test${rowIndex}@college.edu`,
+    personal_email: `test${rowIndex}@personal.com`,
+    phone_country_code: '+91',
+    phone_number: '9876543210',
+    school_id: 1,
+    program_id: 1,
+    specialization_id: 1,
+    major_id: 1,
+    minor_id: 1,
+    year_of_joining: 2024,
+    section: 'A',
+    gender: 'Male',
+    date_of_birth: '2002-01-15',
+    blood_group: 'O+',
+    languages: 'English, Hindi',
+    specially_abled: false,
+  };
+  const row = {};
+  selectedColumns.forEach((col) => {
+    row[col] = samples[col] !== undefined ? samples[col] : '';
+  });
+  return row;
+}
+
+function validateImportRows(rows, requiredKeys) {
+  const typeErrors = [];
+  const validRows = [];
+  const numericKeys = ['school_id', 'program_id', 'year_of_joining', 'major_id', 'minor_id', 'specialization_id'];
+  const boolKeys = ['specially_abled'];
+  rows.forEach((r, idx) => {
+    const rowNum = idx + 2;
+    const missing = requiredKeys.filter((k) => !r[k] || String(r[k]).trim() === '');
+    if (missing.length) {
+      typeErrors.push({ row: rowNum, message: `Missing required: ${missing.join(', ')}` });
+      return;
+    }
+    let ok = true;
+    numericKeys.forEach((k) => {
+      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== '') {
+        const n = parseInt(String(r[k]).trim(), 10);
+        if (Number.isNaN(n)) {
+          typeErrors.push({ row: rowNum, col: k, message: `Invalid number: ${k}` });
+          ok = false;
+        }
+      }
+    });
+    boolKeys.forEach((k) => {
+      if (r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== '') {
+        const v = String(r[k]).toLowerCase();
+        if (v !== 'true' && v !== 'false' && v !== '1' && v !== '0') {
+          typeErrors.push({ row: rowNum, col: k, message: `Invalid boolean: ${k}` });
+          ok = false;
+        }
+      }
+    });
+    if (ok) validRows.push(r);
+  });
+  return { validRows, typeErrors };
+}
 
 // Placement Overview tab: table by school / program / year with batch strength and salary stats (exported for PlacementOverviewPage)
 export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selectedYear, onYearChange }) => {
@@ -351,7 +489,27 @@ const ViewAllStudents = () => {
   const [yearOfJoiningDebounced, setYearOfJoiningDebounced] = useState('');
   const [isActive, setIsActive] = useState('');
   const { isOpen: isAddStudentsOpen, onOpen: onAddStudentsOpen, onClose: onAddStudentsClose } = useDisclosure();
-  const [addStudentsSelectedOptional, setAddStudentsSelectedOptional] = useState([]);
+  const { isOpen: isViewColumnsOpen, onOpen: onViewColumnsOpen, onClose: onViewColumnsClose } = useDisclosure();
+  const [visibleTableColumns, setVisibleTableColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem('viewAllStudents_visibleColumns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [...VIEW_STUDENTS_DEFAULT_VISIBLE];
+  });
+  const basicColumnKeys = ADD_STUDENTS_COLUMNS.basic.map((c) => c.key);
+  const [addStudentsSelectedOptional, setAddStudentsSelectedOptional] = useState(() => [...basicColumnKeys]);
+
+  const importFileInputRef = useRef(null);
+  const [importRows, setImportRows] = useState([]);
+  const [importValidation, setImportValidation] = useState(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isInserting, setIsInserting] = useState(false);
+  const [isImportPhase2Open, setIsImportPhase2Open] = useState(false);
+  const [importPhase2Lookup, setImportPhase2Lookup] = useState({ schools: [], programs: [], majors: [], minors: [], specializations: [] });
 
   const isMobile = useBreakpointValue({ base: true, md: false });
 
@@ -425,6 +583,277 @@ const ViewAllStudents = () => {
     fetchStudents();
   }, [fetchStudents]);
 
+  useEffect(() => {
+    if (!isImportPhase2Open || importRows.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [majorsData, minorsData, specsData] = await Promise.all([
+          StudentProfileService.getMajors(),
+          StudentProfileService.getMinors(),
+          StudentProfileService.getSpecializations(),
+        ]);
+        if (cancelled) return;
+        setImportPhase2Lookup({
+          schools: schools || [],
+          programs: programs || [],
+          majors: Array.isArray(majorsData) ? majorsData : [],
+          minors: Array.isArray(minorsData) ? minorsData : [],
+          specializations: Array.isArray(specsData) ? specsData : [],
+        });
+      } catch (e) {
+        if (!cancelled) setImportPhase2Lookup((prev) => ({ ...prev, schools: schools || [], programs: programs || [] }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isImportPhase2Open, importRows.length, schools, programs]);
+
+  const handleDownloadTemplateWithTestData = () => {
+    const cols = addStudentsSelectedOptional;
+    if (cols.length === 0) {
+      toast({ title: 'Select at least one column', status: 'warning' });
+      return;
+    }
+    try {
+      const headers = [...cols];
+      const rows = [];
+      for (let i = 1; i <= 10; i++) rows.push(getTestDataRow(cols, i));
+      const aoa = [headers, ...rows.map((r) => headers.map((h) => r[h] ?? ''))];
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Students');
+      const buffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'students_template.xlsx';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: 'Template downloaded with 10 sample rows.', status: 'success', duration: 3000 });
+    } catch (err) {
+      toast({ title: 'Download failed', description: err?.message, status: 'error' });
+    }
+  };
+
+  const handleImportFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = (file.name || '').toLowerCase();
+    if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls') && !ext.endsWith('.csv')) {
+      toast({ title: 'Use .xlsx, .xls or .csv file', status: 'warning' });
+      e.target.value = '';
+      return;
+    }
+    setIsImporting(true);
+    setImportValidation(null);
+    setImportRows([]);
+    try {
+      let headers = [];
+      let rows = [];
+      if (ext.endsWith('.csv')) {
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        if (lines.length) {
+          headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, ''));
+          for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+            const obj = {};
+            headers.forEach((h, j) => { obj[h] = values[j] !== undefined ? values[j] : ''; });
+            rows.push(obj);
+          }
+        }
+      } else {
+        const parsed = await parseExcelFile(file);
+        headers = parsed.headers;
+        rows = parsed.rows;
+      }
+      const selectedCols = addStudentsSelectedOptional;
+      const normalized = rows.map((r) => mapRowToSelectedColumns(r, headers, selectedCols));
+      const requiredKeys = ['usn', 'full_name', 'college_email', 'school_id', 'program_id', 'year_of_joining'];
+      const { validRows, typeErrors } = validateImportRows(normalized, requiredKeys);
+      const payload = validRows.map((r) => ({
+        usn: String(r.usn).trim().toUpperCase(),
+        full_name: r.full_name,
+        college_email: r.college_email,
+        year_of_joining: r.year_of_joining ? parseInt(r.year_of_joining, 10) : null,
+        school_id: r.school_id ? parseInt(r.school_id, 10) : null,
+        program_id: r.program_id ? parseInt(r.program_id, 10) : null,
+        phone_country_code: r.phone_country_code || undefined,
+        phone_number: r.phone_number || undefined,
+        personal_email: r.personal_email || undefined,
+        major_id: r.major_id ? parseInt(r.major_id, 10) : undefined,
+        minor_id: r.minor_id ? parseInt(r.minor_id, 10) : undefined,
+        specialization_id: r.specialization_id ? parseInt(r.specialization_id, 10) : undefined,
+        section: r.section || undefined,
+        gender: r.gender || undefined,
+        date_of_birth: r.date_of_birth || undefined,
+        blood_group: r.blood_group || undefined,
+        languages: r.languages || undefined,
+        specially_abled: r.specially_abled === 'true' || r.specially_abled === '1' || r.specially_abled === true,
+      }));
+      const validPayload = payload.filter((r) => r.school_id != null && r.program_id != null);
+      const groups = {};
+      validPayload.forEach((row) => {
+        const key = `${row.school_id}:${row.program_id}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      });
+      let duplicateUsnsInDb = [];
+      let duplicateUsnsInFile = [];
+      for (const key of Object.keys(groups)) {
+        const [sid, pid] = key.split(':').map(Number);
+        const result = await StudentProfileService.checkBulkDuplicates({
+          school_id: sid,
+          program_id: pid,
+          students: groups[key],
+        });
+        if (result.duplicateUsnsInDb?.length) duplicateUsnsInDb = [...duplicateUsnsInDb, ...result.duplicateUsnsInDb];
+        if (result.duplicateUsnsInFile?.length) duplicateUsnsInFile = [...duplicateUsnsInFile, ...result.duplicateUsnsInFile];
+      }
+      const hasDuplicates = duplicateUsnsInDb.length > 0 || duplicateUsnsInFile.length > 0;
+      const schoolIds = new Set((schools || []).map((s) => Number(s.id)));
+      const programMap = new Map();
+      (programs || []).forEach((p) => {
+        const key = `${p.school_id}:${p.id}`;
+        if (!programMap.has(key)) programMap.set(key, p);
+      });
+      const idErrors = [];
+      validPayload.forEach((row, idx) => {
+        const rowNum = idx + 2;
+        if (row.school_id != null && !schoolIds.has(row.school_id)) {
+          idErrors.push({ row: rowNum, message: `school_id ${row.school_id} not found` });
+        }
+        if (row.school_id != null && row.program_id != null) {
+          const key = `${row.school_id}:${row.program_id}`;
+          if (!programMap.has(key)) {
+            idErrors.push({ row: rowNum, message: `program_id ${row.program_id} not found for school_id ${row.school_id}` });
+          }
+        }
+      });
+      setImportValidation({
+        typeErrors,
+        duplicateUsnsInDb: [...new Set(duplicateUsnsInDb)],
+        duplicateUsnsInFile: [...new Set(duplicateUsnsInFile)],
+        hasDuplicates,
+        validCount: validPayload.length,
+        idErrors,
+      });
+      setImportRows(validPayload);
+      setIsImportPhase2Open(true);
+      onAddStudentsClose();
+    } catch (err) {
+      toast({ title: 'Import failed', description: err?.message, status: 'error' });
+    } finally {
+      setIsImporting(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (importRows.length === 0 || importValidation?.hasDuplicates) return;
+    setIsInserting(true);
+    try {
+      const groups = {};
+      importRows.forEach((row) => {
+        const key = `${row.school_id}:${row.program_id}`;
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(row);
+      });
+      let totalInserted = 0;
+      for (const key of Object.keys(groups)) {
+        const [schoolId, programId] = key.split(':').map(Number);
+        await StudentProfileService.bulkInsertStudents({
+          school_id: schoolId,
+          program_id: programId,
+          students: groups[key],
+        });
+        totalInserted += groups[key].length;
+      }
+      toast({ title: `Inserted ${totalInserted} students`, status: 'success' });
+      setImportRows([]);
+      setImportValidation(null);
+      setIsImportPhase2Open(false);
+      fetchStudents();
+    } catch (err) {
+      toast({ title: err?.message || 'Insert failed', status: 'error' });
+    } finally {
+      setIsInserting(false);
+    }
+  };
+
+  const resetImportPreview = () => {
+    setImportRows([]);
+    setImportValidation(null);
+    if (importFileInputRef.current) importFileInputRef.current.value = '';
+  };
+
+  const allViewColumnIds = [
+    ...VIEW_STUDENTS_COLUMNS.basic.map((c) => c.id),
+    ...VIEW_STUDENTS_COLUMNS.academic.map((c) => c.id),
+    ...VIEW_STUDENTS_COLUMNS.other.map((c) => c.id),
+  ];
+  const getViewColumnLabel = (id) => {
+    for (const cat of Object.values(VIEW_STUDENTS_COLUMNS)) {
+      const col = cat.find((c) => c.id === id);
+      if (col) return col.label;
+    }
+    return id;
+  };
+  const getViewColumnCell = (id, s) => {
+    const schoolNameVal = (st) => (st?.schools && (st.schools.name || st.schools.abbreviation)) || '—';
+    const programNameVal = (st) => (st?.programs && st.programs.name) || '—';
+    const majorNameVal = (st) => (st?.majors && st.majors.name) || '—';
+    const minorNameVal = (st) => (st?.minors && st.minors.name) || '—';
+    const specNameVal = (st) => (st?.specializations && st.specializations.name) || '—';
+    switch (id) {
+      case 'student':
+        return (
+          <HStack spacing={3}>
+            <Avatar size="sm" name={s.full_name} src={s.profile_image ? getFileUrl(s.profile_image) : undefined} bg="blue.50" color="blue.600" />
+            <Text fontWeight="medium">{s.full_name}</Text>
+          </HStack>
+        );
+      case 'usn': return s.usn;
+      case 'full_name': return s.full_name ?? '—';
+      case 'college_email': return <Text color="gray.600">{s.college_email}</Text>;
+      case 'school': return schoolNameVal(s);
+      case 'program': return programNameVal(s);
+      case 'year_of_joining': return s.year_of_joining ?? '—';
+      case 'current_year': return s.current_year ?? '—';
+      case 'current_semester': return s.current_semester ?? '—';
+      case 'section': return s.section ?? '—';
+      case 'major': return majorNameVal(s);
+      case 'minor': return minorNameVal(s);
+      case 'specialization': return specNameVal(s);
+      case 'is_active':
+        return (
+          <Badge colorScheme={s.is_active !== false ? 'green' : 'red'} variant="subtle" borderRadius="full" px={2} py={0.5}>
+            {s.is_active !== false ? 'Active' : 'Inactive'}
+          </Badge>
+        );
+      case 'is_registered': return s.is_registered ? 'Yes' : 'No';
+      case 'created_at': return s.created_at ? new Date(s.created_at).toLocaleDateString() : '—';
+      default: return s[id] != null ? String(s[id]) : '—';
+    }
+  };
+
+  const handleViewColumnsProceed = (selectedIds) => {
+    if (selectedIds.length === 0) {
+      toast({ title: 'Select at least one column', status: 'warning' });
+      return;
+    }
+    setVisibleTableColumns(selectedIds);
+    try {
+      localStorage.setItem('viewAllStudents_visibleColumns', JSON.stringify(selectedIds));
+    } catch (_) {}
+    onViewColumnsClose();
+    toast({ title: 'Columns updated', status: 'success', duration: 2000 });
+  };
+
   const handleView = (usn) => {
     navigate(`/placement/students/${encodeURIComponent(usn)}`);
   };
@@ -443,29 +872,42 @@ const ViewAllStudents = () => {
   const schoolName = (s) => (s?.schools && (s.schools.name || s.schools.abbreviation)) || '—';
   const programName = (s) => (s?.programs && s.programs.name) || '—';
 
+  const [viewColumnsModalSelected, setViewColumnsModalSelected] = useState([]);
+
   return (
     <Box w="full">
-          <Flex justify="flex-end" mb={4}>
-            <Button
-              leftIcon={<AddIcon />}
-              colorScheme="blue"
-              size="sm"
-              onClick={onAddStudentsOpen}
-            >
-              Add Students
-            </Button>
-          </Flex>
-          {/* Filters card */}
-          <Card
-            bg="white"
-            borderRadius="xl"
-            shadow="sm"
-            border="1px solid"
-            borderColor="gray.100"
-            overflow="hidden"
-            mb={6}
-          >
-            <CardBody py={4} px={{ base: 4, md: 6 }}>
+      <Flex w="full" justify="flex-end" align="center" mb={4} gap={2}>
+        <IconButton
+          aria-label="Select columns to display"
+          icon={<Icon as={MdViewColumn} boxSize={5} />}
+          size="sm"
+          variant="outline"
+          colorScheme="blue"
+          onClick={() => {
+            setViewColumnsModalSelected([...visibleTableColumns]);
+            onViewColumnsOpen();
+          }}
+        />
+        <Button
+          leftIcon={<AddIcon />}
+          colorScheme="blue"
+          size="sm"
+          onClick={onAddStudentsOpen}
+        >
+          Add Students
+        </Button>
+      </Flex>
+      {/* Filters card */}
+      <Card
+        bg="white"
+        borderRadius="xl"
+        shadow="sm"
+        border="1px solid"
+        borderColor="gray.100"
+        overflow="hidden"
+        mb={6}
+      >
+        <CardBody py={4} px={{ base: 4, md: 6 }}>
               <Flex justify="space-between" align="center" mb={4} flexWrap="wrap" gap={2}>
                 <Text fontSize="sm" fontWeight="600" color="gray.700" textTransform="uppercase" letterSpacing="wider">
                   Filters
@@ -665,20 +1107,18 @@ const ViewAllStudents = () => {
               <Table variant="simple" size="sm">
                 <Thead bg="gray.50" borderBottom="2px solid" borderColor="gray.200">
                   <Tr>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Student</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">USN</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Email</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">School</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Program</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Year</Th>
-                    <Th fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Status</Th>
+                    {visibleTableColumns.map((id) => (
+                      <Th key={id} fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider" whiteSpace="nowrap">
+                        {getViewColumnLabel(id)}
+                      </Th>
+                    ))}
                     <Th textAlign="right" fontWeight="600" color="gray.700" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Actions</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   {students.length === 0 ? (
                     <Tr>
-                      <Td colSpan={8} textAlign="center" py={12} color="gray.500" fontSize="md">
+                      <Td colSpan={visibleTableColumns.length + 1} textAlign="center" py={12} color="gray.500" fontSize="md">
                         No students found. Try adjusting your filters.
                       </Td>
                     </Tr>
@@ -692,28 +1132,11 @@ const ViewAllStudents = () => {
                         cursor="pointer"
                         onClick={() => handleView(s.usn)}
                       >
-                        <Td py={3}>
-                          <HStack spacing={3}>
-                            <Avatar
-                              size="sm"
-                              name={s.full_name}
-                              src={s.profile_image ? getFileUrl(s.profile_image) : undefined}
-                              bg="blue.50"
-                              color="blue.600"
-                            />
-                            <Text fontWeight="medium">{s.full_name}</Text>
-                          </HStack>
-                        </Td>
-                        <Td py={3} fontSize="sm">{s.usn}</Td>
-                        <Td py={3} fontSize="sm" color="gray.600">{s.college_email}</Td>
-                        <Td py={3} fontSize="sm">{schoolName(s)}</Td>
-                        <Td py={3} fontSize="sm">{programName(s)}</Td>
-                        <Td py={3} fontSize="sm">{s.year_of_joining ?? '—'}</Td>
-                        <Td py={3}>
-                          <Badge colorScheme={s.is_active !== false ? 'green' : 'red'} variant="subtle" borderRadius="full" px={2} py={0.5}>
-                            {s.is_active !== false ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </Td>
+                        {visibleTableColumns.map((id) => (
+                          <Td key={id} py={3} fontSize="sm">
+                            {getViewColumnCell(id, s)}
+                          </Td>
+                        ))}
                         <Td py={3} textAlign="right" onClick={(e) => e.stopPropagation()}>
                           <Button
                             size="sm"
@@ -777,145 +1200,316 @@ const ViewAllStudents = () => {
             </Flex>
           )}
 
-          <Modal isOpen={isAddStudentsOpen} onClose={onAddStudentsClose} size="6xl" scrollBehavior="inside">
+          {/* Select columns to display */}
+          <Modal isOpen={isViewColumnsOpen} onClose={onViewColumnsClose} size="4xl" scrollBehavior="inside">
+            <ModalOverlay />
+            <ModalContent maxW="90vw">
+              <ModalHeader>Select columns to display</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody pt={2} pb={6}>
+                <Text fontSize="sm" color="gray.600" mb={4}>
+                  Choose which columns to show in the View All Students table. Categories match student data.
+                </Text>
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                  {[
+                    { id: 'basic', title: 'Basic', cols: VIEW_STUDENTS_COLUMNS.basic },
+                    { id: 'academic', title: 'Academic', cols: VIEW_STUDENTS_COLUMNS.academic },
+                    { id: 'other', title: 'Other', cols: VIEW_STUDENTS_COLUMNS.other },
+                  ].map(({ id, title, cols }) => (
+                    <Card key={id} variant="outline" size="sm" shadow="sm">
+                      <CardHeader py={2} px={4} borderBottom="1px" borderColor="gray.100">
+                        <Text fontSize="sm" fontWeight="600" color="gray.800">{title}</Text>
+                      </CardHeader>
+                      <CardBody py={2} px={4}>
+                        <VStack align="stretch" spacing={1}>
+                          {cols.map((col) => (
+                            <Checkbox
+                              key={col.id}
+                              size="sm"
+                              colorScheme="blue"
+                              isChecked={viewColumnsModalSelected.includes(col.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setViewColumnsModalSelected((prev) => [...prev, col.id]);
+                                } else {
+                                  setViewColumnsModalSelected((prev) => prev.filter((c) => c !== col.id));
+                                }
+                              }}
+                            >
+                              {col.label}
+                            </Checkbox>
+                          ))}
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+              </ModalBody>
+              <ModalFooter>
+                <Button size="sm" colorScheme="blue" onClick={() => handleViewColumnsProceed(viewColumnsModalSelected)}>
+                  Proceed
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onViewColumnsClose}>Cancel</Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+
+          <Modal
+            isOpen={isAddStudentsOpen}
+            onClose={() => {
+              resetImportPreview();
+              onAddStudentsClose();
+            }}
+            size="6xl"
+            scrollBehavior="inside"
+          >
             <ModalOverlay />
             <ModalContent maxW="90vw" minH="80vh">
               <ModalHeader>Add Students</ModalHeader>
               <ModalCloseButton />
-              <ModalBody pt={2} pb={6}>
+              <ModalBody pt={2} pb={6} className="add-students-modal-body">
                 <Text fontWeight="medium" color="gray.700" mb={4} fontSize="md" bg="blue.50" p={3} borderRadius="md" borderLeft="4px solid" borderColor="blue.400">
                   If you wanted to add minors, majors, specializations, replace them with the ids to insert into the database.
                 </Text>
 
                 <Text fontWeight="bold" fontSize="sm" color="gray.800" mt={6} mb={2}>Step 1: Select columns to include</Text>
-                <Text fontSize="sm" color="gray.600" mb={3}>Mandatory columns are always included. Choose any optional columns you want to provide.</Text>
+                <Text fontSize="sm" color="gray.600" mb={3}>Choose which student_basic_details columns to include for the upload.</Text>
 
                 <Box className="add-students-columns-scroll">
-                  <Box className="add-students-mandatory-section">
-                    <Text className="add-students-table-title">Mandatory (student_basic_details)</Text>
-                    <TableContainer>
-                      <Table className="add-students-table" size="sm">
-                        <Thead>
-                          <Tr>
-                            <Th>Column</Th>
-                            <Th>Description</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {ADD_STUDENTS_COLUMNS.mandatory.map((col) => (
-                            <Tr key={col.key}>
-                              <Td className="col-column">{col.label}</Td>
-                              <Td className="col-description">{col.description}</Td>
-                            </Tr>
-                          ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
-
-                  <CheckboxGroup value={addStudentsSelectedOptional} onChange={setAddStudentsSelectedOptional}>
-                    <Box className="add-students-optional-section">
-                      <Text className="add-students-table-title">Optional — Academic (use IDs from Manage Academic)</Text>
-                      <TableContainer>
-                        <Table className="add-students-table" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th className="col-include">Include</Th>
-                              <Th>Column</Th>
-                              <Th>Description</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {ADD_STUDENTS_COLUMNS.optionalAcademic.map((col) => (
-                              <Tr key={col.key}>
-                                <Td className="col-include">
-                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
-                                </Td>
-                                <Td className="col-column">{col.label}</Td>
-                                <Td className="col-description">{col.description}</Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                    <Box className="add-students-optional-section">
-                      <Text className="add-students-table-title">Optional — Contact</Text>
-                      <TableContainer>
-                        <Table className="add-students-table" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th className="col-include">Include</Th>
-                              <Th>Column</Th>
-                              <Th>Description</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {ADD_STUDENTS_COLUMNS.optionalContact.map((col) => (
-                              <Tr key={col.key}>
-                                <Td className="col-include">
-                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
-                                </Td>
-                                <Td className="col-column">{col.label}</Td>
-                                <Td className="col-description">{col.description}</Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                    <Box className="add-students-optional-section">
-                      <Text className="add-students-table-title">Optional — Personal</Text>
-                      <TableContainer>
-                        <Table className="add-students-table" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th className="col-include">Include</Th>
-                              <Th>Column</Th>
-                              <Th>Description</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {ADD_STUDENTS_COLUMNS.optionalPersonal.map((col) => (
-                              <Tr key={col.key}>
-                                <Td className="col-include">
-                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
-                                </Td>
-                                <Td className="col-column">{col.label}</Td>
-                                <Td className="col-description">{col.description}</Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
-                    <Box className="add-students-optional-section">
-                      <Text className="add-students-table-title">Optional — Other</Text>
-                      <TableContainer>
-                        <Table className="add-students-table" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th className="col-include">Include</Th>
-                              <Th>Column</Th>
-                              <Th>Description</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {ADD_STUDENTS_COLUMNS.optionalOther.map((col) => (
-                              <Tr key={col.key}>
-                                <Td className="col-include">
-                                  <Checkbox value={col.key} size="sm" colorScheme="blue" aria-label={`Include ${col.label}`}>{null}</Checkbox>
-                                </Td>
-                                <Td className="col-column">{col.label}</Td>
-                                <Td className="col-description">{col.description}</Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </TableContainer>
-                    </Box>
+                  <CheckboxGroup
+                    value={addStudentsSelectedOptional}
+                    onChange={(newValue) => {
+                      const basicSet = new Set(basicColumnKeys);
+                      const optionalInNew = (newValue || []).filter((k) => !basicSet.has(k));
+                      setAddStudentsSelectedOptional([...basicColumnKeys, ...optionalInNew]);
+                    }}
+                  >
+                    <SimpleGrid className="add-students-cards-grid" columns={{ base: 1, md: 4 }} spacing={4}>
+                      {[
+                        { id: 'basic', title: 'Basic', cols: ADD_STUDENTS_COLUMNS.basic },
+                        { id: 'contact', title: 'Contact', cols: ADD_STUDENTS_COLUMNS.contact },
+                        { id: 'academic', title: 'Academic', cols: ADD_STUDENTS_COLUMNS.academic },
+                        { id: 'personal', title: 'Personal', cols: ADD_STUDENTS_COLUMNS.personal },
+                      ].map(({ id, title, cols }) => {
+                        const isBasic = id === 'basic';
+                        const allSelected = cols.every((c) => addStudentsSelectedOptional.includes(c.key));
+                        const cardKeys = cols.map((c) => c.key);
+                        const toggleCardSelection = () => {
+                          if (isBasic) return;
+                          if (allSelected) {
+                            setAddStudentsSelectedOptional((prev) => prev.filter((k) => !cardKeys.includes(k)));
+                          } else {
+                            setAddStudentsSelectedOptional((prev) => [...new Set([...prev, ...cardKeys])]);
+                          }
+                        };
+                        return (
+                        <Card key={id} className="add-students-card" variant="outline" size="sm" shadow="sm">
+                          <CardHeader py={3} px={4} borderBottom="1px" borderColor="gray.100" display="flex" flexDirection="row" justifyContent="space-between" alignItems="center">
+                            <Text className="add-students-card-title" fontSize="sm" fontWeight="600" color="gray.800">
+                              {title}
+                            </Text>
+                            <Checkbox
+                              size="sm"
+                              colorScheme="blue"
+                              isChecked={isBasic || allSelected}
+                              isDisabled={isBasic}
+                              onChange={toggleCardSelection}
+                              aria-label={`Select all ${title}`}
+                            >
+                              <Text as="span" fontSize="xs" color="gray.600">Select all</Text>
+                            </Checkbox>
+                          </CardHeader>
+                          <CardBody py={2} px={4}>
+                            <VStack align="stretch" spacing={0}>
+                              {cols.map((col) => {
+                                const isBasic = id === 'basic';
+                                const isSelected = addStudentsSelectedOptional.includes(col.key);
+                                return (
+                                  <Flex
+                                    key={col.key}
+                                    className={`add-students-row ${isSelected ? 'add-students-row-selected' : ''}`}
+                                    align="center"
+                                    gap={3}
+                                    py={2}
+                                    px={2}
+                                  >
+                                    <Checkbox
+                                      value={col.key}
+                                      size="sm"
+                                      colorScheme="blue"
+                                      aria-label={`Include ${col.label}`}
+                                      flexShrink={0}
+                                      isChecked={isBasic || isSelected}
+                                      isDisabled={isBasic}
+                                    >
+                                      {null}
+                                    </Checkbox>
+                                    <Text as="span" className="add-students-col-name" fontFamily="mono" fontWeight="500" fontSize="xs">
+                                      {col.label}
+                                    </Text>
+                                    <Text as="span" className="add-students-col-desc" fontSize="xs" color="gray.500" noOfLines={1}>
+                                      {col.description}
+                                    </Text>
+                                  </Flex>
+                                );
+                              })}
+                            </VStack>
+                          </CardBody>
+                        </Card>
+                      );
+                      })}
+                    </SimpleGrid>
                   </CheckboxGroup>
                 </Box>
+
+                <Divider my={6} />
+
+                <Text fontWeight="bold" fontSize="sm" color="gray.800" mb={3}>Step 2: Template &amp; Import</Text>
+                <Flex justify="space-between" align="center" flexWrap="wrap" gap={3} mb={4}>
+                  <Button
+                    leftIcon={<DownloadIcon />}
+                    size="sm"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={handleDownloadTemplateWithTestData}
+                  >
+                    Download template
+                  </Button>
+                  <Box>
+                    <Input
+                      ref={importFileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      display="none"
+                      onChange={handleImportFileChange}
+                    />
+                    <Button
+                      leftIcon={<AttachmentIcon />}
+                      size="sm"
+                      colorScheme="blue"
+                      onClick={() => importFileInputRef.current?.click()}
+                      isLoading={isImporting}
+                    >
+                      Import
+                    </Button>
+                  </Box>
+                </Flex>
+                <Text fontSize="xs" color="gray.500" mb={4}>
+                  Template downloads with 10 sample rows. Replace with your data and import. File can include multiple schools and programs (use school_id and program_id columns).
+                </Text>
+
+              </ModalBody>
+            </ModalContent>
+          </Modal>
+
+          {/* Phase 2: Review import — fresh popup after file select */}
+          <Modal
+            isOpen={isImportPhase2Open}
+            onClose={() => {
+              setIsImportPhase2Open(false);
+              resetImportPreview();
+            }}
+            size="6xl"
+            scrollBehavior="inside"
+          >
+            <ModalOverlay />
+            <ModalContent maxW="95vw" minH="85vh">
+              <ModalHeader>Review import — Add Students (Phase 2)</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody pt={4} pb={6}>
+                <Text fontSize="sm" color="gray.600" mb={4}>
+                  Scroll to view all columns and rows. IDs are mapped to names where available.
+                </Text>
+                <TableContainer className="add-students-phase2-table-wrap" overflowX="auto" overflowY="auto" maxH="55vh" mb={4}>
+                  <Table size="sm" className="add-students-import-table" minW="max-content">
+                    <Thead>
+                      <Tr>
+                        <Th whiteSpace="nowrap">#</Th>
+                        {addStudentsSelectedOptional.map((col) => (
+                          <Th key={col} whiteSpace="nowrap">{col}</Th>
+                        ))}
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {importRows.map((row, idx) => {
+                        const lookup = importPhase2Lookup;
+                        const schoolName = (id) => (lookup.schools.find((s) => Number(s.id) === Number(id))?.name || lookup.schools.find((s) => Number(s.id) === Number(id))?.abbreviation) || null;
+                        const programName = (sid, pid) => (lookup.programs.find((p) => Number(p.school_id) === Number(sid) && Number(p.id) === Number(pid))?.name) || null;
+                        const majorName = (id) => (lookup.majors.find((m) => Number(m.id) === Number(id))?.name) || null;
+                        const minorName = (id) => (lookup.minors.find((m) => Number(m.id) === Number(id))?.name) || null;
+                        const specName = (id) => (lookup.specializations.find((s) => Number(s.id) === Number(id))?.name) || null;
+                        const cellDisplay = (col, val) => {
+                          if (val == null || val === '') return '—';
+                          if (col === 'school_id') {
+                            const name = schoolName(val);
+                            return name ? `${name} (${val})` : <Text as="span" color="red.600">{val} (not found)</Text>;
+                          }
+                          if (col === 'program_id') {
+                            const name = programName(row.school_id, val);
+                            return name ? `${name} (${val})` : <Text as="span" color="red.600">{val} (not found)</Text>;
+                          }
+                          if (col === 'major_id') {
+                            const name = majorName(val);
+                            return name ? `${name} (${val})` : `${val}`;
+                          }
+                          if (col === 'minor_id') {
+                            const name = minorName(val);
+                            return name ? `${name} (${val})` : `${val}`;
+                          }
+                          if (col === 'specialization_id') {
+                            const name = specName(val);
+                            return name ? `${name} (${val})` : `${val}`;
+                          }
+                          return String(val);
+                        };
+                        return (
+                          <Tr key={idx}>
+                            <Td whiteSpace="nowrap" fontWeight="medium">{idx + 1}</Td>
+                            {addStudentsSelectedOptional.map((col) => (
+                              <Td key={col} whiteSpace="nowrap" maxW="200px" overflow="hidden" textOverflow="ellipsis" title={String(row[col] ?? '')}>
+                                {cellDisplay(col, row[col])}
+                              </Td>
+                            ))}
+                          </Tr>
+                        );
+                      })}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+
+                {(importValidation?.idErrors?.length > 0 || importValidation?.typeErrors?.length > 0 || importValidation?.hasDuplicates) ? (
+                  <Box mb={4}>
+                    <Alert status="error" borderRadius="md" mb={3}>
+                      <AlertIcon />
+                      <Box flex="1">
+                        <AlertTitle fontSize="sm">Errors — fix these and re-import</AlertTitle>
+                        <AlertDescription as="ul" fontSize="xs" pl={4} mt={2}>
+                          {importValidation?.idErrors?.map((e, i) => (
+                            <li key={`id-${i}`}>Row {e.row}: {e.message}</li>
+                          ))}
+                          {importValidation?.typeErrors?.map((e, i) => (
+                            <li key={`type-${i}`}>Row {e.row}: {e.message}</li>
+                          ))}
+                          {importValidation?.hasDuplicates && (
+                            <li>Duplicate USNs in DB: {importValidation.duplicateUsnsInDb?.join(', ')}. In file: {importValidation.duplicateUsnsInFile?.join(', ')}. Remove duplicates and re-import.</li>
+                          )}
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+                    <Button size="sm" colorScheme="gray" onClick={() => { setIsImportPhase2Open(false); resetImportPreview(); }}>
+                      Close (cancel import)
+                    </Button>
+                  </Box>
+                ) : (
+                  <Flex gap={3}>
+                    <Button size="sm" colorScheme="green" onClick={handleConfirmImport} isLoading={isInserting}>
+                      Insert {importRows.length} row(s)
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setIsImportPhase2Open(false); resetImportPreview(); }}>
+                      Close (cancel)
+                    </Button>
+                  </Flex>
+                )}
               </ModalBody>
             </ModalContent>
           </Modal>
