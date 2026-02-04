@@ -35,12 +35,15 @@ import { SearchIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
+import { useAuth } from '../../context/AuthContext';
 
 const emptyContact = () => ({ contact_name: '', email: '', phone_number: '', role_title: '', remarks: '' });
 
 const Companies = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { userRole } = useAuth();
+  const isVc = (userRole || '').toLowerCase() === 'vc';
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -214,24 +217,31 @@ const Companies = () => {
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <Flex mb={6} justify="space-between" align="center" wrap="wrap" gap={4}>
             <Box>
-              <Heading size="lg" color="gray.800">All Companies</Heading>
-              <Text color="gray.500" fontSize="sm">Browse hiring partners; click for full details</Text>
+              <Heading size="lg" color="gray.800">{isVc ? 'View All Companies' : 'All Companies'}</Heading>
+              <Text color="gray.500" fontSize="sm">{isVc ? 'Hiring partners (view only)' : 'Browse hiring partners; click for full details'}</Text>
             </Box>
-            <HStack spacing={3}>
-              <Button
-                bg="#22c35e"
-                color="white"
-                _hover={{ bg: '#1da851' }}
-                leftIcon={<AddIcon />}
-                onClick={onOpen}
-                size="sm"
-              >
-                Add Company
+            {!isVc && (
+              <HStack spacing={3}>
+                <Button
+                  bg="#22c35e"
+                  color="white"
+                  _hover={{ bg: '#1da851' }}
+                  leftIcon={<AddIcon />}
+                  onClick={onOpen}
+                  size="sm"
+                >
+                  Add Company
+                </Button>
+                <Button variant="outline" borderColor="gray.300" onClick={() => navigate(-1)} size="sm" bg="white">
+                  Back
+                </Button>
+              </HStack>
+            )}
+            {isVc && (
+              <Button variant="outline" borderColor="gray.300" onClick={() => navigate('/placement/dashboard')} size="sm" bg="white">
+                Back to Dashboard
               </Button>
-              <Button variant="outline" borderColor="gray.300" onClick={() => navigate(-1)} size="sm" bg="white">
-                Back
-              </Button>
-            </HStack>
+            )}
           </Flex>
 
           <Box bg="white" p={4} borderRadius="xl" shadow="sm" mb={6}>

@@ -250,8 +250,9 @@ const PartnerLogo = ({ name, color, logo, onClick, style }) => (
 );
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const navigate = useNavigate();
+  const isVc = (userRole || '').toLowerCase() === 'vc';
   const [loading, setLoading] = useState(true);
   const [selectedSchools, setSelectedSchools] = useState([]);
   const { isOpen: isCompanyOpen, onOpen: onCompanyOpen, onClose: onCompanyClose } = useDisclosure();

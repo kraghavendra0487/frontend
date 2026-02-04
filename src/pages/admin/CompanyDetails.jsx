@@ -41,6 +41,7 @@ import {
 import { ArrowBackIcon, ExternalLinkIcon, EditIcon, DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
+import { useAuth } from '../../context/AuthContext';
 
 const emptyContact = () => ({ id: null, contact_name: '', email: '', phone_number: '', role_title: '', remarks: '' });
 const toContactRow = (c) => ({ id: c.id || null, contact_name: c.contact_name || '', email: c.email || '', phone_number: c.phone_number || '', role_title: c.role_title || '', remarks: c.remarks || '' });
@@ -49,6 +50,8 @@ const CompanyDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { userRole } = useAuth();
+  const isVc = (userRole || '').toLowerCase() === 'vc';
   const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
   const [company, setCompany] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -186,15 +189,17 @@ const CompanyDetails = () => {
               <Text color="gray.500" fontSize="sm">Full company info with placements and offers</Text>
             </Box>
             <HStack spacing={3}>
-              <Button
-                leftIcon={<EditIcon />}
-                size="sm"
-                variant="outline"
-                colorScheme="blue"
-                onClick={openEdit}
-              >
-                Edit profile
-              </Button>
+              {!isVc && (
+                <Button
+                  leftIcon={<EditIcon />}
+                  size="sm"
+                  variant="outline"
+                  colorScheme="blue"
+                  onClick={openEdit}
+                >
+                  Edit profile
+                </Button>
+              )}
               <Button
                 leftIcon={<ArrowBackIcon />}
                 size="sm"

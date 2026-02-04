@@ -27,18 +27,14 @@ export const Login = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       const role = user.role?.toLowerCase();
-      if (role === 'admin' || role === 'superadmin') {
+      if (role === 'admin') {
         navigate("/placement/dashboard");
       } else if (role === 'alumni') {
         navigate("/placement/alumni-dashboard");
       } else if (role === 'company') {
         navigate("/company/dashboard");
-      } else if (role === 'management') {
-        navigate("/management/dashboard");
-      } else if (role === 'dean') {
-        navigate("/dean/dashboard");
-      } else if (role === 'parent') {
-        navigate("/parent/dashboard");
+      } else if (role === 'vc') {
+        navigate("/placement/dashboard");
       } else {
         navigate("/student-dashboard");
       }
@@ -54,18 +50,14 @@ export const Login = () => {
         const user = result.user;
         const role = user.role?.toLowerCase();
         // Navigate based on role (case-insensitive)
-        if (role === 'admin' || role === 'superadmin') {
+        if (role === 'admin') {
           navigate("/placement/dashboard");
         } else if (role === 'alumni') {
           navigate("/placement/alumni-dashboard");
         } else if (role === 'company') {
           navigate("/company/dashboard");
-        } else if (role === 'management') {
-          navigate("/management/dashboard");
-        } else if (role === 'dean') {
-          navigate("/dean/dashboard");
-        } else if (role === 'parent') {
-          navigate("/parent/dashboard");
+        } else if (role === 'vc') {
+          navigate("/placement/dashboard");
         } else {
           navigate("/student-dashboard", { state: { isFirstLogin: true } });
         }

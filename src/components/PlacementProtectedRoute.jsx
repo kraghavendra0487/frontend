@@ -18,22 +18,10 @@ const PlacementProtectedRoute = ({ children, requiredRole }) => {
   }
 
   if (requiredRole) {
-    // Normalize requiredRole to an array and make case-insensitive
     const rolesToCheck = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
     const normalizedRolesToCheck = rolesToCheck.map(r => r?.toLowerCase());
-    
-    // Expand 'admin' to include 'superadmin' if present in the requirements
-    const expandedRequiredRoles = normalizedRolesToCheck.reduce((acc, role) => {
-      if (role === 'admin') {
-        acc.push('admin', 'superadmin');
-      } else {
-        acc.push(role);
-      }
-      return acc;
-    }, []);
-
     const userRole = user?.role?.toLowerCase();
-    if (!expandedRequiredRoles.includes(userRole)) {
+    if (!normalizedRolesToCheck.includes(userRole)) {
       // If user is logged in but not authorized (e.g. student trying to access admin), redirect to home or their dashboard
       return <Navigate to="/" replace />;
     }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -15,17 +15,30 @@ import CardNav from './ui/CardNav';
 import UniversalSearch from './UniversalSearch';
 
 const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
-  const { user, logout, isSuperAdmin, userRole } = useAuth();
+  const { user, logout, userRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isNavHovered, setIsNavHovered] = useState(false);
+
+  const isVc = (userRole || '').toLowerCase() === 'vc';
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const navItems = [
+  // VC sees only dashboard + View All Companies (read-only)
+  const navItems = isVc ? [
+    {
+      label: "View",
+      bgColor: "#172e36",
+      textColor: "#fff",
+      links: [
+        { label: "Dashboard", path: "/placement/dashboard", ariaLabel: "Placement Dashboard" },
+        { label: "View All Companies", path: "/placement/companies", ariaLabel: "View All Companies" },
+      ]
+    },
+  ] : [
     {
       label: "Overview",
       bgColor: "#172e36",
@@ -83,9 +96,9 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  const displayRole = userRole
-    ? userRole.charAt(0).toUpperCase() + userRole.slice(1)
-    : "Admin";
+  const displayRole = isVc
+    ? 'Vice Chancellor'
+    : (userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Admin');
 
   const CustomLogo = (
     <HStack
@@ -108,6 +121,15 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
     </HStack>
   );
 
+  // VC can only be on dashboard or companies (view) - redirect if they hit another path
+  const vcAllowedPaths = ['/placement/dashboard', '/placement/companies', '/placement/company/'];
+  const isVcAllowedPath = vcAllowedPaths.some(p => p === location.pathname || (p.endsWith('/') && location.pathname.startsWith(p)));
+  useEffect(() => {
+    if (isVc && !isVcAllowedPath) {
+      navigate('/placement/dashboard', { replace: true });
+    }
+  }, [isVc, isVcAllowedPath, navigate]);
+
   return (
     <Box minH="100vh" bg="#f0f0f0">
       {/* Top Navbar */}
@@ -125,32 +147,34 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
           logo={CustomLogo}
           items={{
             items: navItems,
-            searchComponent: <UniversalSearch />,
+            searchComponent: isVc ? null : <UniversalSearch />,
             rightActions: (
               <HStack spacing={3}>
+                {!isVc && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="white"
+                    _hover={{ bg: "whiteAlpha.200" }}
+                    onClick={() => navigate('/placement/notifications')}
+                    aria-label="Notifications"
+                    p={2}
+                  >
+                    <BellIcon boxSize={5} />
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="ghost"
                   color="white"
                   _hover={{ bg: "whiteAlpha.200" }}
-                  onClick={() => navigate('/placement/notifications')}
-                  aria-label="Notifications"
-                  p={2}
-                >
-                  <BellIcon boxSize={5} />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  color="white"
-                  _hover={{ bg: "whiteAlpha.200" }}
-                  onClick={() => navigate('/placement/dashboard')}
+                  onClick={() => !isVc && navigate('/placement/dashboard')}
                   display={{ base: 'none', md: 'flex' }}
                 >
                   {displayRole}
                 </Button>
                  <Avatar
-                    name={user?.name}
+                    name={user?.name || user?.email}
                     size="sm"
                     src={user?.profile_image} 
                     bg="whiteAlpha.300"

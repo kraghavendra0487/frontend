@@ -1342,23 +1342,14 @@ export const Register = () => {
           navigate("/student-dashboard", { replace: true });
           break;
         case 'admin':
-        case 'superadmin':
+        case 'vc':
           navigate("/placement/dashboard", { replace: true });
           break;
         case 'alumni':
           navigate("/placement/alumni-dashboard", { replace: true });
           break;
-        case 'dean':
-          navigate("/dean/dashboard", { replace: true });
-          break;
         case 'company':
           navigate("/company/dashboard", { replace: true });
-          break;
-        case 'parent':
-          navigate("/parent/dashboard", { replace: true });
-          break;
-        case 'management':
-          navigate("/management/dashboard", { replace: true });
           break;
         default:
           break;

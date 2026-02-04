@@ -153,7 +153,7 @@ const router = createBrowserRouter([
       { 
         path: "/placement/dashboard", 
         element: (
-          <PlacementProtectedRoute requiredRole="admin">
+          <PlacementProtectedRoute requiredRole={['admin', 'vc']}>
             <AdminDashboard />
           </PlacementProtectedRoute>
         ) 
@@ -211,7 +211,7 @@ const router = createBrowserRouter([
       {
         path: "/placement/companies",
         element: (
-          <PlacementProtectedRoute requiredRole="admin">
+          <PlacementProtectedRoute requiredRole={['admin', 'vc']}>
             <AdminCompanies />
           </PlacementProtectedRoute>
         )
@@ -219,7 +219,7 @@ const router = createBrowserRouter([
       {
         path: "/placement/company/:id",
         element: (
-          <PlacementProtectedRoute requiredRole="admin">
+          <PlacementProtectedRoute requiredRole={['admin', 'vc']}>
             <CompanyDetails />
           </PlacementProtectedRoute>
         )

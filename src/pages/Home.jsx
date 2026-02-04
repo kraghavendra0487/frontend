@@ -25,21 +25,13 @@ export const Home = () => {
       case 'student':
         return <Navigate to="/student-dashboard" replace />;
       case 'admin':
-      case 'superadmin':
+      case 'vc':
         return <Navigate to="/placement/dashboard" replace />;
       case 'alumni':
         return <Navigate to="/placement/alumni-dashboard" replace />;
-      case 'dean':
-        return <Navigate to="/dean/dashboard" replace />;
       case 'company':
         return <Navigate to="/company/dashboard" replace />;
-      case 'parent':
-        return <Navigate to="/parent/dashboard" replace />;
-      case 'management':
-        return <Navigate to="/management/dashboard" replace />;
       default:
-        // If role is unknown, maybe stay here or go to login?
-        // Staying here is safer to avoid infinite redirect loops if role is missing
         break;
     }
   }

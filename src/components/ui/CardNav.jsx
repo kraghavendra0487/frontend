@@ -22,7 +22,11 @@ const CardNav = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const navRef = useRef(null);
 
+  const navItemsList = Array.isArray(items) ? items : items?.items || [];
+  const hasNavItems = navItemsList.length > 0;
+
   const openMenu = () => {
+    if (!hasNavItems) return;
     setIsHamburgerOpen(true);
     setIsExpanded(true);
     onMenuOpen?.();
@@ -35,6 +39,7 @@ const CardNav = ({
   };
 
   const toggleMenu = () => {
+    if (!hasNavItems) return;
     if (isExpanded) {
       closeMenu();
     } else {
@@ -46,7 +51,7 @@ const CardNav = ({
     <div className={`card-nav-container ${className}`}>
       <nav 
         ref={navRef} 
-        className={`card-nav ${isExpanded ? 'open' : ''}`} 
+        className={`card-nav ${isExpanded && hasNavItems ? 'open' : ''}`} 
         onMouseEnter={openMenu}
         onMouseLeave={closeMenu}
       >
@@ -69,21 +74,23 @@ const CardNav = ({
               {items?.rightActions}
           </div>
 
-          <div
-            className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''}`}
-            onClick={toggleMenu}
-            role="button"
-            aria-label={isExpanded ? 'Close menu' : 'Open menu'}
-            tabIndex={0}
-            style={{ color: '#fff' }}
-          >
-            <div className="hamburger-line" />
-            <div className="hamburger-line" />
-          </div>
+          {hasNavItems && (
+            <div
+              className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''}`}
+              onClick={toggleMenu}
+              role="button"
+              aria-label={isExpanded ? 'Close menu' : 'Open menu'}
+              tabIndex={0}
+              style={{ color: '#fff' }}
+            >
+              <div className="hamburger-line" />
+              <div className="hamburger-line" />
+            </div>
+          )}
         </div>
 
-        <div className="card-nav-content" aria-hidden={!isExpanded}>
-            {(Array.isArray(items) ? items : items?.items || []).map((item, idx) => (
+        <div className="card-nav-content" aria-hidden={!isExpanded || !hasNavItems}>
+            {navItemsList.map((item, idx) => (
               <div
                 key={`${item.label}-${idx}`}
                 className="nav-card"

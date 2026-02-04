@@ -47,8 +47,8 @@ import {
   IconButton,
   Avatar,
 } from '@chakra-ui/react';
-import { SearchIcon, CheckIcon, CloseIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
-import { FaBuilding, FaKey } from 'react-icons/fa';
+import { SearchIcon, CheckIcon, CloseIcon, AddIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import { FaBuilding, FaKey, FaUserTie } from 'react-icons/fa';
 import AdminLayout from '../../components/AdminLayout';
 import { 
   getUserLoginList, 
@@ -57,7 +57,12 @@ import {
   bulkUpdateUserLoginIsActive,
   getCompanyLogins,
   createCompanyLogin,
+  updateCompanyLoginPassword,
   deleteCompanyLogin,
+  getVcLogins,
+  createVcLogin,
+  updateVcLoginPassword,
+  deleteVcLogin,
 } from '../../services/userLogin.service';
 
 const headerBg = '#172e36';
@@ -113,6 +118,28 @@ const UserLoginManagement = () => {
   const [createLoading, setCreateLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const { isOpen: isCompanyPasswordOpen, onOpen: onCompanyPasswordOpen, onClose: onCompanyPasswordClose } = useDisclosure();
+  const [editCompanyTarget, setEditCompanyTarget] = useState(null);
+  const [editCompanyPassword, setEditCompanyPassword] = useState('');
+  const [companyPasswordLoading, setCompanyPasswordLoading] = useState(false);
+
+  // Tab: VC logins
+  const [vcLogins, setVcLogins] = useState([]);
+  const [vcTotal, setVcTotal] = useState(0);
+  const [vcPage, setVcPage] = useState(1);
+  const [vcLoading, setVcLoading] = useState(false);
+  const [vcSearch, setVcSearch] = useState('');
+  const [vcSearchDebounced, setVcSearchDebounced] = useState('');
+  const { isOpen: isVcCreateOpen, onOpen: onVcCreateOpen, onClose: onVcCreateClose } = useDisclosure();
+  const { isOpen: isVcDeleteOpen, onOpen: onVcDeleteOpen, onClose: onVcDeleteClose } = useDisclosure();
+  const [newVcLogin, setNewVcLogin] = useState({ email: '', password: '' });
+  const [vcCreateLoading, setVcCreateLoading] = useState(false);
+  const [deleteVcTarget, setDeleteVcTarget] = useState(null);
+  const [vcDeleteLoading, setVcDeleteLoading] = useState(false);
+  const { isOpen: isVcPasswordOpen, onOpen: onVcPasswordOpen, onClose: onVcPasswordClose } = useDisclosure();
+  const [editVcTarget, setEditVcTarget] = useState(null);
+  const [editVcPassword, setEditVcPassword] = useState('');
+  const [vcPasswordLoading, setVcPasswordLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -223,11 +250,44 @@ const UserLoginManagement = () => {
     setCompanyPage(1);
   }, [companySearchDebounced]);
 
+  // VC logins
+  const fetchVcLogins = useCallback(async () => {
+    setVcLoading(true);
+    try {
+      const params = { page: vcPage, limit: 50 };
+      if (vcSearchDebounced.trim()) params.search = vcSearchDebounced.trim();
+      const data = await getVcLogins(params);
+      setVcLogins(data.logins || []);
+      setVcTotal(data.total ?? 0);
+    } catch (err) {
+      toast({
+        title: 'Failed to load VC logins',
+        description: err?.message || 'Please try again',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+      setVcLogins([]);
+    } finally {
+      setVcLoading(false);
+    }
+  }, [vcPage, vcSearchDebounced, toast]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVcSearchDebounced(vcSearch), 400);
+    return () => clearTimeout(t);
+  }, [vcSearch]);
+
+  useEffect(() => {
+    setVcPage(1);
+  }, [vcSearchDebounced]);
+
   const [tabIndex, setTabIndex] = useState(0);
   useEffect(() => {
     if (tabIndex === 1) fetchNoLogin();
     if (tabIndex === 2) fetchCompanyLogins();
-  }, [tabIndex, fetchNoLogin, fetchCompanyLogins]);
+    if (tabIndex === 3) fetchVcLogins();
+  }, [tabIndex, fetchNoLogin, fetchCompanyLogins, fetchVcLogins]);
 
   const handleSingleToggle = async (id, currentActive) => {
     const next = !currentActive;
@@ -372,6 +432,85 @@ const UserLoginManagement = () => {
     }
   };
 
+  const handleCreateVcLogin = async () => {
+    if (!newVcLogin.email?.trim() || !newVcLogin.password) {
+      toast({ title: 'Email and password required', status: 'warning', isClosable: true });
+      return;
+    }
+    if (newVcLogin.password.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', status: 'warning', isClosable: true });
+      return;
+    }
+    setVcCreateLoading(true);
+    try {
+      await createVcLogin({ email: newVcLogin.email.trim(), password: newVcLogin.password });
+      toast({ title: 'VC login created', status: 'success', isClosable: true });
+      onVcCreateClose();
+      setNewVcLogin({ email: '', password: '' });
+      fetchVcLogins();
+    } catch (err) {
+      toast({ title: 'Create failed', description: err?.message, status: 'error', isClosable: true });
+    } finally {
+      setVcCreateLoading(false);
+    }
+  };
+
+  const handleDeleteVcLogin = async () => {
+    if (!deleteVcTarget) return;
+    setVcDeleteLoading(true);
+    try {
+      await deleteVcLogin(deleteVcTarget.id);
+      toast({ title: 'VC login deleted', status: 'success', isClosable: true });
+      onVcDeleteClose();
+      setDeleteVcTarget(null);
+      fetchVcLogins();
+    } catch (err) {
+      toast({ title: 'Delete failed', description: err?.message, status: 'error', isClosable: true });
+    } finally {
+      setVcDeleteLoading(false);
+    }
+  };
+
+  const handleUpdateCompanyPassword = async () => {
+    if (!editCompanyTarget || !editCompanyPassword || editCompanyPassword.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', status: 'warning', isClosable: true });
+      return;
+    }
+    setCompanyPasswordLoading(true);
+    try {
+      await updateCompanyLoginPassword(editCompanyTarget.id, editCompanyPassword);
+      toast({ title: 'Company password updated', status: 'success', isClosable: true });
+      onCompanyPasswordClose();
+      setEditCompanyTarget(null);
+      setEditCompanyPassword('');
+      fetchCompanyLogins();
+    } catch (err) {
+      toast({ title: 'Update failed', description: err?.message, status: 'error', isClosable: true });
+    } finally {
+      setCompanyPasswordLoading(false);
+    }
+  };
+
+  const handleUpdateVcPassword = async () => {
+    if (!editVcTarget || !editVcPassword || editVcPassword.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', status: 'warning', isClosable: true });
+      return;
+    }
+    setVcPasswordLoading(true);
+    try {
+      await updateVcLoginPassword(editVcTarget.id, editVcPassword);
+      toast({ title: 'VC password updated', status: 'success', isClosable: true });
+      onVcPasswordClose();
+      setEditVcTarget(null);
+      setEditVcPassword('');
+      fetchVcLogins();
+    } catch (err) {
+      toast({ title: 'Update failed', description: err?.message, status: 'error', isClosable: true });
+    } finally {
+      setVcPasswordLoading(false);
+    }
+  };
+
   const isSmall = useBreakpointValue({ base: true, md: false });
 
   // Filter companies that don't have logins yet
@@ -385,7 +524,7 @@ const UserLoginManagement = () => {
             Login Settings
           </Heading>
           <Text color="gray.500" fontSize="sm" mb={4}>
-            Manage all users, students without login, and company login credentials.
+            Manage all users, students without login, company logins, and VC (Vice Chancellor) logins.
           </Text>
 
           <Tabs index={tabIndex} onChange={setTabIndex} variant="unstyled" mb={4}>
@@ -435,6 +574,21 @@ const UserLoginManagement = () => {
                 <HStack spacing={2}>
                   <Icon as={FaBuilding} boxSize={3} />
                   <Text>Company logins</Text>
+                </HStack>
+              </Tab>
+              <Tab
+                borderRadius="md"
+                px={4}
+                py={2}
+                fontSize="sm"
+                fontWeight="medium"
+                _selected={{ bg: 'white', color: 'gray.800', boxShadow: 'sm', border: '1px', borderColor: 'gray.200', borderBottom: '2px solid white', mb: '-2px' }}
+                _hover={{ bg: 'whiteAlpha.700' }}
+                color="gray.600"
+              >
+                <HStack spacing={2}>
+                  <Icon as={FaUserTie} boxSize={3} />
+                  <Text>VC Management</Text>
                 </HStack>
               </Tab>
             </TabList>
@@ -945,19 +1099,35 @@ const UserLoginManagement = () => {
                                 {formatDate(login.created_at)}
                               </Td>
                               <Td borderColor="gray.100" textAlign="center">
-                                <Tooltip label="Delete company login">
-                                  <IconButton
-                                    aria-label="Delete"
-                                    icon={<DeleteIcon />}
-                                    size="sm"
-                                    colorScheme="red"
-                                    variant="ghost"
-                                    onClick={() => {
-                                      setDeleteTarget(login);
-                                      onDeleteOpen();
-                                    }}
-                                  />
-                                </Tooltip>
+                                <HStack spacing={1} justify="center">
+                                  <Tooltip label="Edit password">
+                                    <IconButton
+                                      aria-label="Edit password"
+                                      icon={<EditIcon />}
+                                      size="sm"
+                                      colorScheme="blue"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditCompanyTarget(login);
+                                        setEditCompanyPassword('');
+                                        onCompanyPasswordOpen();
+                                      }}
+                                    />
+                                  </Tooltip>
+                                  <Tooltip label="Delete company login">
+                                    <IconButton
+                                      aria-label="Delete"
+                                      icon={<DeleteIcon />}
+                                      size="sm"
+                                      colorScheme="red"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setDeleteTarget(login);
+                                        onDeleteOpen();
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </HStack>
                               </Td>
                             </Tr>
                           ))}
@@ -1004,6 +1174,185 @@ const UserLoginManagement = () => {
                           variant="outline"
                           isDisabled={companyPage * 50 >= companyTotal}
                           onClick={() => setCompanyPage((p) => p + 1)}
+                        >
+                          Next
+                        </Button>
+                      </HStack>
+                    </Flex>
+                  )}
+                </Box>
+              </TabPanel>
+
+              {/* Tab 4: VC Management */}
+              <TabPanel p={0}>
+                <Box
+                  bg={cardBg}
+                  borderRadius="xl"
+                  boxShadow="sm"
+                  border="1px"
+                  borderColor="gray.200"
+                  overflow="hidden"
+                  mb={4}
+                >
+                  <Flex
+                    p={4}
+                    gap={3}
+                    wrap="wrap"
+                    align="center"
+                    borderBottom="1px"
+                    borderColor="gray.100"
+                    bg="gray.50"
+                  >
+                    <InputGroup maxW="280px" size="sm">
+                      <InputLeftElement pointerEvents="none">
+                        <SearchIcon color="gray.400" />
+                      </InputLeftElement>
+                      <Input
+                        placeholder="Search by email..."
+                        value={vcSearch}
+                        onChange={(e) => setVcSearch(e.target.value)}
+                        bg="white"
+                        borderColor="gray.300"
+                        _focus={{ borderColor: 'gray.400', boxShadow: 'none' }}
+                        autoComplete="off"
+                      />
+                    </InputGroup>
+                    <HStack flex="1" justify="flex-end">
+                      <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        bg={accentColor}
+                        color="white"
+                        _hover={{ bg: '#c4983f' }}
+                        onClick={onVcCreateOpen}
+                      >
+                        Create VC Login
+                      </Button>
+                    </HStack>
+                  </Flex>
+
+                  <TableContainer overflowX="auto">
+                    {vcLoading ? (
+                      <Flex justify="center" py={12}>
+                        <Spinner size="lg" color="gray.400" />
+                      </Flex>
+                    ) : (
+                      <Table size="sm" variant="simple">
+                        <Thead>
+                          <Tr bg={headerBg}>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Email</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Status</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Last Login</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none">Created</Th>
+                            <Th color={headerColor} borderColor={borderColor} fontSize="xs" textTransform="none" textAlign="center">Actions</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {vcLogins.map((login) => (
+                            <Tr
+                              key={login.id}
+                              _hover={{ bg: rowHoverBg }}
+                              borderBottom="1px"
+                              borderColor="gray.100"
+                            >
+                              <Td borderColor="gray.100">
+                                <HStack spacing={3}>
+                                  <Avatar
+                                    size="sm"
+                                    name={login.email_id}
+                                    bg={headerBg}
+                                    color="white"
+                                  />
+                                  <Text fontSize="sm" fontWeight="medium">{login.email_id}</Text>
+                                </HStack>
+                              </Td>
+                              <Td borderColor="gray.100">
+                                <Badge colorScheme={login.is_active ? 'green' : 'red'} fontSize="xs">
+                                  {login.is_active ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </Td>
+                              <Td borderColor="gray.100" fontSize="xs" color="gray.600">
+                                {formatDate(login.last_login_at)}
+                              </Td>
+                              <Td borderColor="gray.100" fontSize="xs" color="gray.600">
+                                {formatDate(login.created_at)}
+                              </Td>
+                              <Td borderColor="gray.100" textAlign="center">
+                                <HStack spacing={1} justify="center">
+                                  <Tooltip label="Edit password">
+                                    <IconButton
+                                      aria-label="Edit password"
+                                      icon={<EditIcon />}
+                                      size="sm"
+                                      colorScheme="blue"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setEditVcTarget(login);
+                                        setEditVcPassword('');
+                                        onVcPasswordOpen();
+                                      }}
+                                    />
+                                  </Tooltip>
+                                  <Tooltip label="Delete VC login">
+                                    <IconButton
+                                      aria-label="Delete"
+                                      icon={<DeleteIcon />}
+                                      size="sm"
+                                      colorScheme="red"
+                                      variant="ghost"
+                                      onClick={() => {
+                                        setDeleteVcTarget(login);
+                                        onVcDeleteOpen();
+                                      }}
+                                    />
+                                  </Tooltip>
+                                </HStack>
+                              </Td>
+                            </Tr>
+                          ))}
+                        </Tbody>
+                      </Table>
+                    )}
+                  </TableContainer>
+
+                  {!vcLoading && vcLogins.length === 0 && (
+                    <Flex direction="column" py={12} align="center" color="gray.500">
+                      <Icon as={FaUserTie} boxSize={12} mb={4} opacity={0.3} />
+                      <Text fontSize="md" fontWeight="medium" mb={1}>No VC logins yet</Text>
+                      <Text fontSize="sm" mb={4}>Create login credentials for Vice Chancellor / VC users</Text>
+                      <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        bg={accentColor}
+                        color="white"
+                        _hover={{ bg: '#c4983f' }}
+                        onClick={onVcCreateOpen}
+                      >
+                        Create VC Login
+                      </Button>
+                    </Flex>
+                  )}
+
+                  {!vcLoading && vcTotal > 0 && (
+                    <Flex px={4} py={3} borderTop="1px" borderColor="gray.100" justify="space-between" align="center" bg="gray.50">
+                      <Text fontSize="sm" color="gray.600">
+                        Showing {vcLogins.length} of {vcTotal} VC login(s)
+                        {vcTotal > 50 && ` (page ${vcPage})`}
+                      </Text>
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          isDisabled={vcPage <= 1}
+                          onClick={() => setVcPage((p) => Math.max(1, p - 1))}
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          isDisabled={vcPage * 50 >= vcTotal}
+                          onClick={() => setVcPage((p) => p + 1)}
                         >
                           Next
                         </Button>
@@ -1124,6 +1473,201 @@ const UserLoginManagement = () => {
               colorScheme="red"
               onClick={handleDeleteCompanyLogin}
               isLoading={deleteLoading}
+            >
+              Delete
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit Company Password Modal */}
+      <Modal
+        isOpen={isCompanyPasswordOpen}
+        onClose={() => {
+          onCompanyPasswordClose();
+          setEditCompanyTarget(null);
+          setEditCompanyPassword('');
+        }}
+        size="md"
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit Company Login Password</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {editCompanyTarget && (
+              <VStack spacing={4} align="stretch">
+                <Text fontSize="sm" color="gray.600">
+                  Set a new password for <Text as="span" fontWeight="bold">{editCompanyTarget.company_name}</Text> ({editCompanyTarget.email_id})
+                </Text>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" fontWeight="medium">New password</FormLabel>
+                  <Input
+                    type="password"
+                    placeholder="Minimum 6 characters"
+                    value={editCompanyPassword}
+                    onChange={(e) => setEditCompanyPassword(e.target.value)}
+                  />
+                </FormControl>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onCompanyPasswordClose}>
+              Cancel
+            </Button>
+            <Button
+              bg={accentColor}
+              color="white"
+              _hover={{ bg: '#c4983f' }}
+              onClick={handleUpdateCompanyPassword}
+              isLoading={companyPasswordLoading}
+              isDisabled={!editCompanyPassword || editCompanyPassword.length < 6}
+            >
+              Update password
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Create VC Login Modal */}
+      <Modal isOpen={isVcCreateOpen} onClose={onVcCreateClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <HStack spacing={3}>
+              <Flex
+                w="40px"
+                h="40px"
+                bg="#f8f3e8"
+                borderRadius="lg"
+                align="center"
+                justify="center"
+              >
+                <Icon as={FaUserTie} color={accentColor} />
+              </Flex>
+              <Box>
+                <Text fontWeight="bold">Create VC Login</Text>
+                <Text fontSize="sm" fontWeight="normal" color="gray.500">
+                  Add credentials for a Vice Chancellor / VC user
+                </Text>
+              </Box>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel fontSize="sm" fontWeight="medium">Email</FormLabel>
+                <Input
+                  type="email"
+                  placeholder="vc@example.edu.in"
+                  value={newVcLogin.email}
+                  onChange={(e) => setNewVcLogin(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel fontSize="sm" fontWeight="medium">Password</FormLabel>
+                <Input
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={newVcLogin.password}
+                  onChange={(e) => setNewVcLogin(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onVcCreateClose}>
+              Cancel
+            </Button>
+            <Button
+              bg={accentColor}
+              color="white"
+              _hover={{ bg: '#c4983f' }}
+              onClick={handleCreateVcLogin}
+              isLoading={vcCreateLoading}
+              isDisabled={!newVcLogin.email?.trim() || !newVcLogin.password}
+            >
+              Create VC Login
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit VC Password Modal */}
+      <Modal
+        isOpen={isVcPasswordOpen}
+        onClose={() => {
+          onVcPasswordClose();
+          setEditVcTarget(null);
+          setEditVcPassword('');
+        }}
+        size="md"
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit VC Login Password</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {editVcTarget && (
+              <VStack spacing={4} align="stretch">
+                <Text fontSize="sm" color="gray.600">
+                  Set a new password for <Text as="span" fontWeight="bold">{editVcTarget.email_id}</Text>
+                </Text>
+                <FormControl isRequired>
+                  <FormLabel fontSize="sm" fontWeight="medium">New password</FormLabel>
+                  <Input
+                    type="password"
+                    placeholder="Minimum 6 characters"
+                    value={editVcPassword}
+                    onChange={(e) => setEditVcPassword(e.target.value)}
+                  />
+                </FormControl>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onVcPasswordClose}>
+              Cancel
+            </Button>
+            <Button
+              bg={accentColor}
+              color="white"
+              _hover={{ bg: '#c4983f' }}
+              onClick={handleUpdateVcPassword}
+              isLoading={vcPasswordLoading}
+              isDisabled={!editVcPassword || editVcPassword.length < 6}
+            >
+              Update password
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Delete VC Login Modal */}
+      <Modal isOpen={isVcDeleteOpen} onClose={onVcDeleteClose} size="sm">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Delete VC Login</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text>
+              Are you sure you want to delete the VC login for{' '}
+              <Text as="span" fontWeight="bold">{deleteVcTarget?.email_id}</Text>?
+            </Text>
+            <Text fontSize="sm" color="gray.500" mt={2}>
+              This action cannot be undone. The user will no longer be able to log in as VC.
+            </Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onVcDeleteClose}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="red"
+              onClick={handleDeleteVcLogin}
+              isLoading={vcDeleteLoading}
             >
               Delete
             </Button>

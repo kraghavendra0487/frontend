@@ -154,7 +154,7 @@ export default function EventsPage() {
   const [notificationForm, setNotificationForm] = useState(defaultNotifForm);
   const [notificationSubmitting, setNotificationSubmitting] = useState(false);
 
-  const isAdmin = ['admin', 'superadmin'].includes((userRole || '').toLowerCase());
+  const isAdmin = (userRole || '').toLowerCase() === 'admin';
   const visibleTabs = TABS;
 
   const load = useCallback(async () => {
