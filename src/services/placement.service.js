@@ -745,6 +745,15 @@ export const PlacementService = {
     return response.data ?? [];
   },
 
+  /** Violations: create eligibility decision log */
+  createEligibilityDecisionLog: async (data) => {
+    const response = await apiFetch('/placement/violations/eligibility-logs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
   /** Violations: create placement violation */
   createPlacementViolation: async (data) => {
     const response = await apiFetch('/placement/violations/placement-violations', {
@@ -772,44 +781,34 @@ export const PlacementService = {
     return response.data;
   },
 
-  // ========== System Jobs ==========
+  // ========== Student Eligibility Management ==========
 
-  /** Get status of all scheduled jobs */
-  getJobsStatus: async () => {
-    const response = await apiFetch('/jobs/status');
-    return response;
+  /** Get students with eligibility flags */
+  getStudentsEligibility: async (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.school_id) qs.set('school_id', params.school_id);
+    if (params.program_id) qs.set('program_id', params.program_id);
+    if (params.search) qs.set('search', params.search);
+    if (params.limit) qs.set('limit', params.limit);
+    const response = await apiFetch(`/placement/students/eligibility${qs.toString() ? `?${qs}` : ''}`);
+    return response.data;
   },
 
-  /** Preview eligibility sync (dry run) */
-  previewEligibilitySync: async () => {
-    const response = await apiFetch('/jobs/eligibility-sync/preview', {
-      method: 'POST',
+  /** Update individual student eligibility */
+  updateStudentEligibility: async (usn, eligibility) => {
+    const response = await apiFetch(`/placement/students/${usn}/eligibility`, {
+      method: 'PUT',
+      body: JSON.stringify(eligibility),
     });
-    return response;
+    return response.data;
   },
 
-  /** Run eligibility sync manually */
-  runEligibilitySync: async (dryRun = false) => {
-    const response = await apiFetch('/jobs/eligibility-sync', {
-      method: 'POST',
-      body: JSON.stringify({ dryRun }),
+  /** Bulk update student eligibility */
+  bulkUpdateStudentEligibility: async (usns, eligibility) => {
+    const response = await apiFetch('/placement/students/eligibility/bulk', {
+      method: 'PUT',
+      body: JSON.stringify({ usns, eligibility }),
     });
-    return response;
-  },
-
-  /** Stop a scheduled job */
-  stopJob: async (jobName) => {
-    const response = await apiFetch(`/jobs/${jobName}/stop`, {
-      method: 'POST',
-    });
-    return response;
-  },
-
-  /** Start a scheduled job */
-  startJob: async (jobName) => {
-    const response = await apiFetch(`/jobs/${jobName}/start`, {
-      method: 'POST',
-    });
-    return response;
+    return response.data;
   },
 };

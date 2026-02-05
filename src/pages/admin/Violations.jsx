@@ -40,6 +40,10 @@ import {
   List,
   ListItem,
   HStack,
+  Checkbox,
+  CheckboxGroup,
+  Stack,
+  VStack,
 } from '@chakra-ui/react';
 import { AddIcon, SearchIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/AdminLayout';
@@ -47,6 +51,7 @@ import { PlacementService } from '../../services/placement.service';
 
 const PLACEMENT_VIOLATION_TYPES = ['OFFER_REJECTED', 'NO_SHOW', 'MULTIPLE_OFFERS_ACCEPTED', 'DOCUMENT_FRAUD', 'POLICY_BREACH', 'OTHER'];
 const DISCIPLINARY_VIOLATION_TYPES = ['CHEATING', 'MISCONDUCT', 'HARASSMENT', 'ACADEMIC_FRAUD', 'BEHAVIORAL', 'OTHER'];
+const REJECTION_REASON_OPTIONS = ['CGPA_BELOW_THRESHOLD', 'ACTIVE_BACKLOGS', 'HISTORY_OF_BACKLOGS', 'NOT_OPTED_IN', 'DISCIPLINARY_ISSUE', 'PLACEMENT_VIOLATION', 'YEAR_GAP', 'OTHER'];
 
 const headerBg = '#172e36';
 const headerColor = '#fbeec8';
@@ -87,9 +92,15 @@ const Violations = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [addTabIndex, setAddTabIndex] = useState(0);
+  const [modalType, setModalType] = useState(''); // 'eligibility', 'placement', 'disciplinary'
   const [drives, setDrives] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  const [mainTabIndex, setMainTabIndex] = useState(0);
+  const [eligibilityForm, setEligibilityForm] = useState({
+    placement_drive_id: '',
+    is_eligible: true,
+    rejection_reasons: [],
+  });
   const [placementForm, setPlacementForm] = useState({
     placement_drive_id: '',
     violation_type: 'OFFER_REJECTED',
@@ -165,11 +176,12 @@ const Violations = () => {
     return `Drive #${row.placement_drive_id}`;
   };
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (type) => {
     setSearchQuery('');
     setSearchResults([]);
     setSelectedStudent(null);
-    setAddTabIndex(0);
+    setModalType(type);
+    setEligibilityForm({ placement_drive_id: '', is_eligible: true, rejection_reasons: [] });
     setPlacementForm({ placement_drive_id: '', violation_type: 'OFFER_REJECTED', penalty_type: 'WARNING', penalty_days: '', remarks: '' });
     setDisciplinaryForm({ violation_type: 'CHEATING', severity: 'MINOR', description: '', start_date: new Date().toISOString().slice(0, 10), end_date: '' });
     PlacementService.getAllDrives().then((d) => setDrives(Array.isArray(d) ? d : []));
@@ -205,7 +217,21 @@ const Violations = () => {
     if (!selectedStudent?.usn) return;
     setSubmitting(true);
     try {
-      if (addTabIndex === 0) {
+      if (modalType === 'eligibility') {
+        if (!eligibilityForm.placement_drive_id) {
+          toast({ title: 'Please select a drive', status: 'warning' });
+          setSubmitting(false);
+          return;
+        }
+        await PlacementService.createEligibilityDecisionLog({
+          usn: selectedStudent.usn,
+          placement_drive_id: eligibilityForm.placement_drive_id,
+          is_eligible: eligibilityForm.is_eligible,
+          rejection_reasons: eligibilityForm.is_eligible ? null : eligibilityForm.rejection_reasons,
+        });
+        toast({ title: 'Eligibility decision log added', status: 'success' });
+        fetchEligibilityLogs();
+      } else if (modalType === 'placement') {
         await PlacementService.createPlacementViolation({
           usn: selectedStudent.usn,
           placement_drive_id: placementForm.placement_drive_id || null,
@@ -216,7 +242,7 @@ const Violations = () => {
         });
         toast({ title: 'Placement violation added', status: 'success' });
         fetchPlacementViolations();
-      } else {
+      } else if (modalType === 'disciplinary') {
         await PlacementService.createDisciplinaryRecord({
           usn: selectedStudent.usn,
           violation_type: disciplinaryForm.violation_type,
@@ -230,7 +256,7 @@ const Violations = () => {
       }
       onClose();
     } catch (err) {
-      toast({ title: err?.message || 'Failed to add violation', status: 'error' });
+      toast({ title: err?.message || 'Failed to add record', status: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -240,29 +266,23 @@ const Violations = () => {
     <AdminLayout>
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
-          <Flex justify="space-between" align="flex-start" wrap="wrap" gap={3} mb={4}>
-            <Box>
-              <Heading size="lg" color="gray.800" mb={1}>
-                Violations
-              </Heading>
-              <Text color="gray.500" fontSize="sm">
-                Eligibility decision logs, placement violations, and disciplinary records.
-              </Text>
-            </Box>
-            <Button
-              leftIcon={<AddIcon />}
-              colorScheme="blue"
-              size="sm"
-              onClick={handleOpenAddModal}
-            >
-              Add Violation
-            </Button>
-          </Flex>
+          <Box mb={4}>
+            <Heading size="lg" color="gray.800" mb={1}>
+              Violations
+            </Heading>
+            <Text color="gray.500" fontSize="sm">
+              Eligibility decision logs, placement violations, and disciplinary records.
+            </Text>
+          </Box>
 
           <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
             <ModalOverlay />
             <ModalContent maxH="90vh">
-              <ModalHeader>Add Violation</ModalHeader>
+              <ModalHeader>
+                {modalType === 'eligibility' && 'Add Eligibility Decision Log'}
+                {modalType === 'placement' && 'Add Placement Violation'}
+                {modalType === 'disciplinary' && 'Add Disciplinary Record'}
+              </ModalHeader>
               <ModalCloseButton />
               <ModalBody pb={6}>
                 {!selectedStudent ? (
@@ -319,122 +339,169 @@ const Violations = () => {
                         Change student
                       </Button>
                     </Box>
-                    <Tabs index={addTabIndex} onChange={setAddTabIndex} variant="soft-rounded" mb={4}>
-                      <TabList>
-                        <Tab>Placement Violation</Tab>
-                        <Tab>Disciplinary Record</Tab>
-                      </TabList>
-                      <TabPanels>
-                        <TabPanel p={0} pt={4}>
-                          <FormControl mb={3}>
-                            <FormLabel>Drive (optional)</FormLabel>
-                            <Select
-                              value={placementForm.placement_drive_id}
-                              onChange={(e) => setPlacementForm((f) => ({ ...f, placement_drive_id: e.target.value }))}
-                              placeholder="None"
-                            >
-                              {drives.map((d) => (
-                                <option key={d.id} value={d.id}>
-                                  {d.company?.company_name || 'Company'} – {d.job_type || 'Drive'}
-                                </option>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <FormControl mb={3} isRequired>
-                            <FormLabel>Violation Type</FormLabel>
-                            <Select
-                              value={placementForm.violation_type}
-                              onChange={(e) => setPlacementForm((f) => ({ ...f, violation_type: e.target.value }))}
-                            >
-                              {PLACEMENT_VIOLATION_TYPES.map((v) => (
-                                <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <FormControl mb={3} isRequired>
-                            <FormLabel>Penalty Type</FormLabel>
-                            <Select
-                              value={placementForm.penalty_type}
-                              onChange={(e) => setPlacementForm((f) => ({ ...f, penalty_type: e.target.value }))}
-                            >
-                              <option value="WARNING">WARNING</option>
-                              <option value="TEMP_BAN">TEMP_BAN</option>
-                              <option value="PERMANENT_BAN">PERMANENT_BAN</option>
-                            </Select>
-                          </FormControl>
-                          {placementForm.penalty_type === 'TEMP_BAN' && (
-                            <FormControl mb={3}>
-                              <FormLabel>Penalty Days</FormLabel>
-                              <Input
-                                type="number"
-                                min={1}
-                                value={placementForm.penalty_days}
-                                onChange={(e) => setPlacementForm((f) => ({ ...f, penalty_days: e.target.value }))}
-                                placeholder="e.g. 30"
-                              />
-                            </FormControl>
-                          )}
+
+                    {/* Eligibility Decision Log Form */}
+                    {modalType === 'eligibility' && (
+                      <VStack align="stretch" spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Placement Drive</FormLabel>
+                          <Select
+                            value={eligibilityForm.placement_drive_id}
+                            onChange={(e) => setEligibilityForm((f) => ({ ...f, placement_drive_id: e.target.value }))}
+                            placeholder="Select a drive"
+                          >
+                            {drives.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.company?.company_name || 'Company'} – {d.job_type || 'Drive'}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Is Eligible?</FormLabel>
+                          <Select
+                            value={eligibilityForm.is_eligible ? 'yes' : 'no'}
+                            onChange={(e) => setEligibilityForm((f) => ({ ...f, is_eligible: e.target.value === 'yes' }))}
+                          >
+                            <option value="yes">Yes - Eligible</option>
+                            <option value="no">No - Not Eligible</option>
+                          </Select>
+                        </FormControl>
+                        {!eligibilityForm.is_eligible && (
                           <FormControl>
-                            <FormLabel>Remarks</FormLabel>
-                            <Textarea
-                              value={placementForm.remarks}
-                              onChange={(e) => setPlacementForm((f) => ({ ...f, remarks: e.target.value }))}
-                              placeholder="Optional"
-                              rows={2}
-                            />
-                          </FormControl>
-                        </TabPanel>
-                        <TabPanel p={0} pt={4}>
-                          <FormControl mb={3} isRequired>
-                            <FormLabel>Violation Type</FormLabel>
-                            <Select
-                              value={disciplinaryForm.violation_type}
-                              onChange={(e) => setDisciplinaryForm((f) => ({ ...f, violation_type: e.target.value }))}
+                            <FormLabel>Rejection Reasons</FormLabel>
+                            <CheckboxGroup
+                              value={eligibilityForm.rejection_reasons}
+                              onChange={(values) => setEligibilityForm((f) => ({ ...f, rejection_reasons: values }))}
                             >
-                              {DISCIPLINARY_VIOLATION_TYPES.map((v) => (
-                                <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>
-                              ))}
-                            </Select>
+                              <Stack spacing={2}>
+                                {REJECTION_REASON_OPTIONS.map((reason) => (
+                                  <Checkbox key={reason} value={reason}>
+                                    {reason.replace(/_/g, ' ')}
+                                  </Checkbox>
+                                ))}
+                              </Stack>
+                            </CheckboxGroup>
                           </FormControl>
-                          <FormControl mb={3} isRequired>
-                            <FormLabel>Severity</FormLabel>
-                            <Select
-                              value={disciplinaryForm.severity}
-                              onChange={(e) => setDisciplinaryForm((f) => ({ ...f, severity: e.target.value }))}
-                            >
-                              <option value="MINOR">MINOR</option>
-                              <option value="MAJOR">MAJOR</option>
-                              <option value="CRITICAL">CRITICAL</option>
-                            </Select>
-                          </FormControl>
-                          <FormControl mb={3}>
-                            <FormLabel>Description</FormLabel>
-                            <Textarea
-                              value={disciplinaryForm.description}
-                              onChange={(e) => setDisciplinaryForm((f) => ({ ...f, description: e.target.value }))}
-                              placeholder="Optional"
-                              rows={2}
-                            />
-                          </FormControl>
-                          <FormControl mb={3} isRequired>
-                            <FormLabel>Start Date</FormLabel>
-                            <Input
-                              type="date"
-                              value={disciplinaryForm.start_date}
-                              onChange={(e) => setDisciplinaryForm((f) => ({ ...f, start_date: e.target.value }))}
-                            />
-                          </FormControl>
+                        )}
+                      </VStack>
+                    )}
+
+                    {/* Placement Violation Form */}
+                    {modalType === 'placement' && (
+                      <VStack align="stretch" spacing={4}>
+                        <FormControl>
+                          <FormLabel>Drive (optional)</FormLabel>
+                          <Select
+                            value={placementForm.placement_drive_id}
+                            onChange={(e) => setPlacementForm((f) => ({ ...f, placement_drive_id: e.target.value }))}
+                            placeholder="None"
+                          >
+                            {drives.map((d) => (
+                              <option key={d.id} value={d.id}>
+                                {d.company?.company_name || 'Company'} – {d.job_type || 'Drive'}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Violation Type</FormLabel>
+                          <Select
+                            value={placementForm.violation_type}
+                            onChange={(e) => setPlacementForm((f) => ({ ...f, violation_type: e.target.value }))}
+                          >
+                            {PLACEMENT_VIOLATION_TYPES.map((v) => (
+                              <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Penalty Type</FormLabel>
+                          <Select
+                            value={placementForm.penalty_type}
+                            onChange={(e) => setPlacementForm((f) => ({ ...f, penalty_type: e.target.value }))}
+                          >
+                            <option value="WARNING">WARNING</option>
+                            <option value="TEMP_BAN">TEMP_BAN</option>
+                            <option value="PERMANENT_BAN">PERMANENT_BAN</option>
+                          </Select>
+                        </FormControl>
+                        {placementForm.penalty_type === 'TEMP_BAN' && (
                           <FormControl>
-                            <FormLabel>End Date (optional)</FormLabel>
+                            <FormLabel>Penalty Days</FormLabel>
                             <Input
-                              type="date"
-                              value={disciplinaryForm.end_date}
-                              onChange={(e) => setDisciplinaryForm((f) => ({ ...f, end_date: e.target.value }))}
+                              type="number"
+                              min={1}
+                              value={placementForm.penalty_days}
+                              onChange={(e) => setPlacementForm((f) => ({ ...f, penalty_days: e.target.value }))}
+                              placeholder="e.g. 30"
                             />
                           </FormControl>
-                        </TabPanel>
-                      </TabPanels>
-                    </Tabs>
+                        )}
+                        <FormControl>
+                          <FormLabel>Remarks</FormLabel>
+                          <Textarea
+                            value={placementForm.remarks}
+                            onChange={(e) => setPlacementForm((f) => ({ ...f, remarks: e.target.value }))}
+                            placeholder="Optional"
+                            rows={2}
+                          />
+                        </FormControl>
+                      </VStack>
+                    )}
+
+                    {/* Disciplinary Record Form */}
+                    {modalType === 'disciplinary' && (
+                      <VStack align="stretch" spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Violation Type</FormLabel>
+                          <Select
+                            value={disciplinaryForm.violation_type}
+                            onChange={(e) => setDisciplinaryForm((f) => ({ ...f, violation_type: e.target.value }))}
+                          >
+                            {DISCIPLINARY_VIOLATION_TYPES.map((v) => (
+                              <option key={v} value={v}>{v.replace(/_/g, ' ')}</option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Severity</FormLabel>
+                          <Select
+                            value={disciplinaryForm.severity}
+                            onChange={(e) => setDisciplinaryForm((f) => ({ ...f, severity: e.target.value }))}
+                          >
+                            <option value="MINOR">MINOR</option>
+                            <option value="MAJOR">MAJOR</option>
+                            <option value="CRITICAL">CRITICAL</option>
+                          </Select>
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel>Description</FormLabel>
+                          <Textarea
+                            value={disciplinaryForm.description}
+                            onChange={(e) => setDisciplinaryForm((f) => ({ ...f, description: e.target.value }))}
+                            placeholder="Optional"
+                            rows={2}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Start Date</FormLabel>
+                          <Input
+                            type="date"
+                            value={disciplinaryForm.start_date}
+                            onChange={(e) => setDisciplinaryForm((f) => ({ ...f, start_date: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel>End Date (optional)</FormLabel>
+                          <Input
+                            type="date"
+                            value={disciplinaryForm.end_date}
+                            onChange={(e) => setDisciplinaryForm((f) => ({ ...f, end_date: e.target.value }))}
+                          />
+                        </FormControl>
+                      </VStack>
+                    )}
                   </>
                 )}
               </ModalBody>
@@ -442,14 +509,16 @@ const Violations = () => {
                 <ModalFooter>
                   <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
                   <Button colorScheme="blue" onClick={handleAddViolationSubmit} isLoading={submitting}>
-                    Add Violation
+                    {modalType === 'eligibility' && 'Add Log'}
+                    {modalType === 'placement' && 'Add Violation'}
+                    {modalType === 'disciplinary' && 'Add Record'}
                   </Button>
                 </ModalFooter>
               )}
             </ModalContent>
           </Modal>
 
-          <Tabs variant="unstyled" mb={4}>
+          <Tabs variant="unstyled" mb={4} index={mainTabIndex} onChange={setMainTabIndex}>
             <TabList
               gap={0}
               borderBottom="2px"
@@ -500,6 +569,16 @@ const Violations = () => {
             <TabPanels pt={4}>
               {/* Tab 1: Eligibility Decision Logs */}
               <TabPanel p={0}>
+                <Flex justify="flex-end" mb={3}>
+                  <Button
+                    leftIcon={<AddIcon />}
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={() => handleOpenAddModal('eligibility')}
+                  >
+                    Add Eligibility Log
+                  </Button>
+                </Flex>
                 <Box bg={cardBg} borderRadius="xl" boxShadow="sm" border="1px" borderColor="gray.200" overflow="hidden">
                   {loadingEligibility ? (
                     <Flex justify="center" py={12}>
@@ -554,6 +633,16 @@ const Violations = () => {
 
               {/* Tab 2: Placement Violations */}
               <TabPanel p={0}>
+                <Flex justify="flex-end" mb={3}>
+                  <Button
+                    leftIcon={<AddIcon />}
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={() => handleOpenAddModal('placement')}
+                  >
+                    Add Placement Violation
+                  </Button>
+                </Flex>
                 <Box bg={cardBg} borderRadius="xl" boxShadow="sm" border="1px" borderColor="gray.200" overflow="hidden">
                   {loadingViolations ? (
                     <Flex justify="center" py={12}>
@@ -620,6 +709,16 @@ const Violations = () => {
 
               {/* Tab 3: Disciplinary Records */}
               <TabPanel p={0}>
+                <Flex justify="flex-end" mb={3}>
+                  <Button
+                    leftIcon={<AddIcon />}
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={() => handleOpenAddModal('disciplinary')}
+                  >
+                    Add Disciplinary Record
+                  </Button>
+                </Flex>
                 <Box bg={cardBg} borderRadius="xl" boxShadow="sm" border="1px" borderColor="gray.200" overflow="hidden">
                   {loadingDisciplinary ? (
                     <Flex justify="center" py={12}>

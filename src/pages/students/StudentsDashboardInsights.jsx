@@ -396,7 +396,7 @@ export default function StudentsDashboardInsights() {
       </SimpleGrid>
 
       <HStack spacing={3} mt={6}>
-        <Button as={Link} to="/placement/students/overview" colorScheme="blue" size="sm">
+        <Button as={Link} to="/placement/overview?tab=overview" colorScheme="blue" size="sm">
           Open Data Table
         </Button>
         <Button as={Link} to="/placement/students" variant="outline" size="sm">

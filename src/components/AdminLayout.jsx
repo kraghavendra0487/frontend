@@ -89,7 +89,6 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
         { label: "Email", path: "/placement/email", ariaLabel: "Bulk email and email tools" },
         { label: "Notifications", path: "/placement/notifications", ariaLabel: "Manage and send notifications" },
         { label: "Login Settings", path: "/placement/user-login", ariaLabel: "Manage user logins and active status" },
-        { label: "Cron Jobs", path: "/placement/cron-jobs", ariaLabel: "Scheduled tasks and cron jobs (coming soon)" }
       ]
     },
   ];

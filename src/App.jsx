@@ -15,8 +15,6 @@ import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
 import ManageAcademicPage from './pages/students/ManageAcademicPage';
-import StudentsOverviewTable from './pages/students/StudentsOverviewTable';
-import StudentsDashboardInsights from './pages/students/StudentsDashboardInsights';
 import CalendarOfEvents from './pages/admin/CalendarOfEvents';
 import Events from './pages/admin/Events';
 import DriveRegistrations from './pages/admin/DriveRegistrations';
@@ -32,7 +30,6 @@ import CompanyDetails from './pages/admin/CompanyDetails';
 import Notifications from './pages/admin/Notifications';
 import NotificationDetail from './pages/admin/NotificationDetail';
 import BulkEmail from './pages/admin/BulkEmail';
-import CronJobs from './pages/admin/CronJobs';
 import UserLoginManagement from './pages/admin/UserLoginManagement';
 import AdminProjects from './pages/admin/AdminProjects';
 import AdminHrRecommendations from './pages/admin/AdminHrRecommendations';
@@ -259,14 +256,6 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: "/placement/cron-jobs",
-        element: (
-          <PlacementProtectedRoute requiredRole="admin">
-            <CronJobs />
-          </PlacementProtectedRoute>
-        )
-      },
-      {
         path: "/placement/alumni-connect",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
@@ -444,8 +433,6 @@ const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <ViewAllStudents /> },
-          { path: "dashboard-insights", element: <StudentsDashboardInsights /> },
-          { path: "overview", element: <StudentsOverviewTable /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "academic", element: <ManageAcademicPage /> },
           { path: ":usn", element: <AdminStudentDetail /> },

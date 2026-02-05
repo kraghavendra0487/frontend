@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Container, VStack, Heading, Text, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
 import { PlacementService } from '../../services/placement.service';
-import { PlacementOverviewTab } from '../ViewAllStudents';
-import { StudentEligibilityTab } from '../ViewAllStudents';
+import { PlacementOverviewTab, StudentEligibilityTab, IndividualStudentEligibilityTab } from '../ViewAllStudents';
+import StudentsOverviewTable from './StudentsOverviewTable';
+import StudentsDashboardInsights from './StudentsDashboardInsights';
 import { useBackgroundRefresh } from '../../hooks/useBackgroundRefresh';
 import AdminLayout from '../../components/AdminLayout';
 import { useSearchParams } from 'react-router-dom';
@@ -16,9 +17,12 @@ export default function PlacementOverviewPage() {
 
   const tabFromQuery = (searchParams.get('tab') || '').toLowerCase();
   const initialTabIndex = useMemo(() => {
-    if (tabFromQuery === 'eligibility' || tabFromQuery === 'placement-eligibility') return 2;
-    if (tabFromQuery === 'academic') return 1;
-    return 0; // default: Placement overview
+    if (tabFromQuery === 'student-eligibility') return 4;
+    if (tabFromQuery === 'eligibility' || tabFromQuery === 'placement-eligibility') return 3;
+    if (tabFromQuery === 'academic') return 2;
+    if (tabFromQuery === 'overview') return 1;
+    if (tabFromQuery === 'dashboard') return 0;
+    return 0; // default: Dashboard insights
   }, [tabFromQuery]);
   const [tabIndex, setTabIndex] = useState(initialTabIndex);
 
@@ -72,7 +76,7 @@ export default function PlacementOverviewPage() {
               onChange={(i) => {
                 setTabIndex(i);
                 const next = new URLSearchParams(searchParams);
-                const tabSlug = i === 0 ? 'overview' : i === 1 ? 'academic' : 'eligibility';
+                const tabSlug = i === 0 ? 'dashboard' : i === 1 ? 'overview' : i === 2 ? 'academic' : i === 3 ? 'eligibility' : 'student-eligibility';
                 next.set('tab', tabSlug);
                 setSearchParams(next, { replace: true });
               }}
@@ -87,6 +91,18 @@ export default function PlacementOverviewPage() {
                 p={1}
                 w="fit-content"
               >
+                <Tab
+                  borderRadius="md"
+                  px={4}
+                  py={2}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  _selected={{ bg: 'white', color: 'gray.800', boxShadow: 'sm', border: '1px', borderColor: 'gray.200', borderBottom: '2px solid white', mb: '-2px' }}
+                  _hover={{ bg: 'whiteAlpha.700' }}
+                  color="gray.600"
+                >
+                  Dashboard insights
+                </Tab>
                 <Tab
                   borderRadius="md"
                   px={4}
@@ -123,12 +139,29 @@ export default function PlacementOverviewPage() {
                 >
                   Placement eligibility track
                 </Tab>
+                <Tab
+                  borderRadius="md"
+                  px={4}
+                  py={2}
+                  fontSize="sm"
+                  fontWeight="medium"
+                  _selected={{ bg: 'white', color: 'gray.800', boxShadow: 'sm', border: '1px', borderColor: 'gray.200', borderBottom: '2px solid white', mb: '-2px' }}
+                  _hover={{ bg: 'whiteAlpha.700' }}
+                  color="gray.600"
+                >
+                  Student eligibility track
+                </Tab>
               </TabList>
 
               <TabPanels pt={4}>
                 <TabPanel p={0}>
-                  <Box w="full" pt={2} minH="200px">
-                    {/* Placement overview – empty for now; add content as needed */}
+                  <Box w="full" pt={2}>
+                    <StudentsDashboardInsights />
+                  </Box>
+                </TabPanel>
+                <TabPanel p={0}>
+                  <Box w="full" pt={2}>
+                    <StudentsOverviewTable />
                   </Box>
                 </TabPanel>
                 <TabPanel p={0}>
@@ -145,6 +178,11 @@ export default function PlacementOverviewPage() {
                 <TabPanel p={0}>
                   <Box w="full" pt={2}>
                     <StudentEligibilityTab />
+                  </Box>
+                </TabPanel>
+                <TabPanel p={0}>
+                  <Box w="full" pt={2}>
+                    <IndividualStudentEligibilityTab />
                   </Box>
                 </TabPanel>
               </TabPanels>

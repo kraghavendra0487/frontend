@@ -332,10 +332,6 @@ export const StudentEligibilityTab = () => {
   // Confirmation modal state
   const { isOpen: isConfirmOpen, onOpen: onConfirmOpen, onClose: onConfirmClose } = useDisclosure();
   const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0, results: [], saving: false });
-  
-  // System sync modal state
-  const { isOpen: isSyncModalOpen, onOpen: onSyncModalOpen, onClose: onSyncModalClose } = useDisclosure();
-  const [syncStatus, setSyncStatus] = useState({ loading: false, preview: null, result: null });
 
   const fetchData = useCallback(async (opts = {}) => {
     const { silent = false } = opts;
@@ -460,48 +456,6 @@ export const StudentEligibilityTab = () => {
     }
   };
 
-  // System sync handlers
-  const handleOpenSyncModal = async () => {
-    setSyncStatus({ loading: true, preview: null, result: null });
-    onSyncModalOpen();
-    try {
-      const preview = await PlacementService.previewEligibilitySync();
-      setSyncStatus({ loading: false, preview, result: null });
-    } catch (e) {
-      toast({ title: 'Failed to load preview', status: 'error' });
-      setSyncStatus({ loading: false, preview: null, result: null });
-    }
-  };
-
-  const handleRunSystemSync = async () => {
-    setSyncStatus(prev => ({ ...prev, loading: true }));
-    try {
-      const result = await PlacementService.runEligibilitySync(false);
-      setSyncStatus(prev => ({ ...prev, loading: false, result }));
-      if (result.studentsUpdated > 0) {
-        toast({ 
-          title: 'System sync complete', 
-          description: `Updated ${result.studentsUpdated} students`,
-          status: 'success',
-          duration: 5000
-        });
-        fetchData({ silent: true });
-      } else {
-        toast({ title: 'No updates needed', status: 'info' });
-      }
-    } catch (e) {
-      toast({ title: 'Sync failed', description: e?.message, status: 'error' });
-      setSyncStatus(prev => ({ ...prev, loading: false }));
-    }
-  };
-
-  const handleCloseSyncModal = () => {
-    if (!syncStatus.loading) {
-      onSyncModalClose();
-      setSyncStatus({ loading: false, preview: null, result: null });
-    }
-  };
-
   const uniqueYears = [...new Set(policies.map((p) => p.joining_year))].sort((a, b) => b - a);
   const uniqueSchools = [...new Set(policies.map((p) => p.school_name).filter(Boolean))].sort();
   const filteredPolicies = policies.filter((p) => {
@@ -534,9 +488,6 @@ export const StudentEligibilityTab = () => {
             {uniqueSchools.map((s) => <option key={s} value={s}>{s}</option>)}
           </Select>
           <Button colorScheme="purple" size="sm" onClick={handleSyncPolicies} isLoading={loading}>Sync All Programs</Button>
-          <Button colorScheme="teal" size="sm" onClick={handleOpenSyncModal} leftIcon={<Icon viewBox="0 0 24 24" boxSize={4}><path fill="currentColor" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></Icon>}>
-            Run System Sync
-          </Button>
         </HStack>
       </HStack>
       {loading && policies.length === 0 ? (
@@ -800,113 +751,348 @@ export const StudentEligibilityTab = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+    </Box>
+  );
+};
 
-      {/* System Sync Modal */}
-      <Modal isOpen={isSyncModalOpen} onClose={handleCloseSyncModal} size="xl" closeOnOverlayClick={!syncStatus.loading}>
+// Individual Student Eligibility Tab - manage eligibility for individual students
+export const IndividualStudentEligibilityTab = () => {
+  const toast = useToast();
+  const [students, setStudents] = useState([]);
+  const [schools, setSchools] = useState([]);
+  const [programs, setPrograms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ school_id: '', program_id: '', search: '' });
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [selectedUsns, setSelectedUsns] = useState(new Set());
+  const [updating, setUpdating] = useState({});
+  const { isOpen: isBulkOpen, onOpen: onBulkOpen, onClose: onBulkClose } = useDisclosure();
+  const [bulkEligibility, setBulkEligibility] = useState({
+    is_summer_immersion_eligible: false,
+    is_summer_internship_eligible: false,
+    is_capstone_eligible: false,
+    is_placement_eligible: false
+  });
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(filters.search), 400);
+    return () => clearTimeout(t);
+  }, [filters.search]);
+
+  // Fetch schools and programs
+  useEffect(() => {
+    (async () => {
+      try {
+        const [schoolsData, programsData] = await Promise.all([
+          StudentProfileService.getSchools(),
+          StudentProfileService.getPrograms()
+        ]);
+        setSchools(Array.isArray(schoolsData) ? schoolsData : []);
+        setPrograms(Array.isArray(programsData) ? programsData : []);
+      } catch (e) {
+        console.error('Error fetching filters:', e);
+      }
+    })();
+  }, []);
+
+  // Fetch students with eligibility
+  const fetchStudents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {
+        school_id: filters.school_id || undefined,
+        program_id: filters.program_id || undefined,
+        search: searchDebounced || undefined,
+        limit: 500
+      };
+      const data = await PlacementService.getStudentsEligibility(params);
+      setStudents(data.students || []);
+    } catch (e) {
+      toast({ title: 'Error fetching students', status: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters.school_id, filters.program_id, searchDebounced, toast]);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]);
+
+  // Filter programs by selected school
+  const filteredPrograms = filters.school_id
+    ? programs.filter(p => String(p.school_id) === String(filters.school_id))
+    : programs;
+
+  // Toggle individual eligibility
+  const handleToggleEligibility = async (usn, field, currentValue) => {
+    const key = `${usn}-${field}`;
+    setUpdating(prev => ({ ...prev, [key]: true }));
+    try {
+      await PlacementService.updateStudentEligibility(usn, { [field]: !currentValue });
+      setStudents(prev => prev.map(s => 
+        s.usn === usn ? { ...s, [field]: !currentValue } : s
+      ));
+      toast({ title: 'Updated', status: 'success', duration: 1500 });
+    } catch (e) {
+      toast({ title: 'Update failed', status: 'error' });
+    } finally {
+      setUpdating(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  // Handle select all
+  const allSelected = students.length > 0 && students.every(s => selectedUsns.has(s.usn));
+  const someSelected = students.some(s => selectedUsns.has(s.usn));
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setSelectedUsns(new Set());
+    } else {
+      setSelectedUsns(new Set(students.map(s => s.usn)));
+    }
+  };
+
+  const handleSelectStudent = (usn) => {
+    setSelectedUsns(prev => {
+      const next = new Set(prev);
+      if (next.has(usn)) {
+        next.delete(usn);
+      } else {
+        next.add(usn);
+      }
+      return next;
+    });
+  };
+
+  // Bulk update
+  const handleBulkUpdate = async () => {
+    if (selectedUsns.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      const result = await PlacementService.bulkUpdateStudentEligibility(
+        Array.from(selectedUsns),
+        bulkEligibility
+      );
+      toast({ 
+        title: 'Bulk update complete', 
+        description: `Updated ${result.updated} students`,
+        status: 'success' 
+      });
+      fetchStudents();
+      setSelectedUsns(new Set());
+      onBulkClose();
+    } catch (e) {
+      toast({ title: 'Bulk update failed', status: 'error' });
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  return (
+    <Box p={4} bg="white" borderRadius="xl" shadow="sm" border="1px" borderColor="gray.100">
+      <HStack justify="space-between" mb={6} flexWrap="wrap" gap={2}>
+        <Heading size="md">Student Eligibility Management</Heading>
+        <HStack spacing={2}>
+          {selectedUsns.size > 0 && (
+            <Button colorScheme="teal" size="sm" onClick={onBulkOpen}>
+              Update Selected ({selectedUsns.size})
+            </Button>
+          )}
+        </HStack>
+      </HStack>
+
+      {/* Filters */}
+      <HStack spacing={4} mb={4} flexWrap="wrap">
+        <Select 
+          placeholder="All Schools" 
+          w="200px" 
+          size="sm"
+          value={filters.school_id} 
+          onChange={(e) => {
+            setFilters(prev => ({ ...prev, school_id: e.target.value, program_id: '' }));
+          }}
+        >
+          {schools.map(s => <option key={s.id} value={s.id}>{s.name || s.abbreviation}</option>)}
+        </Select>
+        <Select 
+          placeholder="All Programs" 
+          w="200px" 
+          size="sm"
+          value={filters.program_id} 
+          onChange={(e) => setFilters(prev => ({ ...prev, program_id: e.target.value }))}
+        >
+          {filteredPrograms.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </Select>
+        <InputGroup w="250px" size="sm">
+          <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
+          <Input 
+            placeholder="Search name, USN, email..." 
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+          />
+        </InputGroup>
+        <Text fontSize="sm" color="gray.500">{students.length} students</Text>
+      </HStack>
+
+      {/* Table */}
+      {loading ? (
+        <Flex justify="center" py={8}><Spinner /></Flex>
+      ) : (
+        <TableContainer overflowX="auto">
+          <Table variant="simple" size="sm">
+            <Thead bg="gray.50">
+              <Tr>
+                <Th w="40px">
+                  <Checkbox 
+                    isChecked={allSelected} 
+                    isIndeterminate={someSelected && !allSelected}
+                    onChange={handleSelectAll}
+                  />
+                </Th>
+                <Th>Name</Th>
+                <Th>USN</Th>
+                <Th>Email</Th>
+                <Th>School</Th>
+                <Th>Program</Th>
+                <Th textAlign="center">Immersion</Th>
+                <Th textAlign="center">Internship</Th>
+                <Th textAlign="center">Capstone</Th>
+                <Th textAlign="center">Placement</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {students.map((student) => (
+                <Tr key={student.usn} bg={selectedUsns.has(student.usn) ? 'blue.50' : undefined}>
+                  <Td>
+                    <Checkbox 
+                      isChecked={selectedUsns.has(student.usn)}
+                      onChange={() => handleSelectStudent(student.usn)}
+                    />
+                  </Td>
+                  <Td fontWeight="500">{student.full_name}</Td>
+                  <Td fontSize="sm" color="gray.600">{student.usn}</Td>
+                  <Td fontSize="sm" color="gray.600">{student.college_email}</Td>
+                  <Td fontSize="sm">{student.school_name}</Td>
+                  <Td fontSize="sm">{student.program_name}</Td>
+                  <Td textAlign="center">
+                    <Button
+                      size="xs"
+                      colorScheme={student.is_summer_immersion_eligible ? 'green' : 'red'}
+                      variant="solid"
+                      w="50px"
+                      isLoading={updating[`${student.usn}-is_summer_immersion_eligible`]}
+                      onClick={() => handleToggleEligibility(student.usn, 'is_summer_immersion_eligible', student.is_summer_immersion_eligible)}
+                    >
+                      {student.is_summer_immersion_eligible ? 'Yes' : 'No'}
+                    </Button>
+                  </Td>
+                  <Td textAlign="center">
+                    <Button
+                      size="xs"
+                      colorScheme={student.is_summer_internship_eligible ? 'green' : 'red'}
+                      variant="solid"
+                      w="50px"
+                      isLoading={updating[`${student.usn}-is_summer_internship_eligible`]}
+                      onClick={() => handleToggleEligibility(student.usn, 'is_summer_internship_eligible', student.is_summer_internship_eligible)}
+                    >
+                      {student.is_summer_internship_eligible ? 'Yes' : 'No'}
+                    </Button>
+                  </Td>
+                  <Td textAlign="center">
+                    <Button
+                      size="xs"
+                      colorScheme={student.is_capstone_eligible ? 'green' : 'red'}
+                      variant="solid"
+                      w="50px"
+                      isLoading={updating[`${student.usn}-is_capstone_eligible`]}
+                      onClick={() => handleToggleEligibility(student.usn, 'is_capstone_eligible', student.is_capstone_eligible)}
+                    >
+                      {student.is_capstone_eligible ? 'Yes' : 'No'}
+                    </Button>
+                  </Td>
+                  <Td textAlign="center">
+                    <Button
+                      size="xs"
+                      colorScheme={student.is_placement_eligible ? 'green' : 'red'}
+                      variant="solid"
+                      w="50px"
+                      isLoading={updating[`${student.usn}-is_placement_eligible`]}
+                      onClick={() => handleToggleEligibility(student.usn, 'is_placement_eligible', student.is_placement_eligible)}
+                    >
+                      {student.is_placement_eligible ? 'Yes' : 'No'}
+                    </Button>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {!loading && students.length === 0 && (
+        <Text color="gray.500" py={4} textAlign="center">No students found. Adjust filters or add students.</Text>
+      )}
+
+      {/* Bulk Update Modal */}
+      <Modal isOpen={isBulkOpen} onClose={onBulkClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>System Eligibility Sync</ModalHeader>
-          {!syncStatus.loading && <ModalCloseButton />}
+          <ModalHeader>Bulk Update Eligibility</ModalHeader>
+          <ModalCloseButton />
           <ModalBody>
-            <Alert status="info" mb={4} borderRadius="md">
-              <AlertIcon />
-              <Box>
-                <AlertTitle>One-Way Sync (false → true only)</AlertTitle>
-                <AlertDescription fontSize="sm">
-                  This job syncs eligibility from batch policies to students. It only converts <Badge colorScheme="red" fontSize="xs">OFF</Badge> → <Badge colorScheme="green" fontSize="xs">ON</Badge>, never the reverse. This ensures manual eligibility grants are never revoked automatically.
-                </AlertDescription>
-              </Box>
-            </Alert>
-
-            <Alert status="purple" variant="left-accent" mb={4} borderRadius="md" bg="purple.50">
-              <AlertIcon color="purple.500" />
-              <Box>
-                <AlertTitle color="purple.700" fontSize="sm">Automatic Scheduling</AlertTitle>
-                <AlertDescription fontSize="xs" color="purple.600">
-                  This job runs automatically every 10 minutes. Use manual sync only if you need immediate updates.
-                </AlertDescription>
-              </Box>
-            </Alert>
-
-            {syncStatus.loading && !syncStatus.result && (
-              <Flex justify="center" py={6}>
-                <Spinner size="lg" color="teal.500" />
-                <Text ml={3} color="gray.600">Loading preview...</Text>
-              </Flex>
-            )}
-
-            {syncStatus.preview && !syncStatus.result && (
-              <>
-                <Box p={4} bg="gray.50" borderRadius="md" mb={4}>
-                  <HStack justify="space-between" mb={2}>
-                    <Text fontWeight="600">Preview Summary</Text>
-                    <Badge colorScheme={syncStatus.preview.studentsUpdated > 0 ? 'green' : 'gray'} fontSize="md" px={3} py={1}>
-                      {syncStatus.preview.studentsUpdated} students to update
-                    </Badge>
-                  </HStack>
-                  <Text fontSize="sm" color="gray.600">
-                    {syncStatus.preview.policiesProcessed} policies processed, {syncStatus.preview.updates?.length || 0} batches have pending updates
-                  </Text>
-                </Box>
-
-                {syncStatus.preview.updates?.length > 0 && (
-                  <Box maxH="200px" overflowY="auto">
-                    {syncStatus.preview.updates.map((update, idx) => (
-                      <Box key={idx} p={2} mb={2} bg="green.50" borderRadius="md" border="1px" borderColor="green.200">
-                        <HStack justify="space-between">
-                          <Text fontSize="sm" fontWeight="500">
-                            School {update.school_id} / Program {update.program_id} / Year {update.joining_year}
-                          </Text>
-                          <Badge colorScheme="green">{update.studentsAffected} students</Badge>
-                        </HStack>
-                        <Wrap spacing={1} mt={1}>
-                          {update.fieldsUpdated?.map((f, i) => (
-                            <WrapItem key={i}>
-                              <Badge colorScheme="teal" fontSize="xs">{f.field}: {f.studentsToUpdate || f.studentsUpdated}</Badge>
-                            </WrapItem>
-                          ))}
-                        </Wrap>
-                      </Box>
-                    ))}
-                  </Box>
-                )}
-
-                {syncStatus.preview.studentsUpdated === 0 && (
-                  <Alert status="success" borderRadius="md">
-                    <AlertIcon />
-                    <Text fontSize="sm">All students are already synced with their batch policies. No updates needed.</Text>
-                  </Alert>
-                )}
-              </>
-            )}
-
-            {syncStatus.result && (
-              <Alert status={syncStatus.result.success ? 'success' : 'error'} borderRadius="md">
-                <AlertIcon />
-                <Box>
-                  <AlertTitle>{syncStatus.result.success ? 'Sync Complete' : 'Sync Failed'}</AlertTitle>
-                  <AlertDescription>{syncStatus.result.message}</AlertDescription>
-                </Box>
-              </Alert>
-            )}
+            <Text mb={4} fontSize="sm" color="gray.600">
+              Set eligibility for {selectedUsns.size} selected students:
+            </Text>
+            <VStack align="stretch" spacing={3}>
+              <HStack justify="space-between">
+                <Text>Summer Immersion</Text>
+                <Button
+                  size="sm"
+                  colorScheme={bulkEligibility.is_summer_immersion_eligible ? 'green' : 'red'}
+                  onClick={() => setBulkEligibility(prev => ({ ...prev, is_summer_immersion_eligible: !prev.is_summer_immersion_eligible }))}
+                >
+                  {bulkEligibility.is_summer_immersion_eligible ? 'Yes' : 'No'}
+                </Button>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Summer Internship</Text>
+                <Button
+                  size="sm"
+                  colorScheme={bulkEligibility.is_summer_internship_eligible ? 'green' : 'red'}
+                  onClick={() => setBulkEligibility(prev => ({ ...prev, is_summer_internship_eligible: !prev.is_summer_internship_eligible }))}
+                >
+                  {bulkEligibility.is_summer_internship_eligible ? 'Yes' : 'No'}
+                </Button>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Capstone</Text>
+                <Button
+                  size="sm"
+                  colorScheme={bulkEligibility.is_capstone_eligible ? 'green' : 'red'}
+                  onClick={() => setBulkEligibility(prev => ({ ...prev, is_capstone_eligible: !prev.is_capstone_eligible }))}
+                >
+                  {bulkEligibility.is_capstone_eligible ? 'Yes' : 'No'}
+                </Button>
+              </HStack>
+              <HStack justify="space-between">
+                <Text>Placement</Text>
+                <Button
+                  size="sm"
+                  colorScheme={bulkEligibility.is_placement_eligible ? 'green' : 'red'}
+                  onClick={() => setBulkEligibility(prev => ({ ...prev, is_placement_eligible: !prev.is_placement_eligible }))}
+                >
+                  {bulkEligibility.is_placement_eligible ? 'Yes' : 'No'}
+                </Button>
+              </HStack>
+            </VStack>
           </ModalBody>
           <ModalFooter>
-            {!syncStatus.result && (
-              <>
-                <Button variant="ghost" mr={3} onClick={handleCloseSyncModal} isDisabled={syncStatus.loading}>Cancel</Button>
-                <Button 
-                  colorScheme="teal" 
-                  onClick={handleRunSystemSync} 
-                  isLoading={syncStatus.loading}
-                  isDisabled={!syncStatus.preview || syncStatus.preview.studentsUpdated === 0}
-                >
-                  Run Sync Now
-                </Button>
-              </>
-            )}
-            {syncStatus.result && (
-              <Button colorScheme="teal" onClick={handleCloseSyncModal}>Done</Button>
-            )}
+            <Button variant="ghost" mr={3} onClick={onBulkClose}>Cancel</Button>
+            <Button colorScheme="blue" onClick={handleBulkUpdate} isLoading={bulkUpdating}>
+              Update {selectedUsns.size} Students
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
