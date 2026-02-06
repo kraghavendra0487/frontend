@@ -21,8 +21,8 @@
  * - DELETE /api/student/profile/education/:id (Delete Item)
  */
 
-import { useState, useEffect } from "react"
-import { Box, SimpleGrid, Input, Select, VStack, Heading, Flex, Button, Text, IconButton, Collapse, useToast, Image, Link, FormControl } from "@chakra-ui/react"
+import { useState } from "react"
+import { Box, SimpleGrid, Input, Select, VStack, Heading, Flex, Button, Text, IconButton, Collapse, useToast, Image, Link, FormControl, Divider } from "@chakra-ui/react"
 import { getFileUrl } from "../../../utils/fileUrl"
 import { Field } from "../../ui/field"
 import { FaGraduationCap, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
@@ -37,35 +37,6 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
   }
   
   const getError = (field) => fieldErrors[field] || null
-
-  // Validate gap details
-  const getGapError = () => {
-    const gapType = item.gapType ?? "";
-    const gapDuration = item.gapDurationMonths ?? "";
-    const gapReason = item.gapReason ?? "";
-    
-    // If gap type is selected, validate other fields
-    if (gapType && gapType !== "") {
-      // Duration is required when gap type is selected
-      if (gapDuration === "" || gapDuration === null) {
-        return "Duration is required when gap type is selected";
-      }
-      
-      // Duration must be numeric and 2 digits max
-      if (!/^\d{1,2}$/.test(String(gapDuration).trim())) {
-        return "Duration must be a number between 0 and 99";
-      }
-      
-      // Reason is required when gap type is selected
-      if (gapReason === "" || gapReason === null) {
-        return "Reason is required when gap type is selected";
-      }
-    }
-    
-    return null;
-  }
-
-  const gapError = getGapError();
 
   return (
     <Box border="1px solid" borderColor="gray.200" borderRadius="xl" p={4} bg="white">
@@ -111,7 +82,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                 <Input 
                   type="text" 
                   inputMode="numeric"
-                  value={item.yearOfPassing ?? item.year_of_passing ?? ""} 
+                  value={item.yearOfPassing ?? item.end_year ?? item.year_of_passing ?? ""} 
                   onChange={(e) => {
                     let val = e.target.value;
                     // allow only digits, max 4
@@ -134,7 +105,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
                     }
                   }}
                   onBlur={() => {
-                    const v = String(item.yearOfPassing ?? item.year_of_passing ?? "").trim();
+                    const v = String(item.yearOfPassing ?? item.end_year ?? item.year_of_passing ?? "").trim();
                     const currentYear = new Date().getFullYear();
                     if (v !== "") {
                       const n = parseInt(v, 10);
@@ -239,71 +210,6 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
           </Field>
           </SimpleGrid>
           
-          <Box bg={gapError ? "red.50" : "gray.50"} p={4} borderRadius="md" borderLeft={gapError ? "4px solid" : "none"} borderLeftColor={gapError ? "red.400" : "none"}>
-            <Heading size="xs" mb={4} color="gray.600">Gap Details (Optional)</Heading>
-            {gapError && (
-              <Box mb={4} p={3} bg="red.100" borderRadius="md" borderLeft="4px solid" borderLeftColor="red.500">
-                <Text fontSize="sm" color="red.800" fontWeight="500">
-                  ⚠️ {gapError}
-                </Text>
-              </Box>
-            )}
-            <SimpleGrid columns={{ base: 1, md: 3 }} gap={6}>
-                 <Field label="Gap Type" helperText="e.g. 12th to Graduation">
-                    <Select 
-                      variant="flushed" 
-                      isDisabled={!isEditing} 
-                      _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
-                      value={item.gapType ?? ""} 
-                      onChange={(e) => handleChange("gapType", e.target.value)} 
-                      placeholder="Select"
-                      borderColor={gapError ? "red.400" : undefined}
-                      _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
-                    >
-                        <option value="">None</option>
-                        <option value="12TH_TO_GRADUATION">12th to Graduation</option>
-                        <option value="DIPLOMA_TO_GRADUATION">Diploma to Graduation</option>
-                        <option value="GRADUATION_TO_POST_GRADUATION">Graduation to Post Graduation</option>
-                    </Select>
-                </Field>
-                <Field label="Duration (Months)" helperText="2 digits (00-99)" errorText={gapError ? "" : (getError("gapDurationMonths") || getError("gap_duration_months"))}>
-                    <Input 
-                        type="text" 
-                        inputMode="numeric"
-                        value={item.gapDurationMonths ?? ""} 
-                        onChange={(e) => {
-                          let val = e.target.value;
-                          // Only allow digits
-                          val = val.replace(/[^0-9]/g, '');
-                          // Max 2 digits
-                          val = val.slice(0, 2);
-                          handleChange("gapDurationMonths", val);
-                        }} 
-                        variant="flushed" 
-                        isDisabled={!isEditing} 
-                        _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
-                        placeholder="00"
-                        maxLength="2"
-                        borderColor={gapError ? "red.400" : undefined}
-                        _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
-                        _placeholder={{ opacity: 0.7, color: "inherit" }}
-                    />
-                </Field>
-                <Field label="Reason" helperText="e.g. N/A or reason">
-                    <Input 
-                      value={item.gapReason ?? ""} 
-                      onChange={(e) => handleChange("gapReason", e.target.value)} 
-                      variant="flushed" 
-                      isDisabled={!isEditing} 
-                      _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} 
-                      placeholder="N/A if no gap"
-                      borderColor={gapError ? "red.400" : undefined}
-                      _focus={gapError ? { borderColor: "red.500", boxShadow: "0 0 0 1px red.500" } : undefined}
-                      _placeholder={{ opacity: 0.7, color: "inherit" }}
-                    />
-                </Field>
-            </SimpleGrid>
-          </Box>
           </VStack>
       </Collapse>
     </Box>
@@ -311,57 +217,66 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
 }
 
 export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSelect, fieldErrors = {} }) => {
-  // Ensure items is always an array; normalize keys from DB (snake_case) to camelCase; use "" for null/undefined
-  const items = Array.isArray(data) ? data.map(item => ({
+  const historyRaw = Array.isArray(data?.education_history) ? data.education_history : (Array.isArray(data) ? data : [])
+  const gapsRaw = Array.isArray(data?.education_gaps) ? data.education_gaps : []
+
+  // Normalize keys from DB (snake_case) to camelCase; use "" for null/undefined
+  const historyItems = historyRaw.map(item => ({
       ...item,
       educationLevel: item.educationLevel ?? item.education_level ?? "",
       instituteName: item.instituteName ?? item.institute_name ?? "",
       board: item.board ?? "",
       city: item.city ?? "",
-      yearOfPassing: item.yearOfPassing ?? item.year_of_passing ?? "",
+      yearOfPassing: item.yearOfPassing ?? item.end_year ?? item.year_of_passing ?? "",
       resultType: item.resultType ?? item.result_type ?? "PERCENTAGE",
       result: item.result ?? item.result_value ?? "",
       subjects: item.subjects ?? "",
-      marksheet_file: item.marksheet_file ?? item.proofFile ?? "",
-      gapType: item.gapType ?? item.gap_type ?? "",
-      gapDurationMonths: item.gapDurationMonths ?? item.gap_duration_months ?? "",
-      gapReason: item.gapReason ?? item.gap_reason ?? ""
-  })) : []
+      marksheet_file: item.marksheet_file ?? item.proofFile ?? ""
+  }))
+
+  const gapItems = gapsRaw.map(item => ({
+    ...item,
+    gapStartDate: item.gapStartDate ?? item.gap_start_date ?? "",
+    gapEndDate: item.gapEndDate ?? item.gap_end_date ?? "",
+    gapReason: item.gapReason ?? item.gap_reason ?? "",
+    remarks: item.remarks ?? ""
+  }))
   const [openIndex, setOpenIndex] = useState(-1)
   const toast = useToast()
   const { user } = useAuth()
   const usn = user?.usn
   const isPG = true
 
-  const handleChange = (updatedItem, index) => {
-      const newItems = [...items]
+  const updateAll = (nextHistory, nextGaps) => {
+    onUpdate({ education_history: nextHistory, education_gaps: nextGaps })
+  }
+
+  const handleHistoryChange = (updatedItem, index) => {
+      const newItems = [...historyItems]
       newItems[index] = updatedItem
-      onUpdate(newItems)
+      updateAll(newItems, gapItems)
   }
 
   const handleAdd = () => {
-      onUpdate([
-          ...items,
-          {
-              educationLevel: "",
-              instituteName: "",
-              board: "",
-              city: "",
-              yearOfPassing: "",
-              resultType: "PERCENTAGE",
-              result: "",
-              subjects: "",
-              marksheet_file: "",
-              gapType: "",
-              gapDurationMonths: "",
-              gapReason: ""
-          }
-      ])
+      updateAll([
+        ...historyItems,
+        {
+          educationLevel: "",
+          instituteName: "",
+          board: "",
+          city: "",
+          yearOfPassing: "",
+          resultType: "PERCENTAGE",
+          result: "",
+          subjects: "",
+          marksheet_file: ""
+        }
+      ], gapItems)
   }
 
   const handleDelete = (index) => {
-      const newItems = items.filter((_, i) => i !== index)
-      onUpdate(newItems)
+      const newItems = historyItems.filter((_, i) => i !== index)
+      updateAll(newItems, gapItems)
   }
 
   const handleUpload = async (index, file) => {
@@ -370,12 +285,12 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
       const result = await StudentProfileService.uploadFile(usn, file, { folder: "education" })
       const url = result?.url || result?.path
       if (url) {
-        const newItems = [...items]
+        const newItems = [...historyItems]
         newItems[index] = { 
             ...newItems[index], 
             marksheet_file: url
         }
-        onUpdate(newItems)
+        updateAll(newItems, gapItems)
         toast({
           status: "success",
           description: "Marksheet uploaded successfully",
@@ -406,12 +321,12 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
       <Heading size="lg" mb={6} color="#20343c">Education History</Heading>
       
       <VStack spacing={6} align="stretch">
-        {items.map((item, index) => (
+        {historyItems.map((item, index) => (
           <EducationItem 
             key={index} 
             index={index} 
             item={item} 
-            onChange={handleChange} 
+            onChange={handleHistoryChange} 
             onDelete={handleDelete}
             isOpen={openIndex === index}
             onToggle={() => setOpenIndex(openIndex === index ? -1 : index)}
@@ -433,6 +348,91 @@ export const EducationForm = ({ data = {}, onUpdate, isEditing = false, onFileSe
           isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }}
         >
           Add Education
+        </Button>
+
+        <Divider my={6} />
+
+        <EducationGapsSection
+          gaps={gapItems}
+          onChange={(next) => updateAll(historyItems, next)}
+          isEditing={isEditing}
+          fieldErrors={fieldErrors?.education_gaps || {}}
+        />
+      </VStack>
+    </Box>
+  )
+}
+
+const GapItem = ({ item, index, onChange, onDelete, isEditing, fieldErrors = {} }) => {
+  const set = (field, value) => onChange({ ...item, [field]: value }, index)
+  const err = (field) => fieldErrors[field] || null
+  return (
+    <Box border="1px solid" borderColor="gray.200" borderRadius="xl" p={4} bg="gray.50">
+      <Flex justify="space-between" align="center" mb={3}>
+        <Heading size="sm" color="#20343c">Gap {index + 1}</Heading>
+        <IconButton icon={<FaTrash />} size="sm" colorScheme="red" variant="ghost" onClick={() => onDelete(index)} aria-label="Delete gap" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} />
+      </Flex>
+      <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+        <FormControl isInvalid={!!err('gap_start_date')}>
+          <Field label="Start Date *">
+            <Input type="date" value={item.gapStartDate ?? ""} onChange={(e) => set("gapStartDate", e.target.value)} isDisabled={!isEditing} />
+          </Field>
+          {err('gap_start_date') && <Text fontSize="sm" color="red.500" mt={1}>{err('gap_start_date')}</Text>}
+        </FormControl>
+        <FormControl isInvalid={!!err('gap_end_date')}>
+          <Field label="End Date *">
+            <Input type="date" value={item.gapEndDate ?? ""} onChange={(e) => set("gapEndDate", e.target.value)} isDisabled={!isEditing} />
+          </Field>
+          {err('gap_end_date') && <Text fontSize="sm" color="red.500" mt={1}>{err('gap_end_date')}</Text>}
+        </FormControl>
+        <FormControl isInvalid={!!err('gap_reason')}>
+          <Field label="Reason *">
+            <Input value={item.gapReason ?? ""} onChange={(e) => set("gapReason", e.target.value)} isDisabled={!isEditing} placeholder="Reason for the gap" />
+          </Field>
+          {err('gap_reason') && <Text fontSize="sm" color="red.500" mt={1}>{err('gap_reason')}</Text>}
+        </FormControl>
+        <Field label="Remarks (Optional)">
+          <Input value={item.remarks ?? ""} onChange={(e) => set("remarks", e.target.value)} isDisabled={!isEditing} placeholder="Any remarks" />
+        </Field>
+      </SimpleGrid>
+    </Box>
+  )
+}
+
+const EducationGapsSection = ({ gaps = [], onChange, isEditing, fieldErrors = {} }) => {
+  const items = Array.isArray(gaps) ? gaps : []
+  const handleItemChange = (updatedItem, index) => {
+    const next = [...items]
+    next[index] = updatedItem
+    onChange(next)
+  }
+  const handleAdd = () => {
+    onChange([
+      ...items,
+      { gapStartDate: "", gapEndDate: "", gapReason: "", remarks: "" }
+    ])
+  }
+  const handleDelete = (index) => onChange(items.filter((_, i) => i !== index))
+  return (
+    <Box>
+      <Heading size="md" mb={4} color="#20343c">Education Gaps</Heading>
+      <Text fontSize="sm" color="gray.600" mb={4}>
+        Add any gaps in education (if applicable). These are saved separately from your education history.
+      </Text>
+      <VStack spacing={4} align="stretch">
+        {items.map((item, i) => (
+          <GapItem
+            key={i}
+            item={item}
+            index={i}
+            onChange={handleItemChange}
+            onDelete={handleDelete}
+            isEditing={isEditing}
+            fieldErrors={fieldErrors?.[i] || {}}
+          />
+        ))}
+        <Button leftIcon={<FaPlus />} onClick={handleAdd} variant="outline" colorScheme="orange" borderColor="#d4a960" color="#d4a960" _hover={{ bg: "#fff5e6" }} isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }}>
+          Add Gap
         </Button>
       </VStack>
     </Box>

@@ -102,13 +102,16 @@ export const StudentProfileLayout = ({ children }) => {
       // Hide Summer Immersion / Summer Internship when batch policy does not allow them
       if (item.label === "Summer Immersion" && trackPolicy && trackPolicy.summer_immersion === false) return
       if (item.label === "Summer Internship" && trackPolicy && trackPolicy.summer_internship === false) return
+
+      // Insert a divider above Projects to visually separate academic history from portfolio
+      if (item.label === "Projects") {
+        rows.push({ type: "divider", key: "div-before-projects" })
+      }
+
       if (item.label === "Career Overview") {
         rows.push({ type: "divider", key: `div-${item.path}` })
       }
       rows.push({ type: "item", item, key: item.label })
-      if (item.label === "Academic Performance") {
-        rows.push({ type: "divider", key: "div-after-academics" })
-      }
       if (item.label === "Resume") {
         rows.push({ type: "divider", key: "div-after-resume" })
       }

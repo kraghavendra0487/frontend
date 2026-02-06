@@ -30,6 +30,39 @@ export const StudentProfileService = {
   },
 
   /**
+   * Get manual academic semesters + course-wise details (no OCR).
+   * @param {string} usn
+   */
+  getAcademicSemesters: async (usn) => {
+    const endpoint = `/student/profile/${encodeURIComponent(usn)}/academic-semesters`;
+    try {
+      const response = await apiFetch(endpoint);
+      const data = response?.data;
+      // Normalize: backend returns { semesters: [...] }; ensure we always return that shape
+      if (data && Array.isArray(data.semesters)) return data;
+      if (Array.isArray(data)) return { semesters: data };
+      return { semesters: [] };
+    } catch (error) {
+      console.error('[getAcademicSemesters]', error);
+      return { semesters: [] };
+    }
+  },
+
+  /**
+   * Create or update a single academic semester with courses.
+   * @param {string} usn
+   * @param {{ academic_year: number, semester: number, courses: Array }} payload
+   */
+  saveAcademicSemester: async (usn, payload) => {
+    const endpoint = `/student/profile/${usn}/academic-semesters`;
+    const response = await apiFetch(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  },
+
+  /**
    * Update specific profile section
    * @param {string} usn 
    * @param {string} section 

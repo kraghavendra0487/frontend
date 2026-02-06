@@ -41,7 +41,7 @@ import { PersonalProfile } from './pages/student/profile/PersonalProfile';
 import { ContactProfile as ContactDetails } from './pages/student/profile/ContactProfile';
 import { FamilyProfile as FamilyDetails } from './pages/student/profile/FamilyProfile';
 import { EducationProfile as EducationDetails } from './pages/student/profile/EducationProfile';
-import { AcademicsProfile as AcademicPerformance } from './pages/student/profile/AcademicsProfile';
+import { AcademicsProfile } from './pages/student/profile/AcademicsProfile';
 import { ProjectsProfile as Projects } from './pages/student/profile/ProjectsProfile';
 import { InternshipsProfile as Internships } from './pages/student/profile/InternshipsProfile';
 import { TrainingsProfile as Trainings } from './pages/student/profile/TrainingsProfile';
@@ -468,7 +468,7 @@ const router = createBrowserRouter([
       { path: "/student/profile/contact", element: <PlacementProtectedRoute><ContactDetails /></PlacementProtectedRoute> },
       { path: "/student/profile/family", element: <PlacementProtectedRoute><FamilyDetails /></PlacementProtectedRoute> },
       { path: "/student/profile/education", element: <PlacementProtectedRoute><EducationDetails /></PlacementProtectedRoute> },
-      { path: "/student/profile/academics", element: <PlacementProtectedRoute><AcademicPerformance /></PlacementProtectedRoute> },
+      { path: "/student/profile/academics", element: <PlacementProtectedRoute><AcademicsProfile /></PlacementProtectedRoute> },
       { path: "/student/profile/projects", element: <PlacementProtectedRoute><Projects /></PlacementProtectedRoute> },
       { path: "/student/profile/internships", element: <PlacementProtectedRoute><Internships /></PlacementProtectedRoute> },
       { path: "/student/profile/trainings", element: <PlacementProtectedRoute><Trainings /></PlacementProtectedRoute> },

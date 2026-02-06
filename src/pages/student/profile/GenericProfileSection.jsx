@@ -8,12 +8,11 @@ import { usePlacementTrackPolicy } from "../../../context/PlacementTrackPolicyCo
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { toSnakeCase } from "../../../utils/stringUtils"
 import { getProfileErrorMessage, parseApiError, mapIndexedFieldErrors } from "../../../utils/profileErrorHelper"
-import { getAutoFilledAcademics } from "../../../components/student/forms/AcademicPerformanceForm"
 import { BottomErrorBanner } from "../../../components/student/BottomErrorBanner"
 
 const TRACK_SECTION_KEYS = []
 /** Sections that return an array from the API - use [] as initial/fallback so form shows instead of spinner. */
-const ARRAY_SECTION_KEYS = ["education", "academics", "projects", "internships", "trainings", "certifications", "publications", "extra-curricular", "other-experiences", "family", "summer_immersion", "summer_internship"]
+const ARRAY_SECTION_KEYS = ["academics", "projects", "internships", "trainings", "certifications", "publications", "extra-curricular", "other-experiences", "family", "summer_immersion", "summer_internship"]
 const FILE_UPLOAD_SECTIONS = ["education", "academics", "certifications", "internships", "summer-internship", "summer_internship", "summer-immersion", "summer_immersion", "trainings", "publications", "extra-curricular", "other-experiences"]
 
 /** Shake keyframe for Save button when there are validation errors. */
@@ -47,6 +46,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   const toast = useToast()
 
   const [data, setData] = useState(() => {
+    if (sectionKey === "education") return { education_history: [], education_gaps: [] }
     if (ARRAY_SECTION_KEYS.includes(sectionKey)) return []
     if (sectionKey === "career") return {} // career is object; avoid null so form always renders
     return null
@@ -112,7 +112,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   // Completely empty entries are allowed (they are filtered out on save).
   const hasValidEducationEntry = useMemo(() => {
     if (sectionKey !== "education" || !data) return true
-    const arr = Array.isArray(data) ? data : []
+    const arr = Array.isArray(data?.education_history) ? data.education_history : []
     if (arr.length === 0) return true
     return arr.every((item, index) => {
       if (!item || typeof item !== "object") return false
@@ -126,7 +126,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
       const resultVal = item.result ?? item.result_value
       const resultOk = resultVal !== undefined && resultVal !== null && String(resultVal).trim() !== ""
       const subjects = String(item.subjects ?? "").trim()
-      const fileFromPending = pendingFiles && (pendingFiles[String(index)] ?? pendingFiles[index])
+      const fileFromPending = pendingFiles && (pendingFiles[`history-${String(index)}`] ?? pendingFiles[`history-${index}`])
       const hasFile = !!(item.marksheet_file || item.proofFile || fileFromPending)
       // Treat completely empty row as valid (will be filtered on save)
       const isEmpty = level === "" && institute === "" && board === "" && city === "" && !yearOk && resultType === "" && !resultOk && subjects === "" && !hasFile
@@ -141,7 +141,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   // Build list of missing education fields per entry (for error message). Skip completely empty entries. Reserved for future use.
   const _getEducationValidationErrors = useCallback(() => {
     if (sectionKey !== "education" || !data) return []
-    const arr = Array.isArray(data) ? data : []
+    const arr = Array.isArray(data?.education_history) ? data.education_history : []
     const errors = []
     arr.forEach((item, index) => {
       if (!item || typeof item !== "object") return
@@ -155,7 +155,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
       const resultVal = item.result ?? item.result_value
       const resultOk = resultVal !== undefined && resultVal !== null && String(resultVal).trim() !== ""
       const subjects = String(item.subjects ?? "").trim()
-      const fileFromPending = pendingFiles && (pendingFiles[String(index)] ?? pendingFiles[index])
+      const fileFromPending = pendingFiles && (pendingFiles[`history-${String(index)}`] ?? pendingFiles[`history-${index}`])
       const hasFile = !!(item.marksheet_file || item.proofFile || fileFromPending)
       const isEmpty = level === "" && institute === "" && board === "" && city === "" && !yearOk && resultType === "" && !resultOk && subjects === "" && !hasFile
       if (isEmpty) return
@@ -350,33 +350,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isValidInternshipDate is a stable helper
   }, [sectionKey, data, pendingFiles])
 
-  // Client-side education gap field errors for validation
-  const getEducationGapValidationErrors = useCallback(() => {
-    if (sectionKey !== "education" || !data) return {}
-    const arr = Array.isArray(data) ? data : []
-    const flat = {}
-    arr.forEach((item, i) => {
-      if (!item || typeof item !== "object") return
-      const key = (f) => `education[${i}].${f}`
-      const gapType = (item.gapType ?? item.gap_type ?? "").toString().trim()
-      const gapDuration = (item.gapDurationMonths ?? item.gap_duration_months ?? "").toString().trim()
-      const gapReason = (item.gapReason ?? item.gap_reason ?? "").toString().trim()
-      
-      // If gap type is selected, validate other fields
-      if (gapType !== "") {
-        if (gapDuration === "") {
-          flat[key("gap_duration_months")] = "Duration is required when gap type is selected."
-        } else if (!/^\d{1,2}$/.test(gapDuration)) {
-          flat[key("gap_duration_months")] = "Duration must be a number between 0 and 99."
-        }
-        
-        if (gapReason === "") {
-          flat[key("gap_reason")] = "Reason is required when gap type is selected."
-        }
-      }
-    })
-    return flat
-  }, [sectionKey, data])
+  // Education gaps are now stored separately (student_education_gaps).
 
   // For trainings: each entry must have title, institution, proof (saved or pending), start_date, end_date; end_date >= start_date.
   const hasValidTrainingsEntry = useMemo(() => {
@@ -481,14 +455,9 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
       if (sectionKey === 'academics' && result?.data !== undefined) {
         const rawAcademics = result.data || []
         const meta = result.personalMeta || {}
-        let academicsData = rawAcademics
-        if (Array.isArray(rawAcademics) && rawAcademics.length === 0) {
-          const autoFilled = getAutoFilledAcademics(meta)
-          if (autoFilled.length > 0) academicsData = autoFilled
-        }
-        setData(academicsData)
-        initialDataRef.current = academicsData
-        latestDataRef.current = academicsData
+        setData(rawAcademics)
+        initialDataRef.current = rawAcademics
+        latestDataRef.current = rawAcademics
         setPersonalMeta(meta)
       } else {
         const fallback = ARRAY_SECTION_KEYS.includes(sectionKey) ? [] : (sectionKey === 'family' ? [] : {})
@@ -584,7 +553,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
     }
     setPendingFiles((prev) => ({
       ...prev,
-      [index]: file
+      [sectionKey === "education" ? `history-${index}` : index]: file
     }))
   }, [sectionKey, usn, toast, data])
 
@@ -642,20 +611,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
               return
           }
 
-          // Education: validate gap details (if gap type is selected, duration and reason are required)
-          if (sectionKey === "education") {
-              const gapErrors = getEducationGapValidationErrors()
-              if (Object.keys(gapErrors).length > 0) {
-                  setLastFieldErrors(gapErrors)
-                  setShakeTrigger((t) => t + 1)
-                  setSaveErrorBanner({
-                    show: true,
-                    title: "Error saving data",
-                    description: "Please correct the gap details errors below."
-                  })
-                  return
-              }
-          }
+          // Education gaps are validated and saved as a separate list now.
 
           // Internships: validate on submit; show field-wise errors and banner (no toast — use Alert like contact page)
           if (sectionKey === "internships" && !hasValidInternshipsEntry) {
@@ -687,54 +643,44 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
           let payload = sourceData
 
           // Handle file uploads for different sections
-          if ((sectionKey === "education" || sectionKey === "academics") && usn && Array.isArray(data)) {
+          if (sectionKey === "education" && usn && data && typeof data === "object" && !Array.isArray(data)) {
+              const historyArr = Array.isArray(data.education_history) ? data.education_history : []
+              const updatedHistory = [...historyArr]
+              const entries = Object.entries(pendingFiles || {}).filter(([k]) => String(k).startsWith('history-'))
+
+              for (const [key, file] of entries) {
+                  const index = Number(String(key).replace('history-', ''))
+                  const target = updatedHistory[index]
+                  if (!target || !file) continue
+                  try {
+                      const result = await StudentProfileService.uploadFile(usn, file, { folder: "education" })
+                      const url = result?.url || result?.path
+                      if (url) updatedHistory[index] = { ...target, marksheet_file: url }
+                  } catch (e) {
+                      const msg = e?.message || "Error uploading one of the files. Please try again."
+                      toast({ title: "Upload Failed", description: msg, status: "error", duration: 5000, isClosable: true })
+                      return false
+                  }
+              }
+
+              payload = { ...data, education_history: updatedHistory }
+              setData(payload)
+          } else if (sectionKey === "academics" && usn && Array.isArray(data)) {
               const updatedItems = [...data]
               const entries = Object.entries(pendingFiles || {})
-              
+
               for (const [key, file] of entries) {
                   const index = Number(key)
                   const target = updatedItems[index]
                   if (!target || !file) continue
 
                   try {
-                      const folder = sectionKey === "education" ? "education" : "academics"
-                      const result = await StudentProfileService.uploadFile(usn, file, { folder })
+                      const result = await StudentProfileService.uploadFile(usn, file, { folder: "academics" })
                       const url = result?.url || result?.path
-                      if (url) {
-                          if (sectionKey === "education") {
-                            updatedItems[index] = { ...target, marksheet_file: url }
-                          } else {
-                            // For academics, DB expects jsonb array
-                            updatedItems[index] = { ...target, provisional_result_upload_links: [url], resultUploadLink: [url] }
-                          }
-                      }
+                      if (url) updatedItems[index] = { ...target, provisional_result_upload_links: [url], resultUploadLink: [url] }
                   } catch (e) {
-                      const msg = e && e.message ? e.message : ""
-                      if (msg.toLowerCase().includes("unauthorized")) {
-                          toast({
-                              title: "Upload Failed",
-                              description: "You are not authorized to upload this file. Please log in again and try once more.",
-                              status: "error",
-                              duration: 5000,
-                              isClosable: true
-                          })
-                      } else if (msg) {
-                          toast({
-                              title: "Upload Failed",
-                              description: `Error uploading one of the files: ${msg}`,
-                              status: "error",
-                              duration: 5000,
-                              isClosable: true
-                          })
-                      } else {
-                          toast({
-                              title: "Upload Failed",
-                              description: "Error uploading one of the files. Please try again.",
-                              status: "error",
-                              duration: 5000,
-                              isClosable: true
-                          })
-                      }
+                      const msg = e?.message || "Error uploading one of the files. Please try again."
+                      toast({ title: "Upload Failed", description: msg, status: "error", duration: 5000, isClosable: true })
                       return false
                   }
               }
@@ -838,18 +784,29 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
               payload = payload.filter((item) => item != null && typeof item === "object")
           }
 
-          // For education: filter out completely empty entries so we don't save blank rows
-          if (sectionKey === "education" && Array.isArray(payload)) {
-              payload = payload.filter((item) => {
+          // For education: filter out completely empty entries in both lists (history + gaps)
+          if (sectionKey === "education" && payload && typeof payload === "object" && !Array.isArray(payload)) {
+              const hist = Array.isArray(payload.education_history) ? payload.education_history : []
+              const gaps = Array.isArray(payload.education_gaps) ? payload.education_gaps : []
+              const filteredHist = hist.filter((item) => {
                   if (!item || typeof item !== "object") return false
                   const level = (item.educationLevel ?? item.education_level ?? "").toString().trim()
                   const institute = (item.instituteName ?? item.institute_name ?? "").toString().trim()
                   const hasAny = level !== "" || institute !== "" || (item.board && String(item.board).trim() !== "") ||
                     (item.city && String(item.city).trim() !== "") || (item.yearOfPassing ?? item.year_of_passing) != null ||
                     (item.resultType ?? item.result_type) !== "" || (item.result ?? "").toString().trim() !== "" ||
-                    (item.subjects ?? "").toString().trim() !== ""
+                    (item.subjects ?? "").toString().trim() !== "" || (item.marksheet_file ?? item.proofFile ?? "").toString().trim() !== ""
                   return hasAny
               })
+              const filteredGaps = gaps.filter((item) => {
+                  if (!item || typeof item !== "object") return false
+                  const start = (item.gap_start_date ?? item.gapStartDate ?? "").toString().trim()
+                  const end = (item.gap_end_date ?? item.gapEndDate ?? "").toString().trim()
+                  const reason = (item.gap_reason ?? item.gapReason ?? "").toString().trim()
+                  const remarks = (item.remarks ?? "").toString().trim()
+                  return start !== "" || end !== "" || reason !== "" || remarks !== ""
+              })
+              payload = { ...payload, education_history: filteredHist, education_gaps: filteredGaps }
           }
 
           // For summer immersion / summer internship: validate required fields and start/end dates; block save on any error
@@ -952,10 +909,9 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
           // Convert payload to snake_case for backend
           const snakeCasePayload = toSnakeCase(payload)
 
-          // Education: always send { education: [...] } per backend contract
-          const apiPayload = sectionKey === "education" && Array.isArray(snakeCasePayload)
-            ? { education: snakeCasePayload }
-            : snakeCasePayload
+          // Education: backend now accepts { education_history: [...], education_gaps: [...] }
+          // (It still accepts legacy { education: [...] } for history-only.)
+          const apiPayload = snakeCasePayload
 
           console.log('[GenericProfileSection.handleSave] BEFORE API', { sectionKey, apiPayload });
           await StudentProfileService.saveSection(usn, sectionKey, apiPayload)

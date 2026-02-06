@@ -18,6 +18,19 @@ const theme = extendTheme({
         bg: 'gray.50',
         color: 'gray.800',
       },
+      /* Ensure buttons are visible when theme/defaults are used */
+      button: {
+        _focus: { boxShadow: 'outline' },
+      },
+    },
+  },
+  components: {
+    Button: {
+      baseStyle: {
+        padding: '0.5rem 1rem',
+        minHeight: '2.5rem',
+        _focus: { boxShadow: '0 0 0 2px var(--chakra-colors-blue-400)' },
+      },
     },
   },
 });
