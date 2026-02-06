@@ -15,6 +15,7 @@ import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
 import ManageAcademicPage from './pages/students/ManageAcademicPage';
+import ProfileLockPage from './pages/students/ProfileLockPage';
 import CalendarOfEvents from './pages/admin/CalendarOfEvents';
 import Events from './pages/admin/Events';
 import DriveRegistrations from './pages/admin/DriveRegistrations';
@@ -435,6 +436,7 @@ const router = createBrowserRouter([
           { index: true, element: <ViewAllStudents /> },
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "academic", element: <ManageAcademicPage /> },
+          { path: "profile_lock", element: <ProfileLockPage /> },
           { path: ":usn", element: <AdminStudentDetail /> },
         ],
       },

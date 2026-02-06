@@ -811,4 +811,27 @@ export const PlacementService = {
     });
     return response.data;
   },
+
+  // ========== Student Edit Control (Profile Locks) ==========
+
+  /** Get all students with student_edit_control flags (admin). */
+  getStudentProfileLocks: async () => {
+    const response = await apiFetch('/placement/students/profile-locks');
+    return response.data ?? { rows: [] };
+  },
+
+  /** Sync missing student_edit_control rows (admin). */
+  syncStudentProfileLocks: async () => {
+    const response = await apiFetch('/placement/students/profile-locks/sync', { method: 'POST' });
+    return response.data ?? { inserted: 0 };
+  },
+
+  /** Update a student's lock flags (admin). */
+  updateStudentProfileLocks: async (usn, patch) => {
+    const response = await apiFetch(`/placement/students/profile-locks/${encodeURIComponent(usn)}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch || {}),
+    });
+    return response.data;
+  },
 };
