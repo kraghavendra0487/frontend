@@ -21,6 +21,7 @@ export const Login = () => {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const navigate = useNavigate()
   const { login, isAuthenticated, user } = useAuth()
 
@@ -40,6 +41,11 @@ export const Login = () => {
       }
     }
   }, [isAuthenticated, user, navigate]);
+
+  const triggerButtonAnimation = () => {
+    setIsSubmitting(true)
+    setTimeout(() => setIsSubmitting(false), 180)
+  }
 
   const handleLogin = async () => {
     try {
@@ -119,7 +125,13 @@ export const Login = () => {
             </Alert>
           </Fade>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              triggerButtonAnimation()
+              handleLogin()
+            }}
+          >
           <Stack gap={4}>
             <Field label="Email">
               <Input 
@@ -162,7 +174,10 @@ export const Login = () => {
 
             <PixelCard 
               variant="yellow" 
-              onClick={handleLogin}
+              onClick={() => {
+                triggerButtonAnimation()
+                handleLogin()
+              }}
               style={{ 
                 backgroundColor: "#20343c", 
                 color: "white", 
@@ -170,12 +185,18 @@ export const Login = () => {
                 height: "48px", 
                 borderRadius: "0.375rem",
                 fontWeight: "600",
-                fontSize: "1rem"
+                fontSize: "1rem",
+                transition: "all 0.18s ease-out",
+                transform: isSubmitting ? "translateY(-1px)" : "none",
+                boxShadow: isSubmitting
+                  ? "0 0 0 1px #d4a960, 0 10px 20px rgba(0,0,0,0.25)"
+                  : "none",
               }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
+                  triggerButtonAnimation()
                   handleLogin();
                 }
               }}

@@ -37,7 +37,6 @@ export const Navbar = () => {
         
           <Flex gap={6} alignItems="center">
           <NavLink to="/">Home</NavLink>
-          <NavLink to="/events">Events</NavLink>
           {!isAuthenticated ? (
             <>
               <NavLink to="/about">About</NavLink>
