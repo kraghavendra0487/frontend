@@ -4,15 +4,23 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate, useBlocker, useBeforeUnload } from "react-router-dom"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { useAuth } from "../../../context/AuthContext"
+import { useProfileView } from "../../../context/ProfileViewContext"
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { ContactLinksForm } from "../../../components/student/forms/ContactLinksForm"
+import { AdminSectionLockControl } from "../../../components/student/AdminSectionLockControl"
 import { getProfileErrorMessage, parseApiError } from "../../../utils/profileErrorHelper"
 
 export const ContactProfile = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const profileView = useProfileView()
+  const viewUsn = (profileView?.viewUsn || user?.usn || "").toString().trim().toUpperCase()
+  const isReadOnly = profileView?.isReadOnly === true
+  const isLocked = profileView?.isSectionLocked?.("contact") === true
+  const canEdit = profileView?.isAdminView === true || (!isReadOnly && !isLocked)
+  const isOwnProfile = viewUsn && user?.usn && viewUsn === (user.usn || "").toString().trim().toUpperCase()
   const { cache, fetchProfileSection, invalidateProfile } = useStudentDataCache()
-  const usn = user?.usn
+  const usn = viewUsn || user?.usn
   const toast = useToast()
 
   const normalizeLinks = (finalData) => {
@@ -59,8 +67,7 @@ export const ContactProfile = () => {
   );
 
   const loadContact = useCallback(async () => {
-    if (!usn) return
-    invalidateProfile('contact')
+    if (!viewUsn) return
     if (loadInProgressRef.current) return
     loadInProgressRef.current = true
     setLoadError(null)
@@ -68,7 +75,13 @@ export const ContactProfile = () => {
     const startedAt = Date.now()
     const MIN_LOADING_MS = 200
     try {
-      const sectionData = await fetchProfileSection(usn, 'contact', true)
+      let sectionData
+      if (isOwnProfile) {
+        invalidateProfile('contact')
+        sectionData = await fetchProfileSection(viewUsn, 'contact', true)
+      } else {
+        sectionData = await StudentProfileService.getSection(viewUsn, 'contact')
+      }
       const finalData = normalizeLinks(sectionData || {})
       setData(finalData)
       initialDataRef.current = finalData
@@ -90,17 +103,17 @@ export const ContactProfile = () => {
         loadInProgressRef.current = false
       }, remaining)
     }
-  }, [usn, invalidateProfile, fetchProfileSection, toast])
+  }, [viewUsn, isOwnProfile, invalidateProfile, fetchProfileSection, toast])
 
   useEffect(() => {
-    if (!usn) return
+    if (!viewUsn) return
     loadContact()
-  }, [usn, loadContact])
+  }, [viewUsn, loadContact])
 
   const handleUpdate = (newData) => setData(newData)
 
   const handleSave = async () => {
-      if (saving) return
+      if (!canEdit || saving) return
       if (!hasUnsavedChanges) return
       setFieldErrors({})
       const personalEmail = (data?.personalEmail ?? data?.personal_email ?? "").toString().trim()
@@ -128,9 +141,9 @@ export const ContactProfile = () => {
           const payload = JSON.parse(JSON.stringify(data))
           if (!Array.isArray(payload.links)) payload.links = []
 
-          await StudentProfileService.saveSection(usn, 'contact', payload)
+          await StudentProfileService.saveSection(viewUsn, 'contact', payload)
           initialDataRef.current = structuredClone(data)
-          const fresh = await fetchProfileSection(usn, 'contact', true)
+          const fresh = isOwnProfile ? await fetchProfileSection(viewUsn, 'contact', true) : await StudentProfileService.getSection(viewUsn, 'contact')
           if (fresh) {
             const normalized = normalizeLinks(fresh)
             setData(normalized)
@@ -206,15 +219,27 @@ export const ContactProfile = () => {
             <Icon as={FaAddressBook} color="#d4a960" boxSize={6} />
             <Heading size="md">Contact Details</Heading>
           </HStack>
+          {isLocked && (
+            <Alert status="info" mb={4} borderRadius="md">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>View only</AlertTitle>
+                <AlertDescription>This section is locked by the administrator. You cannot edit it.</AlertDescription>
+              </Box>
+            </Alert>
+          )}
           <ContactLinksForm
             data={data}
             onUpdate={handleUpdate}
-            isEditing={isEditing}
+            isEditing={canEdit && isEditing}
             mode="student"
             fieldErrors={fieldErrors}
         />
         
-        <HStack justifyContent="flex-end" mt={8} pb={10}>
+        <HStack justifyContent="flex-end" mt={8} pb={10} spacing={3}>
+            <AdminSectionLockControl sectionKey="contact" label="Contact details" />
+            {canEdit && (
+            <>
             {!isEditing ? (
                     <Button 
                         bg="#d4a960" 
@@ -257,6 +282,8 @@ export const ContactProfile = () => {
                     </>
                 )
             }
+            </>
+            )}
         </HStack>
 
         {/* Navigation Block Modal */}

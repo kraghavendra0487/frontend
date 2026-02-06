@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useNavigate, useBlocker, useBeforeUnload } from "react-router-dom"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { useAuth } from "../../../context/AuthContext"
+import { useProfileView } from "../../../context/ProfileViewContext"
 import { usePlacementTrackPolicy } from "../../../context/PlacementTrackPolicyContext"
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { toSnakeCase } from "../../../utils/stringUtils"
 import { getProfileErrorMessage, parseApiError, mapIndexedFieldErrors } from "../../../utils/profileErrorHelper"
 import { BottomErrorBanner } from "../../../components/student/BottomErrorBanner"
+import { AdminSectionLockControl } from "../../../components/student/AdminSectionLockControl"
 
 const TRACK_SECTION_KEYS = []
 /** Sections that return an array from the API - use [] as initial/fallback so form shows instead of spinner. */
@@ -41,8 +43,14 @@ function PlacementTrackGate({ sectionKey, children }) {
 /* eslint-disable-next-line no-unused-vars -- FormComponent is used in JSX as <FormComponent /> */
 export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   const { user } = useAuth()
+  const profileView = useProfileView()
+  const viewUsn = (profileView?.viewUsn || user?.usn || "").toString().trim().toUpperCase()
+  const isReadOnly = profileView?.isReadOnly === true
+  const isLocked = profileView?.isSectionLocked?.(sectionKey) === true
+  const canEdit = profileView?.isAdminView === true || (!isReadOnly && !isLocked)
+  const isOwnProfile = viewUsn && user?.usn && viewUsn === (user.usn || "").toString().trim().toUpperCase()
   const { fetchProfileSection, invalidateProfile } = useStudentDataCache()
-  const usn = user?.usn
+  const usn = viewUsn || user?.usn
   const toast = useToast()
 
   const [data, setData] = useState(() => {
@@ -439,8 +447,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   }, [lastFieldErrors, sectionKey])
 
   const loadSection = useCallback(async () => {
-    if (!usn) return
-    invalidateProfile(sectionKey)
+    if (!viewUsn) return
     if (loadInProgressRef.current) return
     loadInProgressRef.current = true
     setLoadError(null)
@@ -448,7 +455,21 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
     const startedAt = Date.now()
     const MIN_LOADING_MS = 200
     try {
-      const result = await fetchProfileSection(usn, sectionKey, true)
+      let result
+      if (isOwnProfile) {
+        invalidateProfile(sectionKey)
+        result = await fetchProfileSection(viewUsn, sectionKey, true)
+      } else {
+        if (sectionKey === 'academics') {
+          const [acadData, personalData] = await Promise.all([
+            StudentProfileService.getSection(viewUsn, sectionKey),
+            StudentProfileService.getSection(viewUsn, 'personal')
+          ])
+          result = { data: Array.isArray(acadData) ? acadData : (acadData?.data || []), personalMeta: personalData || {} }
+        } else {
+          result = await StudentProfileService.getSection(viewUsn, sectionKey)
+        }
+      }
       if (userHasEditedRef.current) return
       userHasEditedRef.current = false
 
@@ -493,12 +514,12 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
         loadInProgressRef.current = false
       }, remaining)
     }
-  }, [usn, sectionKey, invalidateProfile, fetchProfileSection, toast])
+  }, [viewUsn, isOwnProfile, sectionKey, invalidateProfile, fetchProfileSection, toast])
 
   useEffect(() => {
-    if (!usn) return
+    if (!viewUsn) return
     loadSection()
-  }, [usn, loadSection])
+  }, [viewUsn, loadSection])
 
   const handleUpdate = (newData) => {
     userHasEditedRef.current = true
@@ -558,6 +579,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   }, [sectionKey, usn, toast, data])
 
   const handleSave = async () => {
+      if (!canEdit) return
       console.log('[GenericProfileSection.handleSave] START', { sectionKey, hasUnsavedChanges });
       if (!hasUnsavedChanges) {
         console.log('[GenericProfileSection.handleSave] SKIP - no unsaved changes');
@@ -914,7 +936,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
           const apiPayload = snakeCasePayload
 
           console.log('[GenericProfileSection.handleSave] BEFORE API', { sectionKey, apiPayload });
-          await StudentProfileService.saveSection(usn, sectionKey, apiPayload)
+          await StudentProfileService.saveSection(viewUsn, sectionKey, apiPayload)
           console.log('[GenericProfileSection.handleSave] API SUCCESS - setting isEditing(false), Add/Edit button will show')
           initialDataRef.current = payload
           userHasEditedRef.current = false
@@ -929,7 +951,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
               sectionKey === "other-experiences") {
             setPendingFiles({})
           }
-          const fresh = await fetchProfileSection(usn, sectionKey, true)
+          const fresh = await fetchProfileSection(viewUsn, sectionKey, true)
           if (sectionKey === 'academics' && fresh?.data !== undefined) {
             const academicsData = fresh.data || []
             setData(academicsData)
@@ -1033,7 +1055,16 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
 
   const mainContent = (
       <Box maxW="5xl" mx="auto" position="relative" pt={8}>
-        {sectionKey === "academics" && isEditing && (
+        {isLocked && (
+          <Alert status="info" mb={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>View only</AlertTitle>
+              <AlertDescription>This section is locked by the administrator. You cannot edit it.</AlertDescription>
+            </Box>
+          </Alert>
+        )}
+        {sectionKey === "academics" && (canEdit && isEditing) && (
           <Alert status="warning" mb={6} borderRadius="md">
             <AlertIcon />
             <AlertDescription>
@@ -1053,7 +1084,7 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
         <FormComponent 
           data={data} 
           onUpdate={handleUpdate} 
-          isEditing={isEditing} 
+          isEditing={canEdit && isEditing} 
           fieldErrors={fieldErrorsByRow}
           {...(sectionKey === "education" || sectionKey === "academics" || sectionKey === "certifications" ||
               sectionKey === "internships" || sectionKey === "summer-internship" || sectionKey === "summer_internship" ||
@@ -1065,7 +1096,10 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
           {...(sectionKey === "academics" ? { personalDetails: personalMeta } : {})}
         />
         
-        <HStack justifyContent="flex-end" mt={8} pb={10}>
+        <HStack justifyContent="flex-end" mt={8} pb={10} spacing={3}>
+            <AdminSectionLockControl sectionKey={sectionKey} />
+            {canEdit && (
+            <>
             {!isEditing ? (
                     <Button 
                         bg="#d4a960" 
@@ -1129,6 +1163,8 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
                     </>
                 )
             }
+            </>
+            )}
         </HStack>
 
         {blocker.state === "blocked" && (

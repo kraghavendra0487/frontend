@@ -15,6 +15,19 @@ export const StudentProfileService = {
   },
 
   /**
+   * Get edit control (lock flags) for the current student (own profile).
+   */
+  getEditControl: async () => {
+    try {
+      const response = await apiFetch('/student/profile/edit-control');
+      return response.data ?? null;
+    } catch (e) {
+      console.error('[getEditControl]', e);
+      return null;
+    }
+  },
+
+  /**
    * Get specific profile section
    * @param {string} usn
    * @param {string} section

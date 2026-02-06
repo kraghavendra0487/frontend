@@ -4,14 +4,21 @@ import "./ProjectsProfile.css"
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { useAuth } from "../../../context/AuthContext"
+import { useProfileView } from "../../../context/ProfileViewContext"
 import { ProjectsForm } from "../../../components/student/forms/ProjectsForm"
 import { ProjectShowcase } from "../../../components/student/projects/ProjectShowcase"
 import { toSnakeCase } from "../../../utils/stringUtils"
+import { AdminSectionLockControl } from "../../../components/student/AdminSectionLockControl"
 import { getProfileErrorMessage, parseApiError, mapIndexedFieldErrors } from "../../../utils/profileErrorHelper"
 
 export const ProjectsProfile = () => {
   const { user } = useAuth()
-  const usn = user?.usn 
+  const profileView = useProfileView()
+  const viewUsn = (profileView?.viewUsn || user?.usn || "").toString().trim().toUpperCase()
+  const isReadOnly = profileView?.isReadOnly === true
+  const isLocked = profileView?.isSectionLocked?.("projects") === true
+  const canEdit = profileView?.isAdminView === true || (!isReadOnly && !isLocked)
+  const usn = viewUsn || user?.usn
   const toast = useToast()
   
   const [tabIndex, setTabIndex] = useState(0)
@@ -36,11 +43,11 @@ export const ProjectsProfile = () => {
   }, [data, pendingFiles])
 
   const fetchData = useCallback(async () => {
-    if (!usn) return
+    if (!viewUsn) return
     setLoadError(null)
     setLoading(true)
     try {
-      const sectionData = await StudentProfileService.getSection(usn, "projects")
+      const sectionData = await StudentProfileService.getSection(viewUsn, "projects")
       const projects = Array.isArray(sectionData) ? sectionData : (sectionData?.projects || [])
       setData(projects)
       initialDataRef.current = projects
@@ -57,12 +64,12 @@ export const ProjectsProfile = () => {
     } finally {
       setLoading(false)
     }
-  }, [usn, toast])
+  }, [viewUsn, toast])
 
   useEffect(() => {
-    if (!usn) return
+    if (!viewUsn) return
     fetchData()
-  }, [usn, fetchData])
+  }, [viewUsn, fetchData])
 
   const fieldErrorsByRow = useMemo(() => {
     if (!lastFieldErrors) return null
@@ -86,7 +93,7 @@ export const ProjectsProfile = () => {
   }
 
   const handleSave = async () => {
-      if (!hasUnsavedChanges) return
+      if (!canEdit || !hasUnsavedChanges) return
       setSaving(true)
       try {
           let updatedData = [...data]
@@ -105,7 +112,7 @@ export const ProjectsProfile = () => {
 
             for (const [snapIndexStr, file] of snapEntries) {
               try {
-                const result = await StudentProfileService.uploadFile(usn, file, { folder: "projects" })
+                const result = await StudentProfileService.uploadFile(viewUsn, file, { folder: "projects" })
                 const url = result?.url || result?.path
                 if (url) {
                   currentSnaps.push(url)
@@ -131,7 +138,7 @@ export const ProjectsProfile = () => {
           // Convert to snake_case for DB saving
           const snakeCaseProjects = toSnakeCase(updatedData)
 
-          await StudentProfileService.saveSection(usn, "projects", { projects: snakeCaseProjects })
+          await StudentProfileService.saveSection(viewUsn, "projects", { projects: snakeCaseProjects })
           setData(updatedData)
           initialDataRef.current = updatedData
           setPendingFiles({})
@@ -190,6 +197,16 @@ export const ProjectsProfile = () => {
           <Text className="header-subtitle">Showcase your work and manage your project portfolio</Text>
         </Box>
 
+        {isLocked && (
+          <Alert status="info" mb={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>View only</AlertTitle>
+              <AlertDescription>This section is locked by the administrator. You cannot edit it.</AlertDescription>
+            </Box>
+          </Alert>
+        )}
+
         {fieldErrorsByRow && Object.keys(fieldErrorsByRow).length > 0 && (
           <Alert status="error" borderRadius="md" mb={4}>
             <AlertIcon />
@@ -228,12 +245,15 @@ export const ProjectsProfile = () => {
               <ProjectsForm
                 data={data}
                 onUpdate={handleUpdate}
-                isEditing={isEditing}
+                isEditing={canEdit && isEditing}
                 onFileSelect={handleFileSelect}
                 apiFieldErrors={fieldErrorsByRow}
                 onPriorityValidationChange={setHasPriorityError}
               />
               <div className="projects-actions">
+                <AdminSectionLockControl sectionKey="projects" label="Projects" />
+                {canEdit && (
+                <>
                 {!isEditing ? (
                   <Button
                     bg="linear-gradient(135deg, #03C03C 0%, #A2D43D 100%)"
@@ -276,6 +296,8 @@ export const ProjectsProfile = () => {
                       Save Changes
                     </Button>
                   </>
+                )}
+                </>
                 )}
               </div>
             </Box>

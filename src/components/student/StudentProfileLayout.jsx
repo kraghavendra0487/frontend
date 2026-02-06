@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import StudentUniversalSearch from "./StudentUniversalSearch"
 import { useAuth } from "../../context/AuthContext"
 import { usePlacementTrackPolicy } from "../../context/PlacementTrackPolicyContext"
+import { ProfileViewProvider } from "../../context/ProfileViewContext"
 import { NotificationService } from "../../services/notification.service"
 import { 
   DrawerBackdrop,
@@ -17,6 +18,7 @@ import {
   DrawerRoot,
   DrawerTitle,
 } from "../ui/drawer"
+import { ChevronLeftIcon } from "@chakra-ui/icons"
 import { 
   FaUser, 
   FaAddressBook, 
@@ -34,9 +36,11 @@ import {
   FaBell,
   FaSun,
   FaBuilding,
+  FaTachometerAlt,
 } from "react-icons/fa"
 
 const navItems = [
+  { label: "Dashboard", path: "/student-dashboard", icon: FaTachometerAlt },
   { label: "Personal Information", path: "/student/profile/personal", icon: FaUser },
   { label: "Contact Details", path: "/student/profile/contact", icon: FaAddressBook },
   { label: "Parent / Guardian Details", path: "/student/profile/family", icon: FaUsers },
@@ -61,7 +65,8 @@ const TRACK_NAV_ITEMS = []
 
 const isPlacementTrackPath = (path) => PLACEMENT_TRACK_PATHS.some((p) => path === p)
 
-export const StudentProfileLayout = ({ children }) => {
+/** When basePath is set (e.g. /placement/students/1RVU23BECTH1), nav uses it for links (admin view). */
+export const StudentProfileLayout = ({ children, basePath = null, isAdminView = false }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { logout, user } = useAuth()
@@ -70,6 +75,15 @@ export const StudentProfileLayout = ({ children }) => {
   const { policy: trackPolicy, loading: trackPolicyLoading } = usePlacementTrackPolicy()
   const [unreadCount, setUnreadCount] = useState(0)
   const onPlacementTrackPath = isPlacementTrackPath(location.pathname)
+
+  const getItemPath = (item) => {
+    if (basePath) {
+      if (item.path === "/student-dashboard") return `${basePath}/dashboard`
+      const segment = item.path.replace(/^\/student\/profile\//, '')
+      return `${basePath}/${segment}`
+    }
+    return item.path
+  }
 
   useEffect(() => {
     if (!user?.usn) return
@@ -130,20 +144,20 @@ export const StudentProfileLayout = ({ children }) => {
               borderRadius="md"
               cursor="pointer"
               bg={
-                location.pathname === item.path ||
-                (item.label === "Personal Information" && location.pathname === "/student/profile")
+                location.pathname === getItemPath(item) ||
+                (item.label === "Personal Information" && (location.pathname === "/student/profile" || (basePath && location.pathname === basePath)))
                   ? "#FDE74C"
                   : "transparent"
               }
               color={
-                location.pathname === item.path ||
-                (item.label === "Personal Information" && location.pathname === "/student/profile")
+                location.pathname === getItemPath(item) ||
+                (item.label === "Personal Information" && (location.pathname === "/student/profile" || (basePath && location.pathname === basePath)))
                   ? "#1a202c"
                   : "#fbfff1"
               }
               fontWeight={
-                location.pathname === item.path ||
-                (item.label === "Personal Information" && location.pathname === "/student/profile")
+                location.pathname === getItemPath(item) ||
+                (item.label === "Personal Information" && (location.pathname === "/student/profile" || (basePath && location.pathname === basePath)))
                   ? "bold"
                   : "medium"
               }
@@ -155,10 +169,10 @@ export const StudentProfileLayout = ({ children }) => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault()
-                  navigate(item.path)
+                  navigate(getItemPath(item))
                 }
               }}
-              onClick={() => navigate(item.path)}
+              onClick={() => navigate(getItemPath(item))}
               _hover={{ bgGradient: "linear(to-r, #E5E7EB, #F3F4F6)", color: "#1a202c" }}
               transition="all 0.2s"
             >
@@ -166,8 +180,8 @@ export const StudentProfileLayout = ({ children }) => {
                 as={item.icon}
                 boxSize={3}
                 color={
-                  location.pathname === item.path ||
-                  (item.label === "Personal Information" && location.pathname === "/student/profile")
+                  location.pathname === getItemPath(item) ||
+                  (item.label === "Personal Information" && (location.pathname === "/student/profile" || (basePath && location.pathname === basePath)))
                     ? "#1a202c"
                     : "#E5E9EC"
                 }
@@ -183,7 +197,7 @@ export const StudentProfileLayout = ({ children }) => {
     )
   }
 
-  const showSidebar = location.pathname.startsWith('/student/profile') && !onPlacementTrackPath
+  const showSidebar = (basePath ? location.pathname.startsWith(basePath) : location.pathname.startsWith('/student/profile')) && !onPlacementTrackPath
 
   return (
     <Box minH="100vh" bg="gray.50">
@@ -200,11 +214,20 @@ export const StudentProfileLayout = ({ children }) => {
         top={0}
         zIndex={10}
       >
-        {/* Left: Logo */}
-        <HStack spacing={3} minW="fit-content" cursor="pointer" onClick={() => navigate("/student-dashboard")} _hover={{ opacity: 0.9 }}>
-          <Image src="/logo.png" alt="CarvU" w="220px" objectFit="contain" mt={-1} pointerEvents="none" />
+        {/* Left: Logo / Back + Admin nav (Dashboard insights | Profile) */}
+        <HStack spacing={4}>
+          <HStack spacing={3} minW="fit-content" cursor="pointer" onClick={() => navigate(isAdminView ? "/placement/students" : "/student-dashboard")} _hover={{ opacity: 0.9 }}>
+            {isAdminView ? (
+              <Button leftIcon={<ChevronLeftIcon />} variant="ghost" color="white" size="sm" _hover={{ bg: "whiteAlpha.200" }}>
+                Back to Students
+              </Button>
+            ) : (
+              <Image src="/logo.png" alt="CarvU" w="220px" objectFit="contain" mt={-1} pointerEvents="none" />
+            )}
+          </HStack>
         </HStack>
         
+        {!isAdminView && (
         <HStack spacing={4} align="center">
           <HStack 
             spacing={4} 
@@ -367,6 +390,7 @@ export const StudentProfileLayout = ({ children }) => {
           </Button>
           </HStack>
         </HStack>
+        )}
       </Flex>
 
       <Flex alignItems="flex-start" minH="calc(100vh - 72px)">
@@ -457,7 +481,7 @@ export const StudentProfileLayout = ({ children }) => {
         <Box ref={contentRef} flex={1} p={8} minW={0} position="relative">
           <StudentProfileContentRefContext.Provider value={contentRef}>
             <Box maxW={location.pathname === "/student/calendar" ? "1400px" : "960px"} mx="auto">
-              {children}
+              {basePath ? children : <ProfileViewProvider>{children}</ProfileViewProvider>}
             </Box>
           </StudentProfileContentRefContext.Provider>
         </Box>

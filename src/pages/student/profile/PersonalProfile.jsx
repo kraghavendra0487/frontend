@@ -5,9 +5,11 @@ import { useBlocker, useBeforeUnload, Link as RouterLink } from "react-router-do
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { PlacementService } from "../../../services/placement.service"
 import { useAuth } from "../../../context/AuthContext"
+import { useProfileView } from "../../../context/ProfileViewContext"
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { usePlacementTrackPolicy } from "../../../context/PlacementTrackPolicyContext"
 import { PersonalInformationForm } from "../../../components/student/forms/PersonalInformationForm"
+import { AdminSectionLockControl } from "../../../components/student/AdminSectionLockControl"
 import { calculateProfileCompletion } from "../../../utils/profileHelper"
 import { getProfileErrorMessage, parseApiError, mapFieldErrorsToForm } from "../../../utils/profileErrorHelper"
 
@@ -17,9 +19,14 @@ const MIN_COMPLETION_TO_OPT_IN = 95
 export const PersonalProfile = () => {
   const toast = useToast()
   const { user } = useAuth()
+  const profileView = useProfileView()
+  const viewUsn = (profileView?.viewUsn || user?.usn || "").toString().trim().toUpperCase()
+  const isReadOnly = profileView?.isReadOnly === true
+  const isLocked = profileView?.isSectionLocked?.("personal") === true
+  const canEdit = profileView?.isAdminView === true || (!isReadOnly && !isLocked)
   const { cache, fetchProfileDropdowns, fetchProfileSection, updateCache, invalidateProfile } = useStudentDataCache()
   const { policy: batchPolicy, refetch: refetchPlacementPolicy } = usePlacementTrackPolicy()
-  const usn = user?.usn
+  const usn = viewUsn || user?.usn
 
   /** Show opt-in section only when student is individually marked as eligible for placement or capstone.
    *  This is set when admin saves the batch policy from the eligibility track page. */
@@ -73,16 +80,23 @@ export const PersonalProfile = () => {
     )
   );
 
+  const isOwnProfile = viewUsn && user?.usn && viewUsn === (user.usn || "").toString().trim().toUpperCase()
+
   const loadPersonal = useCallback(async () => {
-    if (!usn) return
-    invalidateProfile('personal')
+    if (!viewUsn) return
     if (loadInProgressRef.current) return
     loadInProgressRef.current = true
     setLoadError(null)
     setPageLoading(true)
     try {
       if (!cache.profile?.dropdowns) await fetchProfileDropdowns(true)
-      const sectionData = await fetchProfileSection(usn, 'personal', true)
+      let sectionData
+      if (isOwnProfile) {
+        invalidateProfile('personal')
+        sectionData = await fetchProfileSection(viewUsn, 'personal', true)
+      } else {
+        sectionData = await StudentProfileService.getSection(viewUsn, 'personal')
+      }
       const d = sectionData || {}
       setData(d)
       initialDataRef.current = d
@@ -100,12 +114,12 @@ export const PersonalProfile = () => {
       setPageLoading(false)
       loadInProgressRef.current = false
     }
-  }, [usn, invalidateProfile, cache.profile?.dropdowns, fetchProfileDropdowns, fetchProfileSection, toast])
+  }, [viewUsn, isOwnProfile, invalidateProfile, cache.profile?.dropdowns, fetchProfileDropdowns, fetchProfileSection, toast])
 
   useEffect(() => {
-    if (!usn) return
+    if (!viewUsn) return
     loadPersonal()
-  }, [usn, loadPersonal])
+  }, [viewUsn, loadPersonal])
 
   const handleUpdate = (newData) => setData(newData)
 
@@ -120,7 +134,7 @@ export const PersonalProfile = () => {
   }
 
   const handleSave = async () => {
-    if (saving) return
+    if (!canEdit || saving) return
     if (!hasUnsavedChanges) return
     // Front-end validation: gender must be present
     const genderVal = (data?.gender || "").toString().trim()
@@ -140,8 +154,8 @@ export const PersonalProfile = () => {
     setSaving(true)
     try {
       let payload = { ...data }
-      if (pendingProfileImageFile && usn) {
-        const uploadResult = await StudentProfileService.uploadFile(usn, pendingProfileImageFile, { folder: "profile-image" })
+      if (pendingProfileImageFile && viewUsn) {
+        const uploadResult = await StudentProfileService.uploadFile(viewUsn, pendingProfileImageFile, { folder: "profile-image" })
         const url = uploadResult?.url || uploadResult?.path
         if (url) {
           payload = { ...payload, profileImage: url, profile_image: url }
@@ -157,9 +171,9 @@ export const PersonalProfile = () => {
       if (payload.minorId !== undefined) payload.minor_id = payload.minorId
       if (payload.specializationId !== undefined) payload.specialization_id = payload.specializationId
 
-      await StudentProfileService.saveSection(usn, "personal", payload)
+      await StudentProfileService.saveSection(viewUsn, "personal", payload)
       initialDataRef.current = payload
-      const fresh = await fetchProfileSection(usn, 'personal', true)
+      const fresh = isOwnProfile ? await fetchProfileSection(viewUsn, 'personal', true) : await StudentProfileService.getSection(viewUsn, 'personal')
       if (fresh) {
         setData(fresh)
         initialDataRef.current = fresh
@@ -360,10 +374,19 @@ export const PersonalProfile = () => {
   return (
     <Box maxW="5xl" mx="auto" position="relative" pt={8}>
         <Heading size="md" mb={6}>Personal Information</Heading>
+        {isLocked && (
+          <Alert status="info" mb={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>View only</AlertTitle>
+              <AlertDescription>This section is locked by the administrator. You cannot edit it.</AlertDescription>
+            </Box>
+          </Alert>
+        )}
         <PersonalInformationForm
           data={data}
           onUpdate={handleUpdate}
-          isEditing={isEditing}
+          isEditing={canEdit && isEditing}
           fieldErrors={fieldErrors}
           mode="student"
           majorOptions={majorOptions}
@@ -375,8 +398,8 @@ export const PersonalProfile = () => {
           onProfileImageSelect={handleProfileImageSelect}
         />
 
-        {/* Placement opt-in section: only when batch policy allows placement or capstone */}
-        {canOptInToPlacement && (
+        {/* Placement opt-in section: only when batch policy allows placement or capstone (and own profile) */}
+        {canOptInToPlacement && isOwnProfile && (
           <Box mt={8} p={6} bg="gray.50" borderRadius="lg" borderWidth="1px" borderColor="gray.200">
             <HStack spacing={2} mb={2}>
               <Icon as={FaClipboardCheck} color="#1a202c" boxSize={5} />
@@ -406,7 +429,10 @@ export const PersonalProfile = () => {
           </Box>
         )}
         
-        <HStack justifyContent="flex-end" mt={8} pb={10} minH="44px">
+        <HStack justifyContent="flex-end" mt={8} pb={10} minH="44px" spacing={3}>
+            <AdminSectionLockControl sectionKey="personal" label="Personal information" />
+            {canEdit && (
+            <>
             {!isEditing ? (
                     <Button 
                         bg="#d4a960" 
@@ -449,6 +475,8 @@ export const PersonalProfile = () => {
                     </>
                 )
             }
+            </>
+            )}
         </HStack>
 
         {/* Opt-in confirmation modal */}

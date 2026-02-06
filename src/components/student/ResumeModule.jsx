@@ -19,7 +19,7 @@ import { getFileUrl } from "../../utils/fileUrl"
 
 const MAX_FILE_SIZE_MB = 5
 
-export const ResumeModule = ({ usn, fullProfile: initialFullProfile }) => {
+export const ResumeModule = ({ usn, fullProfile: initialFullProfile, readOnly = false }) => {
   const [resumeFile, setResumeFile] = useState(null)
   const [uploadError, setUploadError] = useState(null)
   const [fullProfile, setFullProfile] = useState(initialFullProfile)
@@ -255,26 +255,30 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile }) => {
                 >
                   View
                 </Button>
-                <Button
-                  leftIcon={<FaEdit />}
-                  colorScheme="gray"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="resume-btn-edit"
-                >
-                  Edit
-                </Button>
-                <Button
-                  leftIcon={<FaTrash />}
-                  colorScheme="red"
-                  variant="outline"
-                  size="sm"
-                  onClick={onDeleteOpen}
-                  className="resume-btn-delete"
-                >
-                  Delete
-                </Button>
+                {!readOnly && (
+                  <>
+                    <Button
+                      leftIcon={<FaEdit />}
+                      colorScheme="gray"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="resume-btn-edit"
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      leftIcon={<FaTrash />}
+                      colorScheme="red"
+                      variant="outline"
+                      size="sm"
+                      onClick={onDeleteOpen}
+                      className="resume-btn-delete"
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
               </HStack>
               <Input
                 ref={fileInputRef}
@@ -284,6 +288,8 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile }) => {
                 onChange={handleFileUpload}
               />
             </Flex>
+          ) : readOnly ? (
+            <Text color="gray.500" py={4}>No resume uploaded.</Text>
           ) : (
             <Box 
               border="2px dashed" 
@@ -330,13 +336,13 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile }) => {
           )}
         </Box>
 
-        {/* Auto-Generate Section */}
+        {/* Auto-Generate Section - hide when read-only (admin view) */}
+        {!readOnly && (
         <Box bg="white" p={6} borderRadius="xl" shadow="sm">
           <Heading size="md" color="#20343c" mb={4}>Auto-Generate Resume</Heading>
           <Text color="gray.600" mb={6}>
             Create a professional resume instantly using the data from your profile sections (Education, Projects, Skills, etc.).
           </Text>
-          
           <HStack gap={4}>
             <Button 
               onClick={handleAutoGenerate}
@@ -349,6 +355,7 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile }) => {
             </Button>
           </HStack>
         </Box>
+        )}
       </VStack>
 
       <AlertDialog isOpen={isDeleteOpen} onClose={onDeleteClose} leastDestructiveRef={cancelRef}>

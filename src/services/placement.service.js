@@ -834,4 +834,10 @@ export const PlacementService = {
     });
     return response.data;
   },
+
+  /** Get edit control (lock flags) for one student (admin). */
+  getStudentEditControl: async (usn) => {
+    const response = await apiFetch(`/placement/students/${encodeURIComponent(usn)}/edit-control`);
+    return response.data ?? null;
+  },
 };

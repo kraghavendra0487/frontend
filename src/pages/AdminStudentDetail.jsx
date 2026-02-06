@@ -68,7 +68,7 @@ const SIDEBAR_ITEMS = [
   { id: 'resume', label: 'Resume', icon: FaFileAlt },
 ];
 
-const AdminStudentDetail = () => {
+const AdminStudentDetail = ({ embedded = false }) => {
   const { usn } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -138,26 +138,25 @@ const AdminStudentDetail = () => {
     return () => { cancelled = true; };
   }, [usn]);
 
+  const content = (node) =>
+    embedded ? node : <AdminLayout fullWidth>{node}</AdminLayout>;
+
   if (loading) {
-    return (
-      <AdminLayout fullWidth>
-        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0">
-          <Spinner size="xl" color="#20343c" thickness="3px" />
-        </Flex>
-      </AdminLayout>
+    return content(
+      <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0">
+        <Spinner size="xl" color="#20343c" thickness="3px" />
+      </Flex>
     );
   }
 
   if (!profile) {
-    return (
-      <AdminLayout fullWidth>
-        <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0" direction="column" gap={4}>
-          <Text color="gray.500">Student not found.</Text>
-          <Button leftIcon={<ChevronLeftIcon />} onClick={() => navigate('/placement/students')} colorScheme="blue">
-            Back to Students
-          </Button>
-        </Flex>
-      </AdminLayout>
+    return content(
+      <Flex justify="center" align="center" minH="calc(100vh - 72px)" bg="#f0f0f0" direction="column" gap={4}>
+        <Text color="gray.500">Student not found.</Text>
+        <Button leftIcon={<ChevronLeftIcon />} onClick={() => navigate('/placement/students')} colorScheme="blue">
+          Back to Students
+        </Button>
+      </Flex>
     );
   }
 
@@ -806,44 +805,45 @@ const AdminStudentDetail = () => {
     }
   };
 
-  return (
-    <AdminLayout fullWidth>
-      <Box className="admin-student-detail" minH="calc(100vh - 72px)" display="flex" flexDirection="column">
-        <Box
-          className="admin-student-header"
-          bg="#20343c"
-          borderBottom="1px solid"
-          borderColor="#2d4a54"
-          px={{ base: 4, lg: 8 }}
-          py={4}
-        >
-          <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
-            <HStack spacing={4}>
-              <Button
-                variant="ghost"
-                size="sm"
-                leftIcon={<ChevronLeftIcon />}
-                onClick={() => navigate('/placement/students')}
-                color="white"
-                _hover={{ bg: 'whiteAlpha.200', color: '#FDE74C' }}
-              >
-                Back to Students
-              </Button>
-              <Box>
-                <Heading size="md" color="white" fontWeight="600">
-                  {personal.full_name || profile.firstName}
-                </Heading>
-                <Text fontSize="sm" color="whiteAlpha.800">USN: {profile.usn}</Text>
-              </Box>
-            </HStack>
-            <Wrap spacing={2}>
-              {personal.schoolName && <Badge colorScheme="teal" variant="subtle">{personal.schoolName}</Badge>}
-              {personal.programName && <Badge colorScheme="purple" variant="subtle">{personal.programName}</Badge>}
-              {personal.year_of_joining && <Badge colorScheme="gray" variant="subtle">Joined {personal.year_of_joining}</Badge>}
-              {personal.current_year && <Badge colorScheme="gray" variant="outline">Year {personal.current_year}</Badge>}
-            </Wrap>
-          </Flex>
-        </Box>
+  return content(
+    <Box className="admin-student-detail" minH="calc(100vh - 72px)" display="flex" flexDirection="column">
+        {!embedded && (
+          <Box
+            className="admin-student-header"
+            bg="#20343c"
+            borderBottom="1px solid"
+            borderColor="#2d4a54"
+            px={{ base: 4, lg: 8 }}
+            py={4}
+          >
+            <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
+              <HStack spacing={4}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  leftIcon={<ChevronLeftIcon />}
+                  onClick={() => navigate('/placement/students')}
+                  color="white"
+                  _hover={{ bg: 'whiteAlpha.200', color: '#FDE74C' }}
+                >
+                  Back to Students
+                </Button>
+                <Box>
+                  <Heading size="md" color="white" fontWeight="600">
+                    {personal.full_name || profile.firstName}
+                  </Heading>
+                  <Text fontSize="sm" color="whiteAlpha.800">USN: {profile.usn}</Text>
+                </Box>
+              </HStack>
+              <Wrap spacing={2}>
+                {personal.schoolName && <Badge colorScheme="teal" variant="subtle">{personal.schoolName}</Badge>}
+                {personal.programName && <Badge colorScheme="purple" variant="subtle">{personal.programName}</Badge>}
+                {personal.year_of_joining && <Badge colorScheme="gray" variant="subtle">Joined {personal.year_of_joining}</Badge>}
+                {personal.current_year && <Badge colorScheme="gray" variant="outline">Year {personal.current_year}</Badge>}
+              </Wrap>
+            </Flex>
+          </Box>
+        )}
 
         <Box flex="1" display="flex" flexDirection="column" minH="0" overflow="hidden">
           <Box
@@ -1139,7 +1139,6 @@ const AdminStudentDetail = () => {
           </Grid>
         </Box>
       </Box>
-    </AdminLayout>
   );
 };
 

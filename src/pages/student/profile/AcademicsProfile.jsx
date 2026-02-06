@@ -21,11 +21,17 @@ import {
   Flex,
   Spinner,
   Center,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from "@chakra-ui/react"
 import { useAuth } from "../../../context/AuthContext"
+import { useProfileView } from "../../../context/ProfileViewContext"
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
-import { FaTrash, FaChevronDown, FaPlus, FaGraduationCap, FaFolderOpen } from "react-icons/fa"
+import { FaTrash, FaChevronDown, FaPlus, FaGraduationCap, FaFolderOpen, FaLock, FaUnlock } from "react-icons/fa"
+import { PlacementService } from "../../../services/placement.service"
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -106,7 +112,12 @@ const computeAcademicYear = (yearOfJoining, semester) => {
 
 export const AcademicsProfile = () => {
   const { user } = useAuth()
-  const usn = user?.usn
+  const profileView = useProfileView()
+  const viewUsn = (profileView?.viewUsn || user?.usn || "").toString().trim().toUpperCase()
+  const isReadOnly = profileView?.isReadOnly === true
+  const isLocked = profileView?.isSectionLocked?.("academics") === true
+  const canEdit = profileView?.isAdminView === true || (!isReadOnly && !isLocked)
+  const usn = viewUsn || user?.usn
   const { invalidateProfile, clearCache } = useStudentDataCache()
   const toast = useToast()
 
@@ -122,6 +133,7 @@ export const AcademicsProfile = () => {
   const [hasActiveForm, setHasActiveForm] = useState(false)
   const [marksheetFile, setMarksheetFile] = useState(null)
   const [expandedSemesterId, setExpandedSemesterId] = useState(null)
+  const [updatingLockSemester, setUpdatingLockSemester] = useState(null)
 
   const yearOptions = useMemo(() => {
     const years = []
@@ -409,15 +421,46 @@ export const AcademicsProfile = () => {
     }
   }
 
-  const handleSaveSemester = async () => {
-    if (!usn) {
+  const handleToggleSemesterLock = async (e, semNum) => {
+    e.stopPropagation()
+    if (!profileView?.isAdminView || !viewUsn || semNum == null || semNum < 1 || semNum > 8) return
+    const field = `is_sem${Number(semNum)}_locked`
+    const isLocked = profileView.editControl?.[field] === true
+    setUpdatingLockSemester(semNum)
+    try {
+      await PlacementService.updateStudentProfileLocks(viewUsn, { [field]: !isLocked })
+      await profileView.refetchEditControl?.()
       toast({
-        title: "Not logged in",
-        description: "USN is required.",
-        status: "error",
+        title: isLocked ? "Semester unlocked" : "Semester locked",
+        description: `Semester ${semNum} is now ${isLocked ? "editable" : "locked"} for the student.`,
+        status: "success",
         duration: 3000,
         isClosable: true,
       })
+    } catch (err) {
+      toast({
+        title: "Failed to update lock",
+        description: err?.message || "Please try again.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      })
+    } finally {
+      setUpdatingLockSemester(null)
+    }
+  }
+
+  const handleSaveSemester = async () => {
+    if (!canEdit || !usn) {
+      if (!usn) {
+        toast({
+          title: "Not logged in",
+          description: "USN is required.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        })
+      }
       return
     }
 
@@ -779,6 +822,7 @@ export const AcademicsProfile = () => {
               </Text>
             </Box>
           </HStack>
+          {canEdit && (
           <Button
             onClick={handleSaveSemester}
             isLoading={saving}
@@ -792,6 +836,7 @@ export const AcademicsProfile = () => {
           >
             Save Semester
           </Button>
+          )}
         </Flex>
       </VStack>
     </>
@@ -799,6 +844,15 @@ export const AcademicsProfile = () => {
 
   return (
     <Box maxW="5xl" mx="auto" pt={4} pb={20} bg="gray.50" minH="100vh">
+      {isLocked && (
+        <Alert status="info" mb={4} mx={6} borderRadius="md">
+          <AlertIcon />
+          <Box>
+            <AlertTitle>View only</AlertTitle>
+            <AlertDescription>This section is locked by the administrator. You cannot edit it.</AlertDescription>
+          </Box>
+        </Alert>
+      )}
       {/* Sticky glass-style header — top offset so it sits below main navbar (72px) */}
       <Box
         position="sticky"
@@ -873,6 +927,7 @@ export const AcademicsProfile = () => {
         </Box>
       </Box>
 
+      {canEdit && (
       <Flex maxW="5xl" mx="auto" px={6} justify="flex-end" py={4} mb={2}>
         <Button
           px={5}
@@ -889,6 +944,7 @@ export const AcademicsProfile = () => {
           Add Semester
         </Button>
       </Flex>
+      )}
 
       <Box as="main" maxW="5xl" mx="auto" px={6}>
         {loading ? (
@@ -1013,6 +1069,18 @@ export const AcademicsProfile = () => {
                           {sgpaVal}
                         </Text>
                       </Box>
+                      {profileView?.isAdminView && !isDraft && semNum >= 1 && semNum <= 8 && (
+                        <IconButton
+                          aria-label={profileView.editControl?.[`is_sem${semNum}_locked`] ? "Locked — click to unlock" : "Unlocked — click to lock"}
+                          icon={profileView.editControl?.[`is_sem${semNum}_locked`] ? <FaLock /> : <FaUnlock />}
+                          size="sm"
+                          colorScheme={profileView.editControl?.[`is_sem${semNum}_locked`] ? "red" : "green"}
+                          variant="ghost"
+                          isLoading={updatingLockSemester === semNum}
+                          onClick={(e) => handleToggleSemesterLock(e, semNum)}
+                          title={profileView.editControl?.[`is_sem${semNum}_locked`] ? "Locked — click to unlock" : "Unlocked — click to lock"}
+                        />
+                      )}
                       <Flex
                         w={8}
                         h={8}
@@ -1030,7 +1098,7 @@ export const AcademicsProfile = () => {
                   </Flex>
 
                   <Collapse in={expanded} animateOpacity>
-                    {expanded && (isDraft ? renderFormContent() : renderViewContent(item))}
+                    {expanded && (isDraft || canEdit ? renderFormContent() : renderViewContent(item))}
                   </Collapse>
                 </Box>
               )

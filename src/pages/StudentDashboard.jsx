@@ -77,7 +77,7 @@ const StatCard = ({ icon, title, value, color = ACCENT, to }) => {
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" }) : "—");
 const formatShortDate = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—");
 
-export const StudentDashboard = () => {
+export const StudentDashboard = ({ viewData = null, basePath = null, studentName = null }) => {
   const location = useLocation();
   const toast = useToast();
   const { user, loading: authLoading } = useAuth();
@@ -92,8 +92,9 @@ export const StudentDashboard = () => {
     fetchJobOffers,
   } = useStudentDataCache();
 
+  const isViewMode = Boolean(viewData);
   const studentUSN = user?.usn;
-  const dash = cache.dashboard;
+  const dash = isViewMode ? viewData.dashboard : cache.dashboard;
   const completionPercentage = Number.isFinite(dash.completionPercentage)
     ? Math.min(100, Math.max(0, dash.completionPercentage))
     : 0;
@@ -103,29 +104,29 @@ export const StudentDashboard = () => {
   const optIn = dash.optIn === true;
   const placementPolicyAgreed = dash.placementPolicyAgreed === true;
   const portfolioCounts = dash.portfolioCounts;
-  const drives = cache.placementFeed?.drives || [];
-  const processRecords = cache.placementFeed?.processRecords || [];
-  const events = cache.events?.list || [];
-  const unreadCount = cache.notifications?.unreadCount ?? 0;
-  const jobOffers = cache.jobOffers?.list || [];
+  const drives = (isViewMode ? viewData.placementFeed : cache.placementFeed)?.drives || [];
+  const processRecords = (isViewMode ? viewData.placementFeed : cache.placementFeed)?.processRecords || [];
+  const events = (isViewMode ? viewData.events : cache.events)?.list || [];
+  const unreadCount = (isViewMode ? viewData.notifications : cache.notifications)?.unreadCount ?? 0;
+  const jobOffers = (isViewMode ? viewData.jobOffers : cache.jobOffers)?.list || [];
 
-  const showNotification = location.state?.isFirstLogin || completionPercentage < 100;
+  const showNotification = !isViewMode && (location.state?.isFirstLogin || completionPercentage < 100);
 
   useEffect(() => {
-    if (authLoading || !studentUSN) return;
+    if (isViewMode || authLoading || !studentUSN) return;
     clearCache("dashboard");
     fetchDashboard(studentUSN);
-  }, [studentUSN, authLoading, clearCache, fetchDashboard]);
+  }, [isViewMode, studentUSN, authLoading, clearCache, fetchDashboard]);
 
   useEffect(() => {
-    if (!studentUSN) return;
+    if (isViewMode || !studentUSN) return;
     fetchPlacementFeed(studentUSN);
     fetchEvents();
     fetchNotifications();
     fetchJobOffers(studentUSN);
-  }, [studentUSN, fetchPlacementFeed, fetchEvents, fetchNotifications, fetchJobOffers]);
+  }, [isViewMode, studentUSN, fetchPlacementFeed, fetchEvents, fetchNotifications, fetchJobOffers]);
 
-  const isLoading = !cache.dashboard.loaded && loading.dashboard;
+  const isLoading = !isViewMode && !cache.dashboard.loaded && loading.dashboard;
 
   const totalApplications = applications.length;
   const companiesApplied = useMemo(() => {
@@ -276,7 +277,7 @@ export const StudentDashboard = () => {
   const acceptedOffers = jobOffers.filter((o) => o.is_accepted === true);
   const pendingOffers = jobOffers.filter((o) => o.is_accepted === null);
 
-  if (authLoading || (isLoading && studentUSN)) {
+  if (!isViewMode && (authLoading || (isLoading && studentUSN))) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="80vh" w="100%">
         <Spinner size="xl" color={ACCENT_LIGHT} />
@@ -312,8 +313,8 @@ export const StudentDashboard = () => {
                 </Text>
               </Box>
             </HStack>
-            <Button size="sm" colorScheme="orange" as={RouterLink} to="/student/profile">
-              Complete Now
+            <Button size="sm" colorScheme="orange" as={RouterLink} to={basePath ? `${basePath}/personal` : "/student/profile"}>
+              {basePath ? "View profile" : "Complete Now"}
             </Button>
           </Box>
         )}
@@ -321,23 +322,27 @@ export const StudentDashboard = () => {
         <Flex justify="space-between" align="center" mb={{ base: 4, md: 5 }} flexWrap="wrap" gap={4}>
           <Box>
             <Heading color={ACCENT} size="xl">
-              Welcome back, {user?.full_name || user?.firstName || "Student"}!
+              {isViewMode ? `Dashboard: ${studentName || "Student"}` : `Welcome back, ${user?.full_name || user?.firstName || "Student"}!`}
             </Heading>
-            <Text color="gray.500">Here&apos;s your dashboard at a glance.</Text>
+            <Text color="gray.500">
+              {isViewMode ? "View-only access to student dashboard." : "Here's your dashboard at a glance."}
+            </Text>
           </Box>
-          <HStack gap={2} flexWrap="wrap">
-            <Button as={RouterLink} to="/student/notifications" bg={ACCENT} color="white" _hover={{ bg: "#1a2b32" }} leftIcon={<FaBell />}>
-              Notifications
-              {unreadCount > 0 && (
-                <Badge ml={2} colorScheme="red" borderRadius="full">
-                  {unreadCount}
-                </Badge>
-              )}
-            </Button>
-            <Button as={RouterLink} to="/student/calendar" colorScheme="teal" variant="outline" leftIcon={<FaCalendarAlt />}>
-              Calendar
-            </Button>
-          </HStack>
+          {!isViewMode && (
+            <HStack gap={2} flexWrap="wrap">
+              <Button as={RouterLink} to="/student/notifications" bg={ACCENT} color="white" _hover={{ bg: "#1a2b32" }} leftIcon={<FaBell />}>
+                Notifications
+                {unreadCount > 0 && (
+                  <Badge ml={2} colorScheme="red" borderRadius="full">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button as={RouterLink} to="/student/calendar" colorScheme="teal" variant="outline" leftIcon={<FaCalendarAlt />}>
+                Calendar
+              </Button>
+            </HStack>
+          )}
         </Flex>
 
         {/* Stats row - full width numbers */}
@@ -345,14 +350,14 @@ export const StudentDashboard = () => {
           Your numbers
         </Heading>
         <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 4, xl: 8 }} gap={{ base: 3, md: 4 }} mb={6} w="100%" minChildWidth={{ base: "120px", sm: "140px" }}>
-          <StatCard icon={<FaBriefcase />} title="Applications" value={totalApplications} color={ACCENT} to="/student/placements/feed" />
-          <StatCard icon={<FaBuilding />} title="Companies applied" value={companiesApplied} color="#4299e1" to="/student/placements/feed" />
+          <StatCard icon={<FaBriefcase />} title="Applications" value={totalApplications} color={ACCENT} to={isViewMode ? undefined : "/student/placements/feed"} />
+          <StatCard icon={<FaBuilding />} title="Companies applied" value={companiesApplied} color="#4299e1" to={isViewMode ? undefined : "/student/placements/feed"} />
           <StatCard icon={<FaChartBar />} title="OA passed" value={oaPassed} color="#48bb78" />
           <StatCard icon={<FaChartBar />} title="GD passed" value={gdPassed} color="#38b2ac" />
           <StatCard icon={<FaChartBar />} title="Technical passed" value={technicalPassed} color="#ed8936" />
           <StatCard icon={<FaChartBar />} title="Interview passed" value={interviewPassed} color="#9f7aea" />
           <StatCard icon={<FaChartBar />} title="HR passed" value={hrPassed} color="#d53f8c" />
-          <StatCard icon={<FaBriefcase />} title="Offers" value={jobOffers.length} color={ACCENT_LIGHT} to="/student/placements/offers" />
+          <StatCard icon={<FaBriefcase />} title="Offers" value={jobOffers.length} color={ACCENT_LIGHT} to={isViewMode ? undefined : "/student/placements/offers"} />
         </SimpleGrid>
 
         {/* Charts row */}
@@ -426,7 +431,8 @@ export const StudentDashboard = () => {
           </Box>
         </Grid>
 
-        {/* Upcoming events & drives with dates */}
+        {/* Upcoming events & drives with dates — hidden in admin view */}
+        {!isViewMode && (
         <Grid templateColumns={{ base: "1fr", lg: "minmax(0, 1fr) minmax(0, 1fr)" }} gap={{ base: 4, lg: 5 }} mb={6} w="100%" minW={0}>
           <Box bg={CARD_BG} p={4} borderRadius={CARD_RADIUS} shadow={CARD_SHADOW} minW={0}>
             <Heading size="sm" color={ACCENT} mb={3}>
@@ -457,9 +463,11 @@ export const StudentDashboard = () => {
                 ))
               )}
             </VStack>
-            <Button size="sm" mt={4} as={RouterLink} to="/student/placements/events" colorScheme="blue" variant="outline">
-              View all events
-            </Button>
+            {!isViewMode && (
+              <Button size="sm" mt={4} as={RouterLink} to="/student/placements/events" colorScheme="blue" variant="outline">
+                View all events
+              </Button>
+            )}
           </Box>
 
           <Box bg={CARD_BG} p={4} borderRadius={CARD_RADIUS} shadow={CARD_SHADOW} minW={0}>
@@ -488,19 +496,24 @@ export const StudentDashboard = () => {
                         </Box>
                         <Badge colorScheme={isRegistered ? "green" : "gray"}>{isRegistered ? "Registered" : "Apply"}</Badge>
                       </Flex>
-                      <Button size="xs" mt={2} as={RouterLink} to={`/student/placements/drive/${drive.id}`} variant="ghost" colorScheme="blue">
-                        View details
-                      </Button>
+                      {!isViewMode && (
+                        <Button size="xs" mt={2} as={RouterLink} to={`/student/placements/drive/${drive.id}`} variant="ghost" colorScheme="blue">
+                          View details
+                        </Button>
+                      )}
                     </Box>
                   );
                 })
               )}
             </VStack>
-            <Button size="sm" mt={4} as={RouterLink} to="/student/placements/feed" colorScheme="blue" variant="outline">
-              All drives
-            </Button>
+            {!isViewMode && (
+              <Button size="sm" mt={4} as={RouterLink} to="/student/placements/feed" colorScheme="blue" variant="outline">
+                All drives
+              </Button>
+            )}
           </Box>
         </Grid>
+        )}
 
         {/* Profile & placement status + Offers summary */}
         <SimpleGrid columns={{ base: 1, md: 2 }} gap={{ base: 4, md: 5 }} mb={6} w="100%" minW={0}>
@@ -529,21 +542,28 @@ export const StudentDashboard = () => {
               <Icon as={placementPolicyAgreed ? FaCheckCircle : FaTimesCircle} color={placementPolicyAgreed ? "green.500" : "gray.400"} />
               <Text fontSize="sm">Placement policy: {placementPolicyAgreed ? "Agreed" : "Not agreed"}</Text>
             </HStack>
-            <Wrap spacing={2}>
-              <Button size="sm" as={RouterLink} to="/student/profile" colorScheme="blue" variant="outline">
-                Complete profile
+            {!isViewMode && (
+              <Wrap spacing={2}>
+                <Button size="sm" as={RouterLink} to="/student/profile" colorScheme="blue" variant="outline">
+                  Complete profile
+                </Button>
+                {!resumeUploaded && (
+                  <Button size="sm" as={RouterLink} to="/student/profile?section=resume" colorScheme="teal" variant="outline">
+                    Upload resume
+                  </Button>
+                )}
+                {!placementPolicyAgreed && (
+                  <Button size="sm" as={RouterLink} to="/student/placements/policy" colorScheme="orange" variant="outline">
+                    Agree to policy
+                  </Button>
+                )}
+              </Wrap>
+            )}
+            {isViewMode && basePath && (
+              <Button size="sm" as={RouterLink} to={`${basePath}/personal`} colorScheme="blue" variant="outline">
+                View profile
               </Button>
-              {!resumeUploaded && (
-                <Button size="sm" as={RouterLink} to="/student/profile?section=resume" colorScheme="teal" variant="outline">
-                  Upload resume
-                </Button>
-              )}
-              {!placementPolicyAgreed && (
-                <Button size="sm" as={RouterLink} to="/student/placements/policy" colorScheme="orange" variant="outline">
-                  Agree to policy
-                </Button>
-              )}
-            </Wrap>
+            )}
           </Box>
 
           <Box bg={CARD_BG} p={4} borderRadius={CARD_RADIUS} shadow={CARD_SHADOW} minW={0} h="100%">
@@ -564,9 +584,11 @@ export const StudentDashboard = () => {
                 <Badge colorScheme="yellow">Pending: {pendingOffers.length}</Badge>
               </HStack>
             </VStack>
-            <Button size="sm" mt={4} as={RouterLink} to="/student/placements/offers" colorScheme="blue" variant="outline">
-              View all offers
-            </Button>
+            {!isViewMode && (
+              <Button size="sm" mt={4} as={RouterLink} to="/student/placements/offers" colorScheme="blue" variant="outline">
+                View all offers
+              </Button>
+            )}
           </Box>
         </SimpleGrid>
 
@@ -578,37 +600,47 @@ export const StudentDashboard = () => {
           {portfolioCounts ? (
             <SimpleGrid columns={{ base: 2, sm: 3, md: 6 }} gap={4}>
               {[
-                { key: "projects", label: "Projects", icon: FaChartBar, path: "/student/profile?section=projects" },
-                { key: "internships", label: "Internships", icon: FaBriefcase, path: "/student/profile?section=internships" },
-                { key: "trainings", label: "Trainings", icon: FaChalkboardTeacher, path: "/student/profile?section=trainings" },
-                { key: "certifications", label: "Certifications", icon: FaCertificate, path: "/student/profile?section=certifications" },
-                { key: "publications", label: "Publications", icon: FaBook, path: "/student/profile?section=publications" },
-                { key: "extraCurricular", label: "Extra-curricular", icon: FaMedal, path: "/student/profile?section=extra-curricular" },
-              ].map(({ key, label, icon: IconItem, path }) => (
-                <Link key={key} as={RouterLink} to={path} _hover={{ textDecoration: "none" }}>
-                  <Box
-                    p={3}
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    borderColor="gray.100"
-                    _hover={{ borderColor: ACCENT_LIGHT, shadow: "md" }}
-                    textAlign="center"
-                  >
-                    <Icon as={IconItem} color={ACCENT} mb={2} />
-                    <Text fontSize="sm" fontWeight="semibold" color={ACCENT}>
-                      {portfolioCounts[key] ?? 0}
-                    </Text>
-                    <Text fontSize="xs" color="gray.600">{label}</Text>
-                  </Box>
-                </Link>
-              ))}
+                { key: "projects", label: "Projects", icon: FaChartBar, path: "/student/profile?section=projects", segment: "projects" },
+                { key: "internships", label: "Internships", icon: FaBriefcase, path: "/student/profile?section=internships", segment: "internships" },
+                { key: "trainings", label: "Trainings", icon: FaChalkboardTeacher, path: "/student/profile?section=trainings", segment: "trainings" },
+                { key: "certifications", label: "Certifications", icon: FaCertificate, path: "/student/profile?section=certifications", segment: "certifications" },
+                { key: "publications", label: "Publications", icon: FaBook, path: "/student/profile?section=publications", segment: "publications" },
+                { key: "extraCurricular", label: "Extra-curricular", icon: FaMedal, path: "/student/profile?section=extra-curricular", segment: "extra-curricular" },
+              ].map(({ key, label, icon: IconItem, path, segment }) => {
+                const to = isViewMode && basePath ? `${basePath}/${segment}` : path;
+                return (
+                  <Link key={key} as={RouterLink} to={to} _hover={{ textDecoration: "none" }}>
+                    <Box
+                      p={3}
+                      borderWidth="1px"
+                      borderRadius="lg"
+                      borderColor="gray.100"
+                      _hover={{ borderColor: ACCENT_LIGHT, shadow: "md" }}
+                      textAlign="center"
+                    >
+                      <Icon as={IconItem} color={ACCENT} mb={2} />
+                      <Text fontSize="sm" fontWeight="semibold" color={ACCENT}>
+                        {portfolioCounts[key] ?? 0}
+                      </Text>
+                      <Text fontSize="xs" color="gray.600">{label}</Text>
+                    </Box>
+                  </Link>
+                );
+              })}
             </SimpleGrid>
           ) : (
             <Text color="gray.500">Complete your profile to see portfolio counts.</Text>
           )}
-          <Button size="sm" mt={4} as={RouterLink} to="/student/profile" variant="ghost">
-            Edit portfolio
-          </Button>
+          {!isViewMode && (
+            <Button size="sm" mt={4} as={RouterLink} to="/student/profile" variant="ghost">
+              Edit portfolio
+            </Button>
+          )}
+          {isViewMode && basePath && (
+            <Button size="sm" mt={4} as={RouterLink} to={`${basePath}/personal`} variant="ghost">
+              View profile
+            </Button>
+          )}
         </Box>
 
       </Box>

@@ -10,7 +10,9 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminDashboard from './pages/AdminDashboard';
 import ViewAllStudents from './pages/ViewAllStudents';
-import AdminStudentDetail from './pages/AdminStudentDetail';
+import AdminStudentProfileWrapper from './pages/AdminStudentProfileWrapper';
+import AdminStudentDashboardInsights from './pages/AdminStudentDashboardInsights';
+import AdminStudentDashboardView from './pages/AdminStudentDashboardView';
 import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
@@ -104,10 +106,11 @@ const Layout = () => {
   const isStudentProfile = location.pathname.startsWith('/student/');
   const isAlumniPage = location.pathname.startsWith('/placement/alumni-');
   const isCompanyPage = location.pathname.startsWith('/company/');
+  const isAdminStudentDetail = /^\/placement\/students\/[^/]+/.test(location.pathname);
   const onStudentPath = isStudentPath(location.pathname);
 
-  // Hide Navbar on student pages, alumni dashboard, and company pages (they have their own layouts)
-  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage || isCompanyPage;
+  // Hide Navbar on student pages, alumni dashboard, company pages, and admin student detail (they have their own layouts)
+  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage || isCompanyPage || isAdminStudentDetail;
 
   // Show Footer only on dashboard pages
   const isDashboard =
@@ -437,7 +440,35 @@ const router = createBrowserRouter([
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "academic", element: <ManageAcademicPage /> },
           { path: "profile_lock", element: <ProfileLockPage /> },
-          { path: ":usn", element: <AdminStudentDetail /> },
+        ],
+      },
+      {
+        path: "/placement/students/:usn",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <AdminStudentProfileWrapper />
+          </PlacementProtectedRoute>
+        ),
+        children: [
+          { index: true, element: <Navigate to="personal" replace /> },
+          { path: "dashboard", element: <AdminStudentDashboardView /> },
+          { path: "dashboard-insights", element: <AdminStudentDashboardInsights /> },
+          { path: "personal", element: <PersonalProfile /> },
+          { path: "contact", element: <ContactDetails /> },
+          { path: "family", element: <FamilyDetails /> },
+          { path: "education", element: <EducationDetails /> },
+          { path: "academics", element: <AcademicsProfile /> },
+          { path: "projects", element: <Projects /> },
+          { path: "internships", element: <Internships /> },
+          { path: "trainings", element: <Trainings /> },
+          { path: "certifications", element: <Certifications /> },
+          { path: "publications", element: <Publications /> },
+          { path: "extra-curricular", element: <ExtraCurricular /> },
+          { path: "other", element: <OtherExperiences /> },
+          { path: "career", element: <CareerOverview /> },
+          { path: "resume", element: <Resume /> },
+          { path: "summer-immersion", element: <SummerImmersion /> },
+          { path: "summer-internship", element: <SummerInternship /> },
         ],
       },
       {
