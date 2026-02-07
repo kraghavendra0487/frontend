@@ -30,8 +30,9 @@ import AlumniDetails from './pages/admin/AlumniDetails';
 import AlumniConnect from './pages/admin/AlumniConnect';
 import AdminCompanies from './pages/admin/Companies';
 import CompanyDetails from './pages/admin/CompanyDetails';
-import Notifications from './pages/admin/Notifications';
-import NotificationDetail from './pages/admin/NotificationDetail';
+import NotificationsComingSoon from './pages/NotificationsComingSoon';
+import AdminLayout from './components/AdminLayout';
+import CompanyLayout from './components/CompanyLayout';
 import BulkEmail from './pages/admin/BulkEmail';
 import UserLoginManagement from './pages/admin/UserLoginManagement';
 import AdminProjects from './pages/admin/AdminProjects';
@@ -62,7 +63,6 @@ import { StudentJobOffers } from './pages/student/profile/StudentJobOffers';
 import StudentEvents from './pages/student/profile/StudentEvents';
 import { StudentCalendarOfEvents } from './pages/student/profile/StudentCalendarOfEvents';
 import { StudentDriveDetails } from './pages/student/profile/StudentDriveDetails';
-import { StudentNotifications } from './pages/student/StudentNotifications';
 import AlumniRegistration from './pages/AlumniRegistration';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
 import AlumniDirectory from './pages/alumni/AlumniDirectory';
@@ -77,7 +77,6 @@ import CompanyDrives from './pages/company/CompanyDrives';
 import CompanyDriveDetail from './pages/company/CompanyDriveDetail';
 import CompanyStudentView from './pages/company/CompanyStudentView';
 import CompanyOffers from './pages/company/CompanyOffers';
-import CompanyNotifications from './pages/company/CompanyNotifications';
 import CompanyEvents from './pages/company/CompanyEvents';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
@@ -239,7 +238,9 @@ const router = createBrowserRouter([
         path: "/placement/notifications",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
-            <Notifications />
+            <AdminLayout>
+              <NotificationsComingSoon />
+            </AdminLayout>
           </PlacementProtectedRoute>
         )
       },
@@ -247,7 +248,9 @@ const router = createBrowserRouter([
         path: "/placement/notifications/:id",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
-            <NotificationDetail />
+            <AdminLayout>
+              <NotificationsComingSoon />
+            </AdminLayout>
           </PlacementProtectedRoute>
         )
       },
@@ -408,7 +411,9 @@ const router = createBrowserRouter([
         path: "/company/notifications",
         element: (
           <PlacementProtectedRoute requiredRole="company">
-            <CompanyNotifications />
+            <CompanyLayout>
+              <NotificationsComingSoon />
+            </CompanyLayout>
           </PlacementProtectedRoute>
         )
       },
@@ -491,7 +496,7 @@ const router = createBrowserRouter([
         path: "/student/notifications",
         element: (
           <PlacementProtectedRoute>
-            <StudentNotifications />
+            <NotificationsComingSoon />
           </PlacementProtectedRoute>
         )
       },

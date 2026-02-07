@@ -52,21 +52,32 @@ const SEM_FIELDS = [
 
 export default function ProfileLockPage() {
   const toast = useToast();
+  /** Database copy – only updated on load or when API save succeeds */
   const [rows, setRows] = useState([]);
+  /** Display layer – key: `${usn}:${field}`, value: boolean. What user sees; updated on click, cleared on success/revert */
+  const [localOverrides, setLocalOverrides] = useState({});
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [savingKey, setSavingKey] = useState(null); // `${usn}:${field}`
+  const [savingKey, setSavingKey] = useState(null); // `${usn}:${field}` for Reason input
 
   const missingControlCount = useMemo(
     () => rows.filter((r) => r && (r.is_sem1_locked == null)).length,
     [rows]
   );
 
+  /** Display value for a switch: local override if present, else DB copy */
+  const getDisplayChecked = (usn, field, row) => {
+    const key = `${usn}:${field}`;
+    if (localOverrides[key] !== undefined) return !!localOverrides[key];
+    return !!row[field];
+  };
+
   const load = async () => {
     setLoading(true);
     try {
       const data = await PlacementService.getStudentProfileLocks();
       setRows(Array.isArray(data?.rows) ? data.rows : []);
+      setLocalOverrides({}); // clear overrides when we refresh from server
     } catch (e) {
       toast({
         title: 'Failed to load profile locks',
@@ -112,13 +123,38 @@ export default function ProfileLockPage() {
 
   const updateLock = async (usn, field, nextVal) => {
     const key = `${usn}:${field}`;
-    setSavingKey(key);
+    const isSwitch = field !== 'lock_reason';
+    const payload = field === 'lock_reason' ? { [field]: nextVal } : { [field]: !!nextVal };
+
+    if (isSwitch) {
+      // Layer 1 – display: update immediately so DOM shows new toggle
+      setLocalOverrides((prev) => ({ ...prev, [key]: !!nextVal }));
+    } else {
+      setSavingKey(key);
+    }
+
     try {
-      await PlacementService.updateStudentProfileLocks(usn, { [field]: !!nextVal });
+      await PlacementService.updateStudentProfileLocks(usn, payload);
+      // Success: update DB copy and clear override so display stays in sync
       setRows((prev) =>
-        prev.map((r) => (r.usn === usn ? { ...r, [field]: !!nextVal } : r))
+        prev.map((r) => (r.usn === usn ? { ...r, [field]: isSwitch ? !!nextVal : nextVal } : r))
       );
+      setLocalOverrides((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      if (isSwitch) {
+        toast({ title: 'Saved', status: 'success', duration: 2000, isClosable: true });
+      }
     } catch (e) {
+      if (isSwitch) {
+        setLocalOverrides((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+      }
       toast({
         title: 'Update failed',
         description: e?.message || 'Could not update lock.',
@@ -207,40 +243,31 @@ export default function ProfileLockPage() {
                       <Td textAlign="center">
                         <Switch
                           colorScheme="green"
-                          isChecked={!!r.login_is_active}
-                          isDisabled={savingKey === `${r.usn}:login_is_active`}
+                          isChecked={getDisplayChecked(r.usn, 'login_is_active', r)}
                           onChange={(e) => updateLock(r.usn, 'login_is_active', e.target.checked)}
                         />
                       </Td>
-                      {SECTION_FIELDS.map((s) => {
-                        const val = !!r[s.key];
-                        const k = `${r.usn}:${s.key}`;
-                        return (
-                          <Td key={s.key} textAlign="center">
-                            <Switch
-                              colorScheme="red"
-                              isChecked={val}
-                              isDisabled={!hasControl || savingKey === k}
-                              onChange={(e) => updateLock(r.usn, s.key, e.target.checked)}
-                            />
-                          </Td>
-                        );
-                      })}
-                      {SEM_FIELDS.map((s) => {
-                        const val = !!r[s.key];
-                        const k = `${r.usn}:${s.key}`;
-                        return (
-                          <Td key={s.key} textAlign="center">
-                            <Switch
-                              colorScheme="red"
-                              isChecked={val}
-                              isDisabled={!hasControl || savingKey === k}
-                              onChange={(e) => updateLock(r.usn, s.key, e.target.checked)}
-                            />
-                          </Td>
-                        );
-                      })}
-                      <Td>{r.locked_by ?? '-'}</Td>
+                      {SECTION_FIELDS.map((s) => (
+                        <Td key={s.key} textAlign="center">
+                          <Switch
+                            colorScheme="red"
+                            isChecked={getDisplayChecked(r.usn, s.key, r)}
+                            isDisabled={!hasControl}
+                            onChange={(e) => updateLock(r.usn, s.key, e.target.checked)}
+                          />
+                        </Td>
+                      ))}
+                      {SEM_FIELDS.map((s) => (
+                        <Td key={s.key} textAlign="center">
+                          <Switch
+                            colorScheme="red"
+                            isChecked={getDisplayChecked(r.usn, s.key, r)}
+                            isDisabled={!hasControl}
+                            onChange={(e) => updateLock(r.usn, s.key, e.target.checked)}
+                          />
+                        </Td>
+                      ))}
+                      <Td>{r.locked_by_name ?? r.locked_by ?? '-'}</Td>
                       <Td>
                         <Input
                           size="xs"
