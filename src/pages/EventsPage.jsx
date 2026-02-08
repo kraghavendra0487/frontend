@@ -267,8 +267,10 @@ export default function EventsPage() {
       event.status ? `Status: ${event.status}` : null,
       event.details ? event.details : null,
     ].filter(Boolean).join('\n');
-    setNotificationForm({ title, message, type: 'GENERAL', link: `/events?highlight=${event.id}`, eventId: event.id });
-    onNotifOpen();
+    const link = `${window.location.origin}/events?highlight=${event.id}`;
+    navigate('/placement/notifications', {
+      state: { fromEvent: true, event: { title, message, link } },
+    });
   };
 
   const handleNotificationInputChange = (e) => {

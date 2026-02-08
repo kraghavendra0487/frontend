@@ -43,15 +43,24 @@ export const NotificationService = {
   },
 
   /**
-   * List custom notifications (admin). Params: notification_type, page, limit.
+   * List custom notifications (admin). Params: notification_type, search, page, limit.
    */
   list: async (params = {}) => {
     const sp = new URLSearchParams();
-    if (params.notification_type != null) sp.set('notification_type', params.notification_type);
+    if (params.notification_type != null && params.notification_type !== '') sp.set('notification_type', params.notification_type);
+    if (params.search != null && params.search !== '') sp.set('search', params.search);
     if (params.page != null) sp.set('page', params.page);
     if (params.limit != null) sp.set('limit', params.limit);
     const qs = sp.toString();
     const response = await apiFetch(`/notifications${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Delete notification (soft-delete).
+   */
+  delete: async (id) => {
+    const response = await apiFetch(`/notifications/${id}`, { method: 'DELETE' });
     return response.data;
   },
 

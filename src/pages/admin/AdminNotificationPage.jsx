@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { FiCheck, FiBell, FiX, FiSearch } from 'react-icons/fi';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FiCheck, FiBell, FiX, FiSearch, FiTrash2 } from 'react-icons/fi';
 import { NotificationService } from '../../services/notification.service';
 import { PlacementService } from '../../services/placement.service';
 import './AdminNotificationPortal.css';
@@ -30,6 +31,13 @@ const NOTIFICATION_TYPES = [
     buttonHoverBg: '#1e40af',
   },
   {
+    value: 'EVENT',
+    label: 'Event',
+    headerBg: 'linear-gradient(135deg, #c2410c 0%, #ea580c 100%)',
+    buttonBg: '#c2410c',
+    buttonHoverBg: '#9a3412',
+  },
+  {
     value: 'URGENT',
     label: 'Urgent',
     headerBg: 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)',
@@ -42,6 +50,8 @@ const defaultTypeTheme = NOTIFICATION_TYPES[0];
 const getTypeTheme = (type) => NOTIFICATION_TYPES.find((t) => t.value === type) || defaultTypeTheme;
 
 export default function AdminNotificationPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -81,14 +91,17 @@ export default function AdminNotificationPage() {
   const [loadingUniversal, setLoadingUniversal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   const loadHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const data = await NotificationService.list({
-        page,
-        limit,
-      });
+      const params = { page, limit };
+      if (searchQuery.trim()) params.search = searchQuery.trim();
+      if (categoryFilter && categoryFilter !== 'all') params.notification_type = categoryFilter;
+      const data = await NotificationService.list(params);
       setNotifications(data.notifications || []);
       setTotal(data.total ?? 0);
       setTotalPages(data.totalPages ?? 1);
@@ -98,11 +111,38 @@ export default function AdminNotificationPage() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, searchQuery, categoryFilter]);
 
   useEffect(() => {
     loadHistory();
   }, [loadHistory]);
+
+  useEffect(() => {
+    const state = location.state;
+    if (state?.fromEvent && state?.event && typeof state.event === 'object') {
+      const { title = '', message = '', link = '' } = state.event;
+      setEditId(null);
+      setAddOpen(true);
+      setStep(1);
+      setForm({
+        notification_type: 'EVENT',
+        title: String(title),
+        message: String(message),
+        link: String(link || ''),
+      });
+      setSelectedUserIds(new Set());
+      setSelectedRecipientDetails([]);
+      setSelectedRoleNames(new Set());
+      setRoleUserIdsByRole({});
+      setUniversalSearch('');
+      setUniversalResults([]);
+      setSendError(null);
+      PlacementService.getSchools().then((s) => setSchools(s || []));
+      PlacementService.getPrograms().then((p) => setPrograms(p || []));
+      NotificationService.getRoles().then((r) => setRoleOpts(r.roles || []));
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const openAddModal = useCallback(() => {
     setEditId(null);
@@ -134,6 +174,20 @@ export default function AdminNotificationPage() {
     setAddOpen(false);
     setEditId(null);
   }, []);
+
+  const handleDelete = useCallback(async (n) => {
+    if (!window.confirm(`Delete "${n.title || 'this notification'}"? This cannot be undone.`)) return;
+    setDeletingId(n.id);
+    try {
+      await NotificationService.delete(n.id);
+      loadHistory();
+    } catch (e) {
+      console.error('Delete notification:', e);
+      window.alert(e.message || 'Failed to delete notification');
+    } finally {
+      setDeletingId(null);
+    }
+  }, [loadHistory]);
 
   const openEditModal = useCallback((n) => {
     setEditId(n.id);
@@ -481,6 +535,30 @@ export default function AdminNotificationPage() {
             <span>Add</span>
           </button>
         </header>
+        <div className="notification-portal__toolbar">
+          <div className="notification-portal__search-wrap">
+            <FiSearch className="notification-portal__search-icon" aria-hidden />
+            <input
+              type="text"
+              className="notification-portal__search-input"
+              placeholder="Search title, message, or type…"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              aria-label="Search notifications"
+            />
+          </div>
+          <select
+            className="notification-portal__filter-select"
+            value={categoryFilter}
+            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+            aria-label="Filter by category"
+          >
+            <option value="">All categories</option>
+            {NOTIFICATION_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
         <div className="notification-portal__history-table-wrap">
           {historyLoading ? (
             <div className="notification-portal__loading">Loading...</div>
@@ -528,7 +606,9 @@ export default function AdminNotificationPage() {
                                 ? 'urgent'
                                 : (n.notification_type || '').toLowerCase() === 'placement'
                                   ? 'placement'
-                                  : 'default'
+                                  : (n.notification_type || '').toLowerCase() === 'event'
+                                    ? 'event'
+                                    : 'default'
                             }`}
                           >
                             {n.notification_type || 'CUSTOM'}
@@ -543,6 +623,16 @@ export default function AdminNotificationPage() {
                         <td>
                           <div className="notification-portal__history-actions">
                             <button type="button" className="notification-portal__link-btn" onClick={() => openEditModal(n)}>Edit</button>
+                            <button
+                              type="button"
+                              className="notification-portal__history-action-icon"
+                              onClick={() => handleDelete(n)}
+                              disabled={deletingId === n.id}
+                              aria-label="Delete notification"
+                              title="Delete"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
                           </div>
                         </td>
                       </tr>
