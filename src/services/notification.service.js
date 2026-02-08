@@ -2,8 +2,8 @@ import { apiFetch } from './api';
 
 export const NotificationService = {
   /**
-   * Create notification only (no send).
-   * @param {Object} payload - { title, message, type, link?, event_id?, drive_id? }
+   * Create custom notification (no recipients yet).
+   * @param {Object} payload - { title, message, notification_type?, link?, visible_from?, visible_until? }
    */
   create: async (payload) => {
     const response = await apiFetch('/notifications', {
@@ -14,27 +14,73 @@ export const NotificationService = {
   },
 
   /**
-   * Send notification to selected students.
-   * @param {number} id - notification id
-   * @param {string[]} usns - student USNs
+   * Get recipient options for targeting. Params: type (students|alumni|companies|roles|role_users), search?, school_id?, program_id?, role? (for role_users), limit?.
    */
-  send: async (id, usns) => {
+  getRecipientOptions: async (params = {}) => {
+    const sp = new URLSearchParams();
+    if (params.type) sp.set('type', params.type);
+    if (params.search) sp.set('search', params.search);
+    if (params.school_id != null) sp.set('school_id', params.school_id);
+    if (params.program_id != null) sp.set('program_id', params.program_id);
+    if (params.role) sp.set('role', params.role);
+    if (params.limit != null) sp.set('limit', params.limit);
+    const qs = sp.toString();
+    const response = await apiFetch(`/notifications/recipient-options${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Send notification to selected recipients. Saves to notifications + notification_nodes.
+   * @param {number} id - notification id
+   * @param {Object} payload - { target_type: 'ALL'|'ROLE'|'CUSTOM', target_roles?: string[], user_ids?: number[] }
+   */
+  send: async (id, payload) => {
     const response = await apiFetch(`/notifications/${id}/send`, {
       method: 'POST',
-      body: JSON.stringify({ usns }),
+      body: JSON.stringify(payload),
     });
     return response.data;
   },
 
   /**
-   * List all notifications (admin) with sent, unread, read stats.
+   * List custom notifications (admin). Params: notification_type, page, limit.
    */
   list: async (params = {}) => {
     const sp = new URLSearchParams();
+    if (params.notification_type != null) sp.set('notification_type', params.notification_type);
     if (params.page != null) sp.set('page', params.page);
     if (params.limit != null) sp.set('limit', params.limit);
     const qs = sp.toString();
     const response = await apiFetch(`/notifications${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Get roles for notification targeting (admin).
+   */
+  getRoles: async () => {
+    const response = await apiFetch('/notifications/roles');
+    return response.data;
+  },
+
+  /**
+   * Update notification (title, message, link, etc.).
+   */
+  update: async (id, payload) => {
+    const response = await apiFetch(`/notifications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  },
+
+  /**
+   * Duplicate a notification (same content, new id, no recipients).
+   */
+  duplicate: async (id) => {
+    const response = await apiFetch(`/notifications/${id}/duplicate`, {
+      method: 'POST',
+    });
     return response.data;
   },
 
@@ -55,47 +101,14 @@ export const NotificationService = {
   },
 
   /**
-   * Resend notification to selected students (admin).
+   * Resend notification to selected recipients (admin). Body: { user_ids?: number[] } or { target_type, target_roles }.
    */
-  resend: async (id, usns) => {
+  resend: async (id, payload) => {
     const response = await apiFetch(`/notifications/${id}/resend`, {
       method: 'POST',
-      body: JSON.stringify({ usns }),
+      body: JSON.stringify(payload),
     });
     return response.data;
   },
 
-  getMyNotifications: async () => {
-    const response = await apiFetch('/notifications/me');
-    return response.data;
-  },
-
-  getUnreadCount: async () => {
-    const response = await apiFetch('/notifications/me/unread-count');
-    return response.data;
-  },
-
-  markAsRead: async (studentNotificationId) => {
-    await apiFetch(`/notifications/me/${studentNotificationId}/read`, {
-      method: 'PATCH',
-    });
-  },
-
-  markAllAsRead: async () => {
-    await apiFetch('/notifications/me/read-all', { method: 'PATCH' });
-  },
-
-  toggleStar: async (studentNotificationId) => {
-    const response = await apiFetch(`/notifications/me/${studentNotificationId}/star`, {
-      method: 'PATCH',
-    });
-    return response.data;
-  },
-
-  toggleArchive: async (studentNotificationId) => {
-    const response = await apiFetch(`/notifications/me/${studentNotificationId}/archive`, {
-      method: 'PATCH',
-    });
-    return response.data;
-  },
 };

@@ -208,7 +208,7 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
         pt="72px"
         px={fullWidth ? 0 : 8}
         pb={fullWidth ? 0 : 8}
-        bg={fullWidth ? "transparent" : "#f0f0f0"}
+        bg={fullWidth ? "#f8fafc" : "#f0f0f0"}
         minH="100vh"
         transition="filter 0.3s ease"
         filter={isNavHovered ? 'blur(5px)' : 'none'}

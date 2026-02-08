@@ -31,6 +31,9 @@ import AlumniConnect from './pages/admin/AlumniConnect';
 import AdminCompanies from './pages/admin/Companies';
 import CompanyDetails from './pages/admin/CompanyDetails';
 import NotificationsComingSoon from './pages/NotificationsComingSoon';
+import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminNotificationLayout from './pages/admin/AdminNotificationLayout';
+import AdminNotificationPage from './pages/admin/AdminNotificationPage';
 import AdminLayout from './components/AdminLayout';
 import CompanyLayout from './components/CompanyLayout';
 import BulkEmail from './pages/admin/BulkEmail';
@@ -238,11 +241,12 @@ const router = createBrowserRouter([
         path: "/placement/notifications",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
-            <AdminLayout>
-              <NotificationsComingSoon />
-            </AdminLayout>
+            <AdminNotificationLayout />
           </PlacementProtectedRoute>
-        )
+        ),
+        children: [
+          { index: true, element: <AdminNotificationPage /> },
+        ]
       },
       {
         path: "/placement/notifications/:id",

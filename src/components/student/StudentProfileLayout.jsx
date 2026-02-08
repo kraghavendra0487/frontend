@@ -8,7 +8,6 @@ import StudentUniversalSearch from "./StudentUniversalSearch"
 import { useAuth } from "../../context/AuthContext"
 import { usePlacementTrackPolicy } from "../../context/PlacementTrackPolicyContext"
 import { ProfileViewProvider } from "../../context/ProfileViewContext"
-import { NotificationService } from "../../services/notification.service"
 import { 
   DrawerBackdrop,
   DrawerBody,
@@ -73,7 +72,6 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
   const contentRef = useRef(null)
   const [open, setOpen] = useState(false)
   const { policy: trackPolicy, loading: trackPolicyLoading } = usePlacementTrackPolicy()
-  const [unreadCount, setUnreadCount] = useState(0)
   const onPlacementTrackPath = isPlacementTrackPath(location.pathname)
 
   const getItemPath = (item) => {
@@ -84,13 +82,6 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
     }
     return item.path
   }
-
-  useEffect(() => {
-    if (!user?.usn) return
-    NotificationService.getUnreadCount()
-      .then((d) => setUnreadCount(d?.count ?? 0))
-      .catch(() => setUnreadCount(0))
-  }, [user?.usn, location.pathname])
 
   const handleLogout = () => {
     logout()
@@ -354,23 +345,6 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
             type="button"
           >
             <Icon as={FaBell} />
-            {unreadCount > 0 && (
-              <Badge 
-                colorScheme="red" 
-                fontSize="xs" 
-                borderRadius="full" 
-                pos="absolute" 
-                top="-2px" 
-                right="-2px" 
-                minW="18px" 
-                h="18px" 
-                display="flex" 
-                alignItems="center" 
-                justifyContent="center"
-              >
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </Badge>
-            )}
           </Button>
           {/* Search and Logout unchanged */}
           <HStack spacing={4}>
