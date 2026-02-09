@@ -80,7 +80,6 @@ import CompanyDrives from './pages/company/CompanyDrives';
 import CompanyDriveDetail from './pages/company/CompanyDriveDetail';
 import CompanyStudentView from './pages/company/CompanyStudentView';
 import CompanyOffers from './pages/company/CompanyOffers';
-import CompanyEvents from './pages/company/CompanyEvents';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
 import EventsPage from './pages/EventsPage';
@@ -418,14 +417,6 @@ const router = createBrowserRouter([
             <CompanyLayout>
               <NotificationsComingSoon />
             </CompanyLayout>
-          </PlacementProtectedRoute>
-        )
-      },
-      {
-        path: "/company/events",
-        element: (
-          <PlacementProtectedRoute requiredRole="company">
-            <CompanyEvents />
           </PlacementProtectedRoute>
         )
       },

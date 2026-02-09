@@ -45,9 +45,16 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('user');
         setUser(null);
       } else {
-        // Token is valid, set user
+        // Token is valid; set user and normalize so user_id is always set (standard identity)
         try {
-          setUser(JSON.parse(storedUser));
+          const u = JSON.parse(storedUser) || {};
+          setUser({
+            user_id: u.user_id ?? u.id,
+            id: u.id ?? u.user_id,
+            usn: u.usn ?? null,
+            role: u.role ?? null,
+            email: u.email ?? null,
+          });
         } catch (error) {
           console.error('Error parsing stored user:', error);
           localStorage.removeItem('token');
@@ -71,10 +78,19 @@ export const AuthProvider = ({ children }) => {
       const responseData = response.data || response;
       
       if (responseData.token) {
+        // Standard identity is user_id (user_login.id). Backend sends user_id + id; normalize so user_id is always set.
+        const u = responseData.user || {};
+        const normalizedUser = {
+          user_id: u.user_id ?? u.id,
+          id: u.id ?? u.user_id,
+          usn: u.usn ?? null,
+          role: u.role ?? null,
+          email: u.email ?? null,
+        };
         localStorage.setItem('token', responseData.token);
-        localStorage.setItem('user', JSON.stringify(responseData.user));
-        setUser(responseData.user);
-        return { success: true, user: responseData.user };
+        localStorage.setItem('user', JSON.stringify(normalizedUser));
+        setUser(normalizedUser);
+        return { success: true, user: normalizedUser };
       }
       return { success: false, message: "No token received" };
     } catch (error) {
@@ -103,9 +119,11 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!user && !isTokenExpired(localStorage.getItem('token'));
   const userRole = user?.role;
+  // Standard identity for API calls (ownership, likes, etc.): user_id. USN is for display and profile URLs only.
+  const userId = user?.user_id ?? user?.id;
 
   return (
-    <AuthContext.Provider value={{ user, userRole, login, logout, isAuthenticated, loading, verifyToken }}>
+    <AuthContext.Provider value={{ user, userId, userRole, login, logout, isAuthenticated, loading, verifyToken }}>
       {children}
     </AuthContext.Provider>
   );
