@@ -66,6 +66,7 @@ import { StudentJobOffers } from './pages/student/profile/StudentJobOffers';
 import StudentEvents from './pages/student/profile/StudentEvents';
 import { StudentCalendarOfEvents } from './pages/student/profile/StudentCalendarOfEvents';
 import { StudentDriveDetails } from './pages/student/profile/StudentDriveDetails';
+import MyProjectsPage from './pages/student/MyProjectsPage';
 import AlumniRegistration from './pages/AlumniRegistration';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
 import AlumniDirectory from './pages/alumni/AlumniDirectory';
@@ -503,6 +504,7 @@ const router = createBrowserRouter([
       { path: "/student/profile/education", element: <PlacementProtectedRoute><EducationDetails /></PlacementProtectedRoute> },
       { path: "/student/profile/academics", element: <PlacementProtectedRoute><AcademicsProfile /></PlacementProtectedRoute> },
       { path: "/student/profile/projects", element: <PlacementProtectedRoute><Projects /></PlacementProtectedRoute> },
+      { path: "/student/projects", element: <PlacementProtectedRoute><MyProjectsPage /></PlacementProtectedRoute> },
       { path: "/student/profile/internships", element: <PlacementProtectedRoute><Internships /></PlacementProtectedRoute> },
       { path: "/student/profile/trainings", element: <PlacementProtectedRoute><Trainings /></PlacementProtectedRoute> },
       { path: "/student/profile/certifications", element: <PlacementProtectedRoute><Certifications /></PlacementProtectedRoute> },

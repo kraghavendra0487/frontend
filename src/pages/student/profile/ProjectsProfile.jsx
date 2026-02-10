@@ -54,11 +54,13 @@ export const ProjectsProfile = () => {
     } catch (error) {
       const msg = getProfileErrorMessage(error)
       setLoadError(msg)
+      setData([])
+      initialDataRef.current = []
       toast({
         title: "Error loading data",
         description: msg,
         status: "error",
-        duration: 5000,
+        duration: 7000,
         isClosable: true,
       })
     } finally {

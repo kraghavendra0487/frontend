@@ -1,9 +1,11 @@
 const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const API_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl.replace(/\/$/, '')}/api`;
 
+let networkErrorWarnedOnce = false;
+
 export const apiFetch = async (endpoint, options = {}) => {
   const url = `${API_URL}${endpoint}`;
-  console.log('[apiFetch]', { method: options.method || 'GET', url, hasBody: !!options.body });
+  if (!networkErrorWarnedOnce) console.log('[apiFetch]', { method: options.method || 'GET', url, hasBody: !!options.body });
 
   const headers = {
     'Content-Type': 'application/json',
@@ -55,7 +57,18 @@ export const apiFetch = async (endpoint, options = {}) => {
     console.log('[apiFetch] SUCCESS', { url, status: response.status });
     return { ok: true, json: async () => data, data };
   } catch (error) {
-    console.error("API Fetch Error:", error);
+    // Network unreachable (e.g. backend not running) → friendlier message, log once per session
+    if (error instanceof TypeError && (error.message === 'Failed to fetch' || error.message === 'Load failed')) {
+      if (!networkErrorWarnedOnce) {
+        networkErrorWarnedOnce = true;
+        console.warn('[apiFetch] Backend unreachable (ERR_CONNECTION_REFUSED). Start it with: cd backend && npm run dev');
+      }
+      const friendly = new Error('Cannot reach server. Make sure the backend is running (e.g. cd backend && npm run dev) and the URL is correct.');
+      friendly.cause = error;
+      friendly.isNetworkError = true;
+      throw friendly;
+    }
+    console.error('API Fetch Error:', error);
     throw error;
   }
 };

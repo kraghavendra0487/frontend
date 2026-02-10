@@ -323,8 +323,10 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
               <EditProjectForm
                 index={editingIndex}
                 item={currentItem}
+                maxPriority={getMaxPriority(items)}
                 onChange={handleChange}
                 onUpload={handleUpload}
+                onModalErrors={setModalErrors}
                 isEditing={true}
                 fieldErrors={mergedFieldErrors}
               />
@@ -406,7 +408,8 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete }) {
   )
 }
 
-function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErrors = {} }) {
+function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onModalErrors, isEditing, fieldErrors = {} }) {
+  const setModalErrors = onModalErrors || (() => {})
   return (
     <VStack spacing={4} align="stretch">
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -474,7 +477,7 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
             className="projects-edit-input"
           />
         </Field>
-        <Field label="PRIORITY" errorText={fieldErrors.priority} helperText={`1-${getMaxPriority(items)} (auto-ordered)`}>
+        <Field label="PRIORITY" errorText={fieldErrors.priority} helperText={`1-${maxPriority} (auto-ordered)`}>
           <Input
             type="text"
             inputMode="numeric"
@@ -487,7 +490,7 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
               }
               if (/^\d+$/.test(v)) {
                 const n = parseInt(v, 10)
-                const maxAllowed = getMaxPriority(items)
+                const maxAllowed = maxPriority
                 if (n >= 1 && n <= maxAllowed) {
                   onChange(index, "priority", n)
                 }
@@ -498,7 +501,7 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
               if (v === "") return
               const n = parseInt(v, 10)
               if (!Number.isNaN(n)) {
-                const maxAllowed = getMaxPriority(items)
+                const maxAllowed = maxPriority
                 if (n >= 1 && n <= maxAllowed) {
                   onChange(index, "priority", n)
                 } else if (n > maxAllowed) {
@@ -508,7 +511,7 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
                 }
               }
             }}
-            placeholder={`e.g. 1 to ${getMaxPriority(items)}`}
+            placeholder={`e.g. 1 to ${maxPriority}`}
             className="projects-edit-input"
           />
         </Field>
@@ -562,12 +565,12 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
             onBlur={(e) => {
               const val = e.target.value.trim()
               if (val && !validateProjectUrl(val).valid) {
-                setModalErrors(prev => ({
+                setModalErrors((prev) => ({
                   ...prev,
                   github_repo: validateProjectUrl(val).message
                 }))
               } else {
-                setModalErrors(prev => {
+                setModalErrors((prev) => {
                   const newErrors = { ...prev }
                   delete newErrors.github_repo
                   return newErrors
@@ -588,12 +591,12 @@ function EditProjectForm({ index, item, onChange, onUpload, isEditing, fieldErro
             onBlur={(e) => {
               const val = e.target.value.trim()
               if (val && !validateProjectUrl(val).valid) {
-                setModalErrors(prev => ({
+                setModalErrors((prev) => ({
                   ...prev,
                   hosted_link: validateProjectUrl(val).message
                 }))
               } else {
-                setModalErrors(prev => {
+                setModalErrors((prev) => {
                   const newErrors = { ...prev }
                   delete newErrors.hosted_link
                   return newErrors
