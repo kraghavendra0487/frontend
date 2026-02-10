@@ -32,6 +32,8 @@ import { getFileUrl } from '../utils/fileUrl';
 const ProjectDetailModal = ({ project, isOpen, onClose }) => {
   if (!project) return null;
   const snaps = project.project_snaps || project.snaps || [];
+  const [aspect, setAspect] = React.useState('laptop');
+  const [votes, setVotes] = React.useState({ phone: 0, laptop: 0 });
   let skills = [];
   if (typeof project.skills === 'string') skills = project.skills.split(',').map((s) => s.trim()).filter(Boolean);
   else if (Array.isArray(project.skills)) skills = project.skills;
@@ -69,18 +71,48 @@ const ProjectDetailModal = ({ project, isOpen, onClose }) => {
               <Box overflowX="auto" whiteSpace="nowrap" pb={2}>
                 <HStack spacing={4}>
                   {snaps.map((snap, i) => (
-                    <Image
+                    <Box
                       key={i}
-                      src={getFileUrl(snap)}
-                      h="180px"
-                      minW="240px"
-                      maxW="260px"
+                      w="240px"
+                      // Same aspect rules as student showcase: phone vs laptop
+                      aspectRatio={aspect === 'laptop' ? 16 / 9 : 9 / 16}
                       borderRadius="lg"
-                      objectFit="cover"
+                      overflow="hidden"
+                      border="1px solid"
+                      borderColor="#020617"
+                      bg="#000"
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
                       shadow="sm"
-                      alt=""
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                    >
+                      <Image
+                        src={getFileUrl(snap)}
+                        maxH="100%"
+                        maxW="100%"
+                        objectFit="contain"
+                        alt=""
+                        onLoad={(e) => {
+                          const img = e.target;
+                          const w = img.naturalWidth || 0;
+                          const h = img.naturalHeight || 0;
+                          if (!w || !h) return;
+                          const ratio = w / h;
+                          let vote = 'laptop';
+                          if (ratio < 1) vote = 'phone';
+                          setVotes((prev) => {
+                            const next = {
+                              phone: prev.phone + (vote === 'phone' ? 1 : 0),
+                              laptop: prev.laptop + (vote === 'laptop' ? 1 : 0),
+                            };
+                            // Majority wins; tie → laptop
+                            setAspect(next.laptop >= next.phone ? 'laptop' : 'phone');
+                            return next;
+                          });
+                        }}
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    </Box>
                   ))}
                 </HStack>
               </Box>

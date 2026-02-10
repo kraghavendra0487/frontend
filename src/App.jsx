@@ -83,6 +83,7 @@ import CompanyStudentView from './pages/company/CompanyStudentView';
 import CompanyOffers from './pages/company/CompanyOffers';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
+import ProjectSharePage from './pages/ProjectSharePage';
 import EventsPage from './pages/EventsPage';
 import './App.css';
 import { Flex, Box } from '@chakra-ui/react';
@@ -154,6 +155,7 @@ const router = createBrowserRouter([
       { path: "/forgot-password", element: <ForgotPassword /> },
       { path: "/showcase/:usn", element: <UniversalProjectShowcase /> },
       { path: "/projects", element: <ProjectsShowcase /> },
+      { path: "/projects/share/:token", element: <ProjectSharePage /> },
       { path: "/events", element: <EventsPage /> },
       { 
         path: "/placement/dashboard", 

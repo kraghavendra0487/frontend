@@ -20,6 +20,7 @@ function MyProjectsPageInner() {
   const [createTitle, setCreateTitle] = useState('');
   const [createShortDesc, setCreateShortDesc] = useState('');
   const [creating, setCreating] = useState(false);
+  const [shareLoadingId, setShareLoadingId] = useState(null);
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -57,6 +58,53 @@ function MyProjectsPageInner() {
       fetchProjects();
     } catch (e) {
       toast({ title: 'Error', description: e.message, status: 'error', isClosable: true });
+    }
+  };
+
+  const handleShare = async (projectId) => {
+    setShareLoadingId(projectId);
+    try {
+      const data = await ProjectService.createShareLink(projectId);
+      const path = data?.url || `/projects/share/${data?.share_token}`;
+      const fullUrl = `${window.location.origin}${path}`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        try {
+          await navigator.clipboard.writeText(fullUrl);
+          toast({
+            title: 'Share link copied',
+            description: fullUrl,
+            status: 'success',
+            isClosable: true,
+            duration: 9000,
+          });
+        } catch {
+          toast({
+            title: 'Share link created',
+            description: fullUrl,
+            status: 'success',
+            isClosable: true,
+            duration: 9000,
+          });
+        }
+      } else {
+        toast({
+          title: 'Share link created',
+          description: fullUrl,
+          status: 'success',
+          isClosable: true,
+          duration: 9000,
+        });
+      }
+    } catch (e) {
+      toast({
+        title: 'Error creating share link',
+        description: e.message,
+        status: 'error',
+        isClosable: true,
+      });
+    } finally {
+      setShareLoadingId(null);
     }
   };
 
@@ -158,6 +206,14 @@ function MyProjectsPageInner() {
                 )}
                 <Button size="sm" variant="outline" as="a" href={`/student/profile/projects`} title="Edit from Profile → Projects">
                   Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleShare(p.id)}
+                  isLoading={shareLoadingId === p.id}
+                >
+                  Share
                 </Button>
                 <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleDelete(p.id)}>
                   Delete

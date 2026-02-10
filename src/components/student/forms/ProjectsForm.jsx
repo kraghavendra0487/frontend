@@ -27,9 +27,10 @@ import {
 } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
 import { useState, useEffect, useRef } from "react"
-import { FaPlus, FaTrash, FaEdit } from "react-icons/fa"
+import { FaPlus, FaTrash, FaEdit, FaExternalLinkAlt } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
+import { ProjectService } from "../../../services/project.service"
 import { getFileUrl } from "../../../utils/fileUrl"
 import { validateUrl } from "../../../utils/profileValidators"
 
@@ -273,6 +274,47 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
 
   const currentItem = editingIndex != null && items[editingIndex] ? items[editingIndex] : null
 
+  const handleShareFromManage = async (item) => {
+    if (!item?.id) {
+      toast({
+        status: "warning",
+        title: "Cannot share",
+        description: "Please save the project first so it has an ID.",
+        isClosable: true,
+      })
+      return
+    }
+    try {
+      const data = await ProjectService.createShareLink(item.id)
+      const path = data?.url || `/projects/share/${data?.share_token}`
+      const fullUrl = `${window.location.origin}${path}`
+      try {
+        await navigator.clipboard.writeText(fullUrl)
+        toast({
+          status: "success",
+          title: "Share link copied",
+          description: fullUrl,
+          isClosable: true,
+          duration: 9000,
+        })
+      } catch {
+        toast({
+          status: "success",
+          title: "Share link created",
+          description: fullUrl,
+          isClosable: true,
+          duration: 9000,
+        })
+      }
+    } catch (e) {
+      toast({
+        status: "error",
+        title: "Error creating share link",
+        description: e.message,
+        isClosable: true,
+      })
+    }
+  }
   return (
     <Box className="projects-inventory-wrap">
       <Flex className="projects-inventory-header" justify="space-between" align="center" flexWrap="wrap" gap={4}>
@@ -309,6 +351,7 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
               isEditing={isEditing}
               onEdit={() => openEditModal(index)}
               onDelete={() => handleDelete(index)}
+              onShare={handleShareFromManage}
             />
           ))}
       </VStack>
@@ -350,11 +393,12 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
   )
 }
 
-function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete }) {
+function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShare }) {
   const snaps = item.project_snaps || []
   const coverImg = snaps.length > 0 ? snaps[0] : null
   const visibility = (item.visibility || "PRIVATE").toUpperCase()
   const isPublic = visibility === "PUBLIC"
+  const visibilityLabel = visibility === "PUBLIC" ? "PUBLIC" : visibility === "LINK_ONLY" ? "LINK ONLY" : "PRIVATE"
   const priorityVal = item.priority
   const priorityDisplay = priorityVal !== undefined && priorityVal !== null && String(priorityVal).trim() !== ""
     ? String(priorityVal).trim()
@@ -377,7 +421,7 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete }) {
           {item.genre || "—"}
         </Text>
         <span className={`projects-inventory-card-status ${isPublic ? "is-public" : ""}`}>
-          {isPublic ? "PUBLIC" : "PRIVATE"}
+          {visibilityLabel}
         </span>
       </div>
       <div className="projects-inventory-card-priority">
@@ -402,6 +446,15 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete }) {
             colorScheme="red"
             onClick={onDelete}
           />
+          {typeof onShare === "function" && item.id && (
+            <IconButton
+              aria-label="Share project"
+              icon={<FaExternalLinkAlt />}
+              size="sm"
+              variant="ghost"
+              onClick={() => onShare(item)}
+            />
+          )}
         </HStack>
       )}
     </div>
@@ -550,6 +603,7 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
           >
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
+            <option value="LINK_ONLY">PUBLIC + SHAREABLE LINK</option>
           </Select>
         </Field>
       </SimpleGrid>

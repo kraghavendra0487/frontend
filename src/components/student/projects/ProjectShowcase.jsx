@@ -1,8 +1,9 @@
-import { Box, Text, Heading, VStack, HStack, Icon, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Tag, Link, SimpleGrid, Divider } from "@chakra-ui/react";
+import { Box, Text, Heading, VStack, HStack, Icon, Button, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Tag, Link, SimpleGrid, Divider, useToast } from "@chakra-ui/react";
 import { FaExternalLinkAlt, FaGithub, FaStar, FaEye, FaHeart, FaUser } from "react-icons/fa";
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { getFileUrl } from "../../../utils/fileUrl";
 import { StudentProfileContentRefContext } from "../StudentProfileLayout";
+import { ProjectService } from "../../../services/project.service";
 
 /* Color palette: Bright Green #03C03C, Lime Green #A2D43D, White #F2F3F4, Dark Gray #4A4952, Black #1F1E26 */
 
@@ -23,15 +24,23 @@ const getTechnologies = (project) => {
 };
 
 const StarRating = ({ rating }) => {
-  // rating is 1-10; display as 5 stars (rating/2)
-  const value = (rating ?? 5) / 2;
+  // rating is 1-10 from profile; display as 0-5 stars (rating/2).
+  // When no rating is set, show empty stars and no numeric value.
+  const hasRating = rating != null && !Number.isNaN(Number(rating));
+  const value = hasRating ? Number(rating) / 2 : 0; // 0-5
   const fullStars = Math.floor(value);
   const hasHalf = value % 1 >= 0.5;
   const stars = [];
   for (let i = 0; i < 5; i++) {
-    if (i < fullStars) stars.push("full");
-    else if (i === fullStars && hasHalf) stars.push("half");
-    else stars.push("empty");
+    if (!hasRating) {
+      stars.push("empty");
+    } else if (i < fullStars) {
+      stars.push("full");
+    } else if (i === fullStars && hasHalf) {
+      stars.push("half");
+    } else {
+      stars.push("empty");
+    }
   }
   return (
     <span className="showcase-stars">
@@ -40,22 +49,24 @@ const StarRating = ({ rating }) => {
           ★
         </span>
       ))}
-      <span className="showcase-star-score">{Math.round(rating ?? 5)}/10</span>
+      <span className="showcase-star-score">
+        {hasRating ? `${value.toFixed(1)}/5` : "—"}
+      </span>
     </span>
   );
 };
 
 // Compute average rating for a project. Prefer backend-provided `average_rating`, otherwise
-// average available role ratings (self + admin). Default to 5 when no ratings exist.
+// average available role ratings (self + admin). Return null when no ratings exist.
 const computeAverage = (p) => {
-  if (!p) return 5;
+  if (!p) return null;
   if (p.average_rating != null) return Number(p.average_rating);
   const self = p.self_rating != null ? Number(p.self_rating) : null;
   const admin = p.admin_rating != null ? Number(p.admin_rating) : null;
   if (self != null && admin != null) return (self + admin) / 2;
   if (self != null) return self;
   if (admin != null) return admin;
-  return 5;
+  return null;
 }
 
 export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) => {
@@ -63,10 +74,65 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const layoutContentRef = useContext(StudentProfileContentRefContext);
   const portalContainerRef = contentAreaRef || layoutContentRef;
+  const toast = useToast();
+  const [shareLoading, setShareLoading] = useState(false);
+  const [projectAspect, setProjectAspect] = useState("phone"); // 'phone' or 'laptop'
+  const [aspectVotes, setAspectVotes] = useState({ phone: 0, laptop: 0 });
 
   const handleViewDetails = (project) => {
     setSelectedProject(project);
     onOpen();
+  };
+
+  useEffect(() => {
+    // Reset aspect ratio + votes when switching projects
+    setProjectAspect("phone");
+    setAspectVotes({ phone: 0, laptop: 0 });
+  }, [selectedProject]);
+
+  const handleShare = async () => {
+    if (!selectedProject?.id) {
+      toast({
+        title: "Cannot share",
+        description: "This project does not have an id yet. Please save it first.",
+        status: "warning",
+        isClosable: true,
+      });
+      return;
+    }
+    setShareLoading(true);
+    try {
+      const data = await ProjectService.createShareLink(selectedProject.id);
+      const path = data?.url || `/projects/share/${data?.share_token}`;
+      const fullUrl = `${window.location.origin}${path}`;
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        toast({
+          title: "Share link copied",
+          description: fullUrl,
+          status: "success",
+          isClosable: true,
+          duration: 9000,
+        });
+      } catch {
+        toast({
+          title: "Share link created",
+          description: fullUrl,
+          status: "success",
+          isClosable: true,
+          duration: 9000,
+        });
+      }
+    } catch (e) {
+      toast({
+        title: "Error creating share link",
+        description: e.message,
+        status: "error",
+        isClosable: true,
+      });
+    } finally {
+      setShareLoading(false);
+    }
   };
 
   if (projects.length === 0) {
@@ -146,11 +212,8 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
               <VStack align="stretch" spacing={5}>
                 <HStack spacing={0} py={4} align="flex-start" divider={<Divider orientation="vertical" h="36px" borderColor="#e2e8f0" />}>
                   <Box px={4} py={2}>
-                    <HStack spacing={1}>
-                          <Text fontWeight="bold" fontSize="lg" color="#0f172a">{(selectedProject ? (selectedProject.average_rating != null ? Number(selectedProject.average_rating) : computeAverage(selectedProject)) : 0).toFixed(1)}</Text>
-                          <Icon as={FaStar} color={COLORS.limeGreen} boxSize={4} />
-                        </HStack>
-                        <Text fontSize="xs" color="#64748b" fontWeight="bold">RATING</Text>
+                    <Text fontSize="xs" color="#64748b" fontWeight="bold" mb={1}>RATING</Text>
+                    <StarRating rating={computeAverage(selectedProject)} />
                   </Box>
                   <Box px={4} py={2}>
                     <HStack spacing={2}>
@@ -182,22 +245,77 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
 
                 {(() => {
                   const snaps = selectedProject.project_snaps || selectedProject.snaps || [];
-                  return snaps.length > 0 && (
+                  if (!snaps.length) return null;
+
+                  // Always render 4 fixed tiles: first filled, remaining as either images or placeholders.
+                  const tiles = new Array(4).fill(null).map((_, i) => snaps[i] || null);
+
+                  return (
                     <Box>
-                      <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4}>
-                        {snaps.slice(0, 4).map((snap, i) => (
-                          <Image
+                      <SimpleGrid columns={{ base: 2, sm: 4 }} spacing={4}>
+                        {tiles.map((snap, i) => (
+                          <Box
                             key={i}
-                            src={getFileUrl(snap)}
-                            h="160px"
                             w="100%"
+                            // Phone: taller (e.g. 9:16), Laptop: wider (16:9)
+                            aspectRatio={projectAspect === "laptop" ? 16 / 9 : 9 / 16}
                             borderRadius="lg"
-                            objectFit="cover"
-                            shadow="sm"
+                            overflow="hidden"
                             border="1px solid"
-                            borderColor="#e2e8f0"
-                            onError={(e) => { e.target.style.display = "none"; }}
-                          />
+                            borderColor={snap ? "#020617" : "transparent"}
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            boxShadow="sm"
+                            bg={snap ? "#000" : "transparent"}
+                          >
+                            {snap ? (
+                              <Image
+                                src={getFileUrl(snap)}
+                                maxH="100%"
+                                maxW="100%"
+                                objectFit="contain"
+                                onLoad={(e) => {
+                                  if (!e?.target) return;
+                                  const img = e.target;
+                                  const w = img.naturalWidth || 0;
+                                  const h = img.naturalHeight || 0;
+                                  if (!w || !h) return;
+                                  const ratio = w / h;
+
+                                  // Bias rules:
+                                  // - If square (ratio === 1): laptop
+                                  // - If ratio < 1: phone
+                                  // - If ratio > 1: laptop
+                                  let vote = "laptop";
+                                  if (ratio < 1) vote = "phone";
+
+                                  setAspectVotes((prev) => {
+                                    const nextVotes = {
+                                      phone: prev.phone + (vote === "phone" ? 1 : 0),
+                                      laptop: prev.laptop + (vote === "laptop" ? 1 : 0),
+                                    };
+
+                                    // Majority decision:
+                                    // - If majority laptop → laptop
+                                    // - If majority phone → phone
+                                    // - If neutral (tie) → laptop
+                                    if (nextVotes.laptop >= nextVotes.phone) {
+                                      setProjectAspect("laptop");
+                                    } else {
+                                      setProjectAspect("phone");
+                                    }
+
+                                    return nextVotes;
+                                  });
+                                }}
+                                onError={(e) => { e.target.style.display = "none"; }}
+                              />
+                            ) : (
+                              // Empty tile: fully transparent interior (only border shows)
+                              <Box w="100%" h="100%" />
+                            )}
+                          </Box>
                         ))}
                       </SimpleGrid>
                     </Box>
@@ -222,6 +340,15 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
           </ModalBody>
           <ModalFooter bg="#f8fafc" borderBottomRadius="xl" borderTop="1px solid" borderColor="#e2e8f0">
             <HStack w="full" spacing={4} justify="flex-end">
+              {selectedProject?.id && (
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  isLoading={shareLoading}
+                >
+                  Share
+                </Button>
+              )}
               {selectedProject?.hosted_link && (
                 <Button
                   as={Link}
@@ -267,6 +394,13 @@ const ShowcaseCard = ({ project, studentName, onView }) => {
   const category = (project.genre || "Project").toUpperCase().replace(/\s+/g, " ");
   const priority = project.priority ?? 1;
   const rating = computeAverage(project);
+  const [aspect, setAspect] = useState("laptop");
+  const [votes, setVotes] = useState({ phone: 0, laptop: 0 });
+
+  useEffect(() => {
+    setAspect("laptop");
+    setVotes({ phone: 0, laptop: 0 });
+  }, [project?.id]);
 
   return (
     <div
@@ -326,15 +460,55 @@ const ShowcaseCard = ({ project, studentName, onView }) => {
             {project.full_description || project.one_line_description || "No description available."}
           </p>
 
-          {gallerySnaps.length > 0 && (
-            <div className="showcase-gallery">
-              {gallerySnaps.map((snap, i) => (
-                <div key={i} className="showcase-gallery-item">
-                  <img src={getFileUrl(snap)} alt="" onError={(e) => { e.target.style.display = "none"; }} />
-                </div>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const tiles = [...gallerySnaps];
+            while (tiles.length < 4) tiles.push(null);
+
+            if (!tiles.some(Boolean)) return null;
+
+            return (
+              <div className="showcase-gallery showcase-gallery--aspect">
+                {tiles.map((snap, i) => (
+                  <div
+                    key={i}
+                    className={`showcase-gallery-item showcase-gallery-item--${aspect}`}
+                    style={{
+                      aspectRatio: aspect === "laptop" ? 16 / 9 : 9 / 16,
+                    }}
+                  >
+                    {snap && (
+                      <img
+                        src={getFileUrl(snap)}
+                        alt=""
+                        style={{ objectFit: "contain" }}
+                        onLoad={(e) => {
+                          const img = e.target;
+                          const w = img.naturalWidth || 0;
+                          const h = img.naturalHeight || 0;
+                          if (!w || !h) return;
+                          const ratio = w / h;
+                          let vote = "laptop";
+                          if (ratio < 1) vote = "phone";
+
+                          setVotes((prev) => {
+                            const next = {
+                              phone: prev.phone + (vote === "phone" ? 1 : 0),
+                              laptop: prev.laptop + (vote === "laptop" ? 1 : 0),
+                            };
+                            setAspect(next.laptop >= next.phone ? "laptop" : "phone");
+                            return next;
+                          });
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="showcase-footer">
             {project.mentor_name && (
