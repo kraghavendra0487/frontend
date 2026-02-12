@@ -622,10 +622,13 @@ export const PlacementService = {
     return response.data;
   },
 
-  /** Admin: get all student projects (for approve/rate) */
+  /** Admin: get all student projects (uses projects table via admin API) */
   getAllProjects: async (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    const url = q ? `/placement/projects?${q}` : '/placement/projects';
+    const sp = new URLSearchParams();
+    if (params.project_status) sp.set('project_status', params.project_status);
+    if (params.search) sp.set('search', params.search);
+    const q = sp.toString();
+    const url = q ? `/admin/projects?${q}` : '/admin/projects';
     const response = await apiFetch(url);
     return response.data ?? [];
   },
@@ -679,21 +682,41 @@ export const PlacementService = {
     return response.data;
   },
 
-  /** Admin: update project (admin_rating, is_approved) */
+  /** Admin: update project (project_status: approved|rejected|archived, admin_rating 1-5) */
   updateProject: async (id, data) => {
-    const response = await apiFetch(`/placement/projects/${id}`, {
+    const payload = {};
+    if (data.project_status) payload.project_status = data.project_status;
+    else if (data.is_approved !== undefined) payload.project_status = data.is_approved ? 'approved' : 'rejected';
+    if (data.admin_rating != null) payload.admin_rating = Math.min(5, Math.max(1, Math.round(Number(data.admin_rating))));
+    const response = await apiFetch(`/admin/projects/${id}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return response.data;
   },
 
-  /** Public: get approved PUBLIC projects for showcase (?best=true for top-rated) */
+  /** Public: get approved PUBLIC projects for showcase (uses /api/projects/feed) */
   getPublicProjects: async (params = {}) => {
-    const q = new URLSearchParams(params).toString();
-    const url = q ? `/placement/projects/public?${q}` : '/placement/projects/public';
+    const sp = new URLSearchParams();
+    if (params.limit) sp.set('limit', params.limit);
+    if (params.best === 'true') sp.set('sort', 'popular');
+    const q = sp.toString();
+    const url = q ? `/projects/feed?${q}` : '/projects/feed';
     const response = await apiFetch(url);
-    return response.data ?? [];
+    const rows = response.data ?? response ?? [];
+    return Array.isArray(rows) ? rows.map((r) => ({
+      id: r.id,
+      usn: r.owner_usn,
+      title: r.title,
+      one_line_description: r.short_description,
+      full_description: r.description,
+      project_snaps: r.cover_url ? [r.cover_url] : [],
+      genre: r.category,
+      technologies: r.tech_stack || [],
+      views_count: r.views ?? 0,
+      likes_count: r.likes ?? 0,
+      average_rating: r.avg_rating ?? 0,
+    })) : [];
   },
 
   /**

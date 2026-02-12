@@ -79,7 +79,15 @@ export const ProjectService = {
   },
 
   /**
-   * Publish project (owner only). Sets visibility=PUBLIC, published_at=now(), ensures project_metrics.
+   * Submit project for admin approval (draft → submitted). PATCH /api/projects/:id/submit
+   */
+  submit: async (id) => {
+    const response = await apiFetch(`${BASE}/${id}/submit`, { method: 'PATCH' });
+    return response.data ?? response;
+  },
+
+  /**
+   * Publish project (owner only). Requires project_status=approved. Sets visibility=PUBLIC, published_at=now().
    * PATCH /api/projects/:id/publish
    */
   publish: async (id) => {
@@ -133,6 +141,36 @@ export const ProjectService = {
     const response = await apiFetch(`${BASE}/${projectId}/reviews`, {
       method: 'POST',
       body: JSON.stringify(body),
+    });
+    return response.data ?? response;
+  },
+
+  /** Reply to review (owner only). PATCH /api/projects/:id/reviews/:reviewId */
+  replyReview: async (projectId, reviewId, body) => {
+    const response = await apiFetch(`${BASE}/${projectId}/reviews/${reviewId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+    return response.data ?? response;
+  },
+
+  /** Toggle like. POST /api/projects/:id/like */
+  toggleLike: async (projectId) => {
+    const response = await apiFetch(`${BASE}/${projectId}/like`, { method: 'POST' });
+    return response.data ?? response;
+  },
+
+  /** Toggle favorite. POST /api/projects/:id/favorite */
+  toggleFavorite: async (projectId) => {
+    const response = await apiFetch(`${BASE}/${projectId}/favorite`, { method: 'POST' });
+    return response.data ?? response;
+  },
+
+  /** Rate project (1-5). PUT /api/projects/:id/rate */
+  rate: async (projectId, rating) => {
+    const response = await apiFetch(`${BASE}/${projectId}/rate`, {
+      method: 'PUT',
+      body: JSON.stringify({ rating }),
     });
     return response.data ?? response;
   },

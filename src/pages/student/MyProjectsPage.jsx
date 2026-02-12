@@ -40,6 +40,16 @@ function MyProjectsPageInner() {
     fetchProjects();
   }, [fetchProjects]);
 
+  const handleSubmit = async (id) => {
+    try {
+      await ProjectService.submit(id);
+      toast({ title: 'Submitted', description: 'Project submitted for admin approval.', status: 'success', isClosable: true });
+      fetchProjects();
+    } catch (e) {
+      toast({ title: 'Error', description: e.message, status: 'error', isClosable: true });
+    }
+  };
+
   const handlePublish = async (id) => {
     try {
       await ProjectService.publish(id);
@@ -190,6 +200,9 @@ function MyProjectsPageInner() {
                 <Text fontSize="sm" color="gray.600" noOfLines={1}>{p.short_description}</Text>
                 <HStack mt={2} spacing={2}>
                   <Badge colorScheme={p.visibility === 'PUBLIC' ? 'green' : 'gray'}>{p.visibility}</Badge>
+                  <Badge colorScheme={p.project_status === 'approved' ? 'green' : p.project_status === 'submitted' ? 'blue' : p.project_status === 'rejected' ? 'red' : 'gray'}>
+                    {p.project_status || (p.published_at ? 'approved' : 'draft')}
+                  </Badge>
                   {p.published_at ? (
                     <Badge colorScheme="blue">Published</Badge>
                   ) : (
@@ -199,7 +212,12 @@ function MyProjectsPageInner() {
                 </HStack>
               </Box>
               <HStack>
-                {!p.published_at && (
+                {(p.project_status === 'draft' || p.project_status === 'rejected') && (
+                  <Button size="sm" colorScheme="blue" onClick={() => handleSubmit(p.id)}>
+                    Submit
+                  </Button>
+                )}
+                {!p.published_at && p.project_status === 'approved' && (
                   <Button size="sm" colorScheme="green" onClick={() => handlePublish(p.id)}>
                     Publish
                   </Button>

@@ -199,7 +199,7 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
       full_description: "",
       genre: "",
       visibility: "PRIVATE",
-      self_rating: 5,
+      self_rating: 3,
       priority: getNextPriority(items),
       hosted_link: "",
       github_repo: "",
@@ -571,11 +571,11 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
       </SimpleGrid>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        <Field label="SELF RATING (1-10)" errorText={fieldErrors.self_rating}>
+        <Field label="SELF RATING (1-5)" errorText={fieldErrors.self_rating}>
           <NumberInput
             value={item.self_rating ?? ""}
             min={1}
-            max={10}
+            max={5}
             allowMouseWheel
             clampValueOnBlur={false}
             onChange={(valueString, valueNumber) => {

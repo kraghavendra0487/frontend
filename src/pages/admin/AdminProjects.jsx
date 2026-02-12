@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -80,7 +80,7 @@ function formatCount(n) {
   return String(num);
 }
 
-function StarDisplay({ value, max = 10, stars = 5 }) {
+function StarDisplay({ value, max = 5, stars = 5 }) {
   const filled = max > 0 ? (value / max) * stars : 0;
   return (
     <HStack spacing={0.5} align="center">
@@ -110,7 +110,7 @@ const AdminProjects = () => {
 
   // Manage Tab State
   const [manageSearch, setManageSearch] = useState('');
-  const [manageFilter, setManageFilter] = useState('all'); // 'all', 'pending', 'approved'
+  const [manageFilter, setManageFilter] = useState('all'); // 'all', 'submitted', 'approved', 'rejected', 'draft', 'archived'
 
   const navigate = useNavigate();
 
@@ -118,24 +118,19 @@ const AdminProjects = () => {
   const [editingProject, setEditingProject] = useState(null);
   const [selectedDetailProject, setSelectedDetailProject] = useState(null);
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
-  const [adminRating, setAdminRating] = useState(5);
+  const [adminRating, setAdminRating] = useState(3);
   const [isApproved, setIsApproved] = useState(false);
+  const [archiveMode, setArchiveMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [detailSnapIndex, setDetailSnapIndex] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const heroCarouselRef = useRef(null);
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch all projects initially, handle filtering client-side or per tab needs
-      // Note: If backend supports more filters, we could use them. 
-      // Current usage implies fetching all for manage tab logic.
       const params = {};
-      // For Showcase, we might want to respect filterApproved if it was global, 
-      // but now we have tabs. Let's fetch all and filter in memory for smooth tab switching.
-      // If data is huge, we should move filter to backend. Assuming reasonable size for now.
-      
+      if (manageSearch.trim()) params.search = manageSearch.trim();
       const data = await PlacementService.getAllProjects(params);
       setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -144,11 +139,11 @@ const AdminProjects = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [manageSearch, toast]);
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   // Showcase Tab Filtered Projects
   const filteredProjects = useMemo(() => {
@@ -186,18 +181,12 @@ const AdminProjects = () => {
     [filteredProjects]
   );
 
-  // Manage Tab Filtered Projects
+  // Manage Tab: filter by project_status client-side
   const manageFilteredProjects = useMemo(() => {
     let res = projects;
-    
-    // Filter by status
-    if (manageFilter === 'pending') {
-      res = res.filter(p => !p.is_approved);
-    } else if (manageFilter === 'approved') {
-      res = res.filter(p => p.is_approved);
+    if (manageFilter !== 'all') {
+      res = res.filter((p) => (p.project_status || (p.is_approved ? 'approved' : 'submitted')) === manageFilter);
     }
-
-    // Filter by search
     if (manageSearch.trim()) {
       const q = manageSearch.trim().toLowerCase();
       res = res.filter((p) => {
@@ -207,7 +196,6 @@ const AdminProjects = () => {
         return `${title} ${usn} ${genre}`.includes(q);
       });
     }
-    
     return res;
   }, [projects, manageSearch, manageFilter]);
 
@@ -220,8 +208,9 @@ const AdminProjects = () => {
 
   const openDetail = (project) => {
     setEditingProject(project);
-    setAdminRating(project.admin_rating != null ? Number(project.admin_rating) : 5);
-    setIsApproved(project.is_approved === true);
+    setAdminRating(project.admin_rating != null ? Number(project.admin_rating) : 3);
+    setIsApproved(project.project_status === 'approved' || project.is_approved === true);
+    setArchiveMode(project.project_status === 'archived');
     setDetailSnapIndex(0);
     onOpen();
   };
@@ -236,9 +225,11 @@ const AdminProjects = () => {
     if (!editingProject?.id) return;
     setSaving(true);
     try {
+      const status = archiveMode ? 'archived' : (isApproved ? 'approved' : 'rejected');
       await PlacementService.updateProject(editingProject.id, {
         admin_rating: Math.round(adminRating),
         is_approved: isApproved,
+        project_status: status,
       });
       toast({ title: 'Project updated', status: 'success', isClosable: true });
       setProjects((prev) =>
@@ -283,8 +274,8 @@ const AdminProjects = () => {
     return [];
   }, [selectedDetailProject]);
 
-  const approvedCount = projects.filter((p) => p.is_approved === true).length;
-  const pendingCount = projects.filter((p) => p.is_approved !== true).length;
+  const approvedCount = projects.filter((p) => (p.project_status || (p.is_approved ? 'approved' : '')) === 'approved').length;
+  const submittedCount = projects.filter((p) => (p.project_status || '') === 'submitted').length;
 
   if (loading && projects.length === 0) {
     return (
@@ -353,8 +344,8 @@ const AdminProjects = () => {
                     <Badge colorScheme="green" px={3} py={1} borderRadius="full">
                       {approvedCount} approved
                     </Badge>
-                    <Badge colorScheme="yellow" px={3} py={1} borderRadius="full">
-                      {pendingCount} pending
+                    <Badge colorScheme="blue" px={3} py={1} borderRadius="full">
+                      {submittedCount} submitted
                     </Badge>
                   </HStack>
                 </Flex>
@@ -771,8 +762,11 @@ const AdminProjects = () => {
                       borderRadius="xl"
                     >
                       <option value="all">All Projects</option>
-                      <option value="pending">Pending</option>
+                      <option value="submitted">Submitted</option>
                       <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="draft">Draft</option>
+                      <option value="archived">Archived</option>
                     </Select>
                   </Flex>
 
@@ -811,8 +805,8 @@ const AdminProjects = () => {
                             </Td>
                             <Td fontSize="sm">{p.usn}</Td>
                             <Td>
-                              <Badge colorScheme={p.is_approved ? 'green' : 'yellow'}>
-                                {p.is_approved ? 'Approved' : 'Pending'}
+                              <Badge colorScheme={p.project_status === 'approved' ? 'green' : p.project_status === 'submitted' ? 'blue' : p.project_status === 'rejected' ? 'red' : 'gray'}>
+                                {p.project_status || (p.is_approved ? 'approved' : 'pending')}
                               </Badge>
                             </Td>
                             <Td>
@@ -875,8 +869,8 @@ const AdminProjects = () => {
                 <HStack>
                   <Text>Manage Project</Text>
                   {editingProject && (
-                    <Badge colorScheme={editingProject.is_approved ? 'green' : 'yellow'}>
-                      {editingProject.is_approved ? 'Approved' : 'Pending'}
+                    <Badge colorScheme={editingProject.project_status === 'approved' ? 'green' : editingProject.project_status === 'archived' ? 'gray' : editingProject.project_status === 'submitted' ? 'blue' : 'yellow'}>
+                      {editingProject.project_status || (editingProject.is_approved ? 'approved' : 'pending')}
                     </Badge>
                   )}
                 </HStack>
@@ -919,11 +913,11 @@ const AdminProjects = () => {
                     <Box bg="gray.50" p={4} borderRadius="xl">
                       <VStack spacing={4} align="stretch">
                         <FormControl>
-                          <FormLabel fontSize="sm">Admin rating (1–10)</FormLabel>
+                          <FormLabel fontSize="sm">Admin rating (1–5)</FormLabel>
                           <Slider
                             value={adminRating}
                             min={1}
-                            max={10}
+                            max={5}
                             step={1}
                             onChange={setAdminRating}
                             colorScheme="green"
@@ -939,17 +933,36 @@ const AdminProjects = () => {
                         </FormControl>
                         <FormControl display="flex" alignItems="center">
                           <FormLabel mb={0} fontSize="sm">
+                            Archived
+                          </FormLabel>
+                          <Switch
+                            isChecked={archiveMode}
+                            onChange={(e) => {
+                              setArchiveMode(e.target.checked);
+                              if (e.target.checked) setIsApproved(false);
+                            }}
+                            colorScheme="gray"
+                          />
+                        </FormControl>
+                        <FormControl display="flex" alignItems="center">
+                          <FormLabel mb={0} fontSize="sm">
                             Approved
                           </FormLabel>
                           <Switch
                             isChecked={isApproved}
-                            onChange={(e) => setIsApproved(e.target.checked)}
+                            onChange={(e) => {
+                              setIsApproved(e.target.checked);
+                              if (e.target.checked) setArchiveMode(false);
+                            }}
                             colorScheme="green"
+                            isDisabled={archiveMode}
                           />
                         </FormControl>
                         <Text fontSize="sm" color="gray.600">
-                          Average with self ({editingProject.self_rating}):{' '}
-                          {((editingProject.self_rating + Math.round(adminRating)) / 2).toFixed(1)}
+                          Average with self ({editingProject.self_rating ?? '-'}):{' '}
+                          {editingProject.self_rating != null
+                            ? ((Number(editingProject.self_rating) + Math.round(adminRating)) / 2).toFixed(1)
+                            : Math.round(adminRating)}
                         </Text>
                       </VStack>
                     </Box>
