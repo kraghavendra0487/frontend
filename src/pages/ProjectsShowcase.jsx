@@ -14,6 +14,7 @@ import {
   Image,
   Button,
   Icon,
+  IconButton,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -24,12 +25,15 @@ import {
   useDisclosure,
   Tag,
   Link,
+  Tooltip,
+  useToast,
 } from '@chakra-ui/react';
-import { FaExternalLinkAlt, FaGithub, FaStar, FaEye } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaGithub, FaStar, FaEye, FaHeart, FaRegHeart, FaBookmark, FaRegBookmark } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 import { PlacementService } from '../services/placement.service';
 import { getFileUrl } from '../utils/fileUrl';
 
-const ProjectDetailModal = ({ project, isOpen, onClose }) => {
+const ProjectDetailModal = ({ project, isOpen, onClose, onLike, onFavorite, likingId, favoritingId, isAuthenticated }) => {
   if (!project) return null;
   const snaps = project.project_snaps || project.snaps || [];
   const [aspect, setAspect] = React.useState('laptop');
@@ -41,12 +45,7 @@ const ProjectDetailModal = ({ project, isOpen, onClose }) => {
 
   const rating = project.average_rating != null
     ? Number(project.average_rating).toFixed(1)
-    : (() => {
-        const self = Number(project.self_rating) || 0;
-        const admin = project.admin_rating != null ? Number(project.admin_rating) : 0;
-        const n = project.admin_rating != null ? 2 : 1;
-        return ((self + admin) / n).toFixed(1);
-      })();
+    : (project.admin_rating != null ? Number(project.admin_rating).toFixed(1) : '—');
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside" isCentered>
@@ -156,7 +155,41 @@ const ProjectDetailModal = ({ project, isOpen, onClose }) => {
           </VStack>
         </ModalBody>
         <ModalFooter bg="gray.50" borderBottomRadius="xl">
-          <HStack w="full" spacing={4} justify="flex-end">
+          <HStack w="full" spacing={4} justify="flex-end" flexWrap="wrap">
+            {isAuthenticated && (
+              <HStack spacing={2}>
+                <HStack spacing={1}>
+                  <Tooltip label={project.is_liked ? 'Unlike' : 'Like'}>
+                    <IconButton
+                      icon={<Icon as={project.is_liked ? FaHeart : FaRegHeart} />}
+                      size="sm"
+                      variant="outline"
+                      color={project.is_liked ? 'red.500' : 'gray.600'}
+                      _hover={{ color: 'red.500' }}
+                      onClick={() => onLike?.(project.id)}
+                      isLoading={likingId === project.id}
+                      aria-label={project.is_liked ? 'Unlike' : 'Like'}
+                    />
+                  </Tooltip>
+                  <Text fontSize="sm" color="gray.600">{project.likes_count ?? 0} likes</Text>
+                </HStack>
+                <HStack spacing={1}>
+                  <Tooltip label={project.is_favorited ? 'Remove from favorites' : 'Add to favorites'}>
+                    <IconButton
+                      icon={<Icon as={project.is_favorited ? FaBookmark : FaRegBookmark} />}
+                      size="sm"
+                      variant="outline"
+                      color={project.is_favorited ? 'orange.500' : 'gray.600'}
+                      _hover={{ color: 'orange.500' }}
+                      onClick={() => onFavorite?.(project.id)}
+                      isLoading={favoritingId === project.id}
+                      aria-label={project.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                    />
+                  </Tooltip>
+                  <Text fontSize="sm" color="gray.600">{project.favorites_count ?? 0} favorites</Text>
+                </HStack>
+              </HStack>
+            )}
             {project.hosted_link && (
               <Button as={Link} href={project.hosted_link} isExternal colorScheme="green" leftIcon={<FaExternalLinkAlt />} _hover={{ textDecoration: 'none' }}>
                 Live Demo
@@ -174,10 +207,12 @@ const ProjectDetailModal = ({ project, isOpen, onClose }) => {
   );
 };
 
-const ProjectCard = ({ project, onView }) => {
+const ProjectCard = ({ project, onView, onLike, onFavorite, likingId, favoritingId, isAuthenticated }) => {
   const snaps = project.project_snaps || project.snaps || [];
   const icon = snaps.length > 0 ? snaps[0] : null;
-  const avg = project.average_rating ?? (project.admin_rating != null ? (Number(project.self_rating) + Number(project.admin_rating)) / 2 : Number(project.self_rating));
+  const avg = project.average_rating ?? (project.admin_rating != null ? Number(project.admin_rating) : null);
+  const isLiked = project.is_liked ?? false;
+  const isFavorited = project.is_favorited ?? false;
 
   return (
     <Card
@@ -206,15 +241,48 @@ const ProjectCard = ({ project, onView }) => {
             <HStack spacing={2}>
               <HStack spacing={1}>
                 <Icon as={FaStar} color="orange.400" boxSize={3} />
-                <Text fontSize="xs">{avg.toFixed(1)}</Text>
+                <Text fontSize="xs">{avg != null ? avg.toFixed(1) : '—'}</Text>
               </HStack>
               <Text fontSize="xs" color="gray.500">·</Text>
               <HStack spacing={1}>
                 <Icon as={FaEye} boxSize={3} color="gray.400" />
                 <Text fontSize="xs" color="gray.600">{project.views_count ?? 0} views</Text>
               </HStack>
+              <Text fontSize="xs" color="gray.500">·</Text>
+              <HStack spacing={1}>
+                <Icon as={isLiked ? FaHeart : FaRegHeart} color={isLiked ? 'red.500' : 'gray.400'} boxSize={3} />
+                <Text fontSize="xs" color="gray.600">{project.likes_count ?? 0} likes</Text>
+              </HStack>
             </HStack>
           </VStack>
+          {isAuthenticated && (
+            <HStack spacing={1}>
+              <Tooltip label={isLiked ? 'Unlike' : 'Like'}>
+                <IconButton
+                  icon={<Icon as={isLiked ? FaHeart : FaRegHeart} />}
+                  size="sm"
+                  variant="ghost"
+                  color={isLiked ? 'red.500' : 'gray.500'}
+                  _hover={{ color: 'red.500' }}
+                  onClick={(e) => { e.stopPropagation(); onLike?.(project.id, e); }}
+                  isLoading={likingId === project.id}
+                  aria-label={isLiked ? 'Unlike' : 'Like'}
+                />
+              </Tooltip>
+              <Tooltip label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}>
+                <IconButton
+                  icon={<Icon as={isFavorited ? FaBookmark : FaRegBookmark} />}
+                  size="sm"
+                  variant="ghost"
+                  color={isFavorited ? 'orange.500' : 'gray.500'}
+                  _hover={{ color: 'orange.500' }}
+                  onClick={(e) => { e.stopPropagation(); onFavorite?.(project.id, e); }}
+                  isLoading={favoritingId === project.id}
+                  aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+                />
+              </Tooltip>
+            </HStack>
+          )}
         </HStack>
         <Text fontSize="sm" color="gray.600" mt={3} noOfLines={2}>
           {project.one_line_description || project.full_description || 'No description available.'}
@@ -228,10 +296,57 @@ const ProjectCard = ({ project, onView }) => {
 };
 
 const ProjectsShowcase = () => {
+  const toast = useToast();
   const [allProjects, setAllProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
+  const [likingId, setLikingId] = useState(null);
+  const [favoritingId, setFavoritingId] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { user } = useAuth();
+  const isAuthenticated = !!user;
+
+  const handleFavorite = async (projectId, e) => {
+    if (e) e.stopPropagation();
+    if (favoritingId) return;
+    setFavoritingId(projectId);
+    try {
+      const result = await PlacementService.toggleProjectFavorite(projectId);
+      setAllProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, is_favorited: result.is_favorited, favorites_count: result.favorites_count } : p
+        )
+      );
+      if (selectedProject?.id === projectId) {
+        setSelectedProject((prev) => ({ ...prev, is_favorited: result.is_favorited, favorites_count: result.favorites_count }));
+      }
+    } catch (err) {
+      toast({ title: 'Please log in to add favorites', status: 'warning', isClosable: true });
+    } finally {
+      setFavoritingId(null);
+    }
+  };
+
+  const handleLike = async (projectId, e) => {
+    if (e) e.stopPropagation();
+    if (likingId) return;
+    setLikingId(projectId);
+    try {
+      const result = await PlacementService.toggleProjectLike(projectId);
+      setAllProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId ? { ...p, is_liked: result.is_liked, likes_count: result.likes_count } : p
+        )
+      );
+      if (selectedProject?.id === projectId) {
+        setSelectedProject((prev) => ({ ...prev, is_liked: result.is_liked, likes_count: result.likes_count }));
+      }
+    } catch (err) {
+      toast({ title: 'Please log in to like projects', status: 'warning', isClosable: true });
+    } finally {
+      setLikingId(null);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -274,7 +389,16 @@ const ProjectsShowcase = () => {
         <Heading size="md" mb={4} color="#172e36">All Projects</Heading>
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           {allProjects.map((p) => (
-            <ProjectCard key={p.id} project={p} onView={() => openDetail(p)} />
+            <ProjectCard
+              key={p.id}
+              project={p}
+              onView={() => openDetail(p)}
+              onLike={handleLike}
+              onFavorite={handleFavorite}
+              likingId={likingId}
+              favoritingId={favoritingId}
+              isAuthenticated={isAuthenticated}
+            />
           ))}
         </SimpleGrid>
 
@@ -284,7 +408,16 @@ const ProjectsShowcase = () => {
           </Center>
         )}
 
-        <ProjectDetailModal project={selectedProject} isOpen={isOpen} onClose={onClose} />
+        <ProjectDetailModal
+          project={selectedProject}
+          isOpen={isOpen}
+          onClose={onClose}
+          onLike={handleLike}
+          onFavorite={handleFavorite}
+          likingId={likingId}
+          favoritingId={favoritingId}
+          isAuthenticated={isAuthenticated}
+        />
       </Container>
     </Box>
   );

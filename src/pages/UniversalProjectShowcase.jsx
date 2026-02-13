@@ -28,7 +28,7 @@ export const UniversalProjectShowcase = () => {
       // Ideally backend should filter based on request context, but we are in "universal" mode.
       // Assuming all projects returned are meant to be seen or we filter here.
       // The schema has 'visibility' field.
-      const publicProjects = projectsList.filter(p => p.visibility === 'PUBLIC')
+      const publicProjects = projectsList.filter(p => p.visibility === 'PUBLIC' || p.visibility === 'PUBLIC_LINK')
       
       setProjects(publicProjects)
     } catch (err) {

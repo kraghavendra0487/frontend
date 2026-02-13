@@ -119,10 +119,15 @@ export const ProjectService = {
    * POST /api/projects/:id/share
    */
   createShareLink: async (projectId, body = {}) => {
-    const response = await apiFetch(`${BASE}/${projectId}/share`, {
+    const endpoint = `${BASE}/${projectId}/share`;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const fullUrl = apiBase.endsWith('/') ? `${apiBase.slice(0, -1)}${endpoint}` : `${apiBase}${endpoint}`;
+    console.log('[createShareLink] Request:', { projectId, endpoint, fullUrl, body });
+    const response = await apiFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
     });
+    console.log('[createShareLink] Success:', { projectId, data: response.data ?? response });
     return response.data ?? response;
   },
 

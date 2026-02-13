@@ -35,6 +35,7 @@ import {
   WrapItem,
 } from '@chakra-ui/react';
 import { AddIcon, AttachmentIcon, DownloadIcon } from '@chakra-ui/icons';
+import { StyledFileInput } from '../components/ui/StyledFileInput';
 import { StudentProfileService } from '../services/studentProfile.service';
 import { useBackgroundRefresh } from '../hooks/useBackgroundRefresh';
 
@@ -433,35 +434,16 @@ export default function AddStudents() {
                 Step 2 — Upload file
               </Text>
               <FormControl mb={4}>
-                <Box
-                  as="label"
-                  display="block"
-                  p={4}
-                  borderRadius="xl"
-                  border="2px dashed"
-                  borderColor="gray.300"
-                  bg="gray.50"
-                  cursor="pointer"
-                  _hover={{ borderColor: 'blue.300', bg: 'blue.50' }}
-                  transition="all 0.2s"
-                >
-                  <Input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileChange}
-                    border="none"
-                    p={0}
-                    h="auto"
-                    sx={{ '&::file-selector-button': { display: 'none' } }}
-                  />
-                  <Text fontSize="sm" color="gray.600" textAlign="center">
-                    {uploadFile ? (
-                      <><strong>{uploadFile.name}</strong> — {uploadedRows.length} row(s) loaded. Click to replace.</>
-                    ) : (
-                      'Click or drag to upload .csv or .xlsx'
-                    )}
+                <StyledFileInput
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileChange}
+                  acceptLabel="CSV, XLSX"
+                />
+                {uploadFile && (
+                  <Text fontSize="sm" color="gray.600" mt={2}>
+                    <strong>{uploadFile.name}</strong> — {uploadedRows.length} row(s) loaded. Click above to replace.
                   </Text>
-                </Box>
+                )}
               </FormControl>
               {uploadedRows.length > 0 && (
                 <>

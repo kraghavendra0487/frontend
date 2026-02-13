@@ -28,7 +28,7 @@ export const ProjectStats = ({ projects = [] }) => {
   const totalLikes = projects.reduce((acc, curr) => acc + (curr.likes || 0), 0);
   const totalDownloads = projects.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
   const avgRating = projects.length > 0 
-    ? (projects.reduce((acc, curr) => acc + (Number(curr.selfRating) || 0), 0) / projects.length).toFixed(1) 
+    ? (projects.reduce((acc, curr) => acc + (Number(curr.average_rating ?? curr.admin_rating) || 0), 0) / projects.length).toFixed(1) 
     : 0;
 
   // Skills distribution
@@ -71,8 +71,8 @@ export const ProjectStats = ({ projects = [] }) => {
     },
   };
 
-  // Visibility Distribution
-  const publicCount = projects.filter(p => p.visibility === 'PUBLIC').length;
+  // Visibility Distribution (PUBLIC_LINK counts as "Public" for visibility)
+  const publicCount = projects.filter(p => p.visibility === 'PUBLIC' || p.visibility === 'PUBLIC_LINK').length;
   const privateCount = projects.filter(p => p.visibility === 'PRIVATE').length;
 
   const doughnutData = {

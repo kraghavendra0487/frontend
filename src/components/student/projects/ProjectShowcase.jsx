@@ -24,10 +24,11 @@ const getTechnologies = (project) => {
 };
 
 const StarRating = ({ rating }) => {
-  // rating is 1-10 from profile; display as 0-5 stars (rating/2).
+  // rating is 1-5 (project_ratings) or legacy 1-10; display as 0-5 stars.
   // When no rating is set, show empty stars and no numeric value.
   const hasRating = rating != null && !Number.isNaN(Number(rating));
-  const value = hasRating ? Number(rating) / 2 : 0; // 0-5
+  const num = Number(rating);
+  const value = hasRating ? (num <= 5 ? num : num / 2) : 0; // 1-5 scale or 1-10→0-5
   const fullStars = Math.floor(value);
   const hasHalf = value % 1 >= 0.5;
   const stars = [];
@@ -50,22 +51,17 @@ const StarRating = ({ rating }) => {
         </span>
       ))}
       <span className="showcase-star-score">
-        {hasRating ? `${value.toFixed(1)}/5` : "—"}
+        {hasRating ? value.toFixed(1) : "—"}
       </span>
     </span>
   );
 };
 
-// Compute average rating for a project. Prefer backend-provided `average_rating`, otherwise
-// average available role ratings (self + admin). Return null when no ratings exist.
+// Compute average rating for a project. Prefer backend-provided `average_rating`, otherwise use admin_rating.
 const computeAverage = (p) => {
   if (!p) return null;
   if (p.average_rating != null) return Number(p.average_rating);
-  const self = p.self_rating != null ? Number(p.self_rating) : null;
-  const admin = p.admin_rating != null ? Number(p.admin_rating) : null;
-  if (self != null && admin != null) return (self + admin) / 2;
-  if (self != null) return self;
-  if (admin != null) return admin;
+  if (p.admin_rating != null) return Number(p.admin_rating);
   return null;
 }
 
@@ -91,10 +87,24 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
   }, [selectedProject]);
 
   const handleShare = async () => {
+    console.log('[ProjectShowcase.handleShare] selectedProject:', {
+      id: selectedProject?.id,
+      visibility: selectedProject?.visibility,
+      title: selectedProject?.title,
+    });
     if (!selectedProject?.id) {
       toast({
         title: "Cannot share",
         description: "This project does not have an id yet. Please save it first.",
+        status: "warning",
+        isClosable: true,
+      });
+      return;
+    }
+    if (selectedProject?.visibility !== 'PUBLIC_LINK') {
+      toast({
+        title: "Cannot share",
+        description: "Share links require visibility 'PUBLIC + Shareable Link'. Update the project visibility first.",
         status: "warning",
         isClosable: true,
       });
@@ -124,6 +134,7 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
         });
       }
     } catch (e) {
+      console.error('[ProjectShowcase.handleShare] Error:', e?.message, e?.response, e);
       toast({
         title: "Error creating share link",
         description: e.message,
@@ -340,7 +351,7 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
           </ModalBody>
           <ModalFooter bg="#f8fafc" borderBottomRadius="xl" borderTop="1px solid" borderColor="#e2e8f0">
             <HStack w="full" spacing={4} justify="flex-end">
-              {selectedProject?.id && (
+              {selectedProject?.id && selectedProject?.visibility === 'PUBLIC_LINK' && (
                 <Button
                   variant="outline"
                   onClick={handleShare}

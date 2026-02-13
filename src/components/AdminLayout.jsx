@@ -67,7 +67,8 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
       textColor: "#fff",
       links: [
         { label: "View All Students", path: "/placement/students", ariaLabel: "View Students" },
-        { label: "Student Projects", path: "/placement/gallery", ariaLabel: "Student Projects" },
+        { label: "Showcase Projects", path: "/placement/gallery/showcase", ariaLabel: "Showcase Projects" },
+        { label: "Manage Projects", path: "/placement/gallery/manage", ariaLabel: "Manage Projects" },
         { label: "Job Offers", path: "/placement/job-offers", ariaLabel: "Job Offers" }
       ]
     },

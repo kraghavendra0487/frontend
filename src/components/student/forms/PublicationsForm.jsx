@@ -1,5 +1,6 @@
 import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, useColorModeValue, Link, Image, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
 import { FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { getFileUrl } from "../../../utils/fileUrl"
@@ -265,14 +266,12 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                 {isEditing && (
                     <Box>
                         <Text mb={2} fontWeight="medium">Upload evidence (saved when you click Save changes)</Text>
-                <Input 
-                    type="file" 
-                    p={1}
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                    onChange={handleFileChange}
-                    variant="outline"
-                    mb={2}
-                />
+                        <StyledFileInput
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                            onChange={handleFileChange}
+                            acceptLabel="PDF, JPG, PNG"
+                            mb={2}
+                        />
                         {pendingPreview && (
                           <Box border="2px dashed" borderColor="orange.300" borderRadius="md" p={2} bg="orange.50" mb={2}>
                             <Image src={pendingPreview} alt="Preview" maxH="200px" objectFit="contain" mx="auto" />

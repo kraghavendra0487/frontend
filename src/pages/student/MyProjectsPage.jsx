@@ -107,6 +107,7 @@ function MyProjectsPageInner() {
         });
       }
     } catch (e) {
+      console.error('[MyProjectsPage.handleShare] Error:', e?.message, e?.response, e);
       toast({
         title: 'Error creating share link',
         description: e.message,
@@ -200,8 +201,8 @@ function MyProjectsPageInner() {
                 <Text fontSize="sm" color="gray.600" noOfLines={1}>{p.short_description}</Text>
                 <HStack mt={2} spacing={2}>
                   <Badge colorScheme={p.visibility === 'PUBLIC' ? 'green' : 'gray'}>{p.visibility}</Badge>
-                  <Badge colorScheme={p.project_status === 'approved' ? 'green' : p.project_status === 'submitted' ? 'blue' : p.project_status === 'rejected' ? 'red' : 'gray'}>
-                    {p.project_status || (p.published_at ? 'approved' : 'draft')}
+                  <Badge colorScheme={p.project_status === 'approved' ? 'green' : p.project_status === 'not_approved' ? 'yellow' : p.project_status === 'rejected' ? 'red' : 'gray'}>
+                    {p.project_status || (p.published_at ? 'approved' : 'not approved')}
                   </Badge>
                   {p.published_at ? (
                     <Badge colorScheme="blue">Published</Badge>
@@ -212,7 +213,7 @@ function MyProjectsPageInner() {
                 </HStack>
               </Box>
               <HStack>
-                {(p.project_status === 'draft' || p.project_status === 'rejected') && (
+                {(p.project_status === 'not_approved' || p.project_status === 'rejected') && (
                   <Button size="sm" colorScheme="blue" onClick={() => handleSubmit(p.id)}>
                     Submit
                   </Button>
@@ -225,14 +226,16 @@ function MyProjectsPageInner() {
                 <Button size="sm" variant="outline" as="a" href={`/student/profile/projects`} title="Edit from Profile → Projects">
                   Edit
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleShare(p.id)}
-                  isLoading={shareLoadingId === p.id}
-                >
-                  Share
-                </Button>
+                {p.visibility === 'PUBLIC_LINK' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleShare(p.id)}
+                    isLoading={shareLoadingId === p.id}
+                  >
+                    Share
+                  </Button>
+                )}
                 <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleDelete(p.id)}>
                   Delete
                 </Button>

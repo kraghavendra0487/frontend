@@ -30,6 +30,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     } else {
       const text = await response.text();
       // If it's a 404/500 HTML page, throwing an error with status is more helpful
+      console.error('[apiFetch] Non-JSON response (404/HTML?)', { url, status: response.status, statusText: response.statusText, preview: text?.slice(0, 200) });
       throw new Error(`Server Error: ${response.status} ${response.statusText}`);
     }
 
@@ -46,7 +47,7 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      console.error('[apiFetch] FAILED', { url, status: response.status, data });
+      console.error('[apiFetch] FAILED', { url, status: response.status, statusText: response.statusText, data });
       const msg = data.message || data.error || 'API request failed';
       const hasFieldErrors = data.fieldErrors && typeof data.fieldErrors === 'object' && Object.keys(data.fieldErrors).length > 0;
       const err = new Error(hasFieldErrors ? `${msg} (See form for field-level errors.)` : msg);

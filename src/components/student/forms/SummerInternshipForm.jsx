@@ -1,5 +1,6 @@
 import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, useToast, Image, Link } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
 import { FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { getFileUrl } from "../../../utils/fileUrl"
@@ -273,12 +274,10 @@ const SummerInternshipItem = ({ index, item, onChange, onDelete, isEditing, onFi
               <Field label="Proof Document">
                 {isEditing && (
                   <VStack align="stretch" spacing={2}>
-                    <Input
-                      type="file"
-                      p={1}
+                    <StyledFileInput
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                       onChange={handleFileChange}
-                      variant="outline"
+                      acceptLabel="PDF, JPG, PNG"
                     />
                     {pendingPreview && (
                       <Box 

@@ -26,6 +26,7 @@ import {
   Flex,
 } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
 import { FaPlus, FaTrash, FaEdit, FaExternalLinkAlt } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
@@ -199,7 +200,6 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
       full_description: "",
       genre: "",
       visibility: "PRIVATE",
-      self_rating: 3,
       priority: getNextPriority(items),
       hosted_link: "",
       github_repo: "",
@@ -307,6 +307,7 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
         })
       }
     } catch (e) {
+      console.error('[ProjectsForm.onShare] Error:', e?.message, e?.response, e);
       toast({
         status: "error",
         title: "Error creating share link",
@@ -398,7 +399,7 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShar
   const coverImg = snaps.length > 0 ? snaps[0] : null
   const visibility = (item.visibility || "PRIVATE").toUpperCase()
   const isPublic = visibility === "PUBLIC"
-  const visibilityLabel = visibility === "PUBLIC" ? "PUBLIC" : visibility === "LINK_ONLY" ? "LINK ONLY" : "PRIVATE"
+  const visibilityLabel = visibility === "PUBLIC" ? "PUBLIC" : visibility === "PUBLIC_LINK" ? "PUBLIC + LINK" : "PRIVATE"
   const priorityVal = item.priority
   const priorityDisplay = priorityVal !== undefined && priorityVal !== null && String(priorityVal).trim() !== ""
     ? String(priorityVal).trim()
@@ -446,7 +447,7 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShar
             colorScheme="red"
             onClick={onDelete}
           />
-          {typeof onShare === "function" && item.id && (
+          {typeof onShare === "function" && item.id && item.visibility === "PUBLIC_LINK" && (
             <IconButton
               aria-label="Share project"
               icon={<FaExternalLinkAlt />}
@@ -571,30 +572,6 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
       </SimpleGrid>
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-        <Field label="SELF RATING (1-5)" errorText={fieldErrors.self_rating}>
-          <NumberInput
-            value={item.self_rating ?? ""}
-            min={1}
-            max={5}
-            allowMouseWheel
-            clampValueOnBlur={false}
-            onChange={(valueString, valueNumber) => {
-              // Allow empty string, otherwise use the number value
-              if (valueString === "" || valueString === undefined) {
-                onChange(index, "self_rating", "")
-              } else {
-                onChange(index, "self_rating", valueNumber)
-              }
-            }}
-            className="projects-edit-number"
-          >
-            <NumberInputField />
-            <NumberInputStepper>
-              <NumberIncrementStepper />
-              <NumberDecrementStepper />
-            </NumberInputStepper>
-          </NumberInput>
-        </Field>
         <Field label="VISIBILITY" errorText={fieldErrors.visibility}>
           <Select
             value={item.visibility || "PRIVATE"}
@@ -603,7 +580,7 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
           >
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
-            <option value="LINK_ONLY">PUBLIC + SHAREABLE LINK</option>
+            <option value="PUBLIC_LINK">PUBLIC + SHAREABLE LINK</option>
           </Select>
         </Field>
       </SimpleGrid>
@@ -668,8 +645,7 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
           <Text mb={2} fontWeight="600" fontSize="sm" color="#334155">
             Project Images (up to {MAX_PROJECT_IMAGES})
           </Text>
-          <input
-            type="file"
+          <StyledFileInput
             accept="image/*"
             disabled={(item.project_snaps || []).length >= MAX_PROJECT_IMAGES}
             onChange={(e) => {
@@ -677,7 +653,8 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
               if (f) onUpload(index, f)
               e.target.value = ""
             }}
-            style={{ display: "block", marginBottom: "8px" }}
+            acceptLabel="Images"
+            mb={2}
           />
           <Text fontSize="xs" color="#64748b">
             {(item.project_snaps || []).length}/{MAX_PROJECT_IMAGES} images. Upload one by one.

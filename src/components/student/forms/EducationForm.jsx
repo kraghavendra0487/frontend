@@ -25,6 +25,7 @@ import { useState } from "react"
 import { Box, SimpleGrid, Input, Select, VStack, Heading, Flex, Button, Text, IconButton, Collapse, useToast, Image, Link, FormControl, Divider } from "@chakra-ui/react"
 import { getFileUrl } from "../../../utils/fileUrl"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { FaGraduationCap, FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
@@ -472,12 +473,10 @@ const EducationFileInput = ({ isEditing, value, onChange, onFileSelect }) => {
     <Box>
       {isEditing && (
         <VStack align="stretch" spacing={2}>
-          <Input
-            type="file"
-            p={1}
+          <StyledFileInput
             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
             onChange={handleFileChange}
-            variant="outline"
+            acceptLabel="PDF, JPG, PNG"
           />
           {pendingPreview && (
             <Box 

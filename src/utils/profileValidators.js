@@ -18,7 +18,7 @@ const COUNTRY_CODE_REGEX = /^\+[0-9]{1,4}$/;
 
 const EDUCATION_LEVELS = ['10TH', '12TH', 'DIPLOMA', 'GRADUATION', 'POST_GRADUATION', 'OTHER', 'EDUCATION_GAP'];
 const RESULT_TYPES = ['PERCENTAGE', 'CGPA'];
-const VISIBILITY_VALUES = ['PRIVATE', 'PUBLIC'];
+const VISIBILITY_VALUES = ['PRIVATE', 'PUBLIC', 'PUBLIC_LINK'];
 
 const currentYear = new Date().getFullYear();
 
@@ -175,18 +175,6 @@ export function validateRequired(value, fieldName, minLen = 1) {
   }
   if (value.trim().length < minLen) {
     return { valid: false, message: `${fieldName} must be at least ${minLen} character(s).` };
-  }
-  return { valid: true };
-}
-
-/**
- * Validates self-rating (1-10).
- */
-export function validateSelfRating(value) {
-  if (value === null || value === undefined || value === '') return { valid: true };
-  const n = parseInt(String(value), 10);
-  if (Number.isNaN(n) || n < 1 || n > 10) {
-    return { valid: false, message: 'Self-rating must be between 1 and 10.' };
   }
   return { valid: true };
 }

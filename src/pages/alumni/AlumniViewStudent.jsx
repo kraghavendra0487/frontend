@@ -70,10 +70,7 @@ const CARD_SHADOW = '0 4px 20px rgba(0,0,0,0.08)';
 
 function avgRating(p) {
   if (p.average_rating != null) return p.average_rating;
-  const self = Number(p.self_rating) || 0;
-  const admin = p.admin_rating != null ? Number(p.admin_rating) : null;
-  if (admin != null) return (self + admin) / 2;
-  return self;
+  return p.admin_rating != null ? Number(p.admin_rating) : null;
 }
 
 function formatCount(n) {

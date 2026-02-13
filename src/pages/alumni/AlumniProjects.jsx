@@ -32,7 +32,7 @@ import {
   IconButton,
 } from '@chakra-ui/react';
 import { ViewIcon, StarIcon, SearchIcon } from '@chakra-ui/icons';
-import { FaExternalLinkAlt, FaGithub, FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaUser } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaGithub, FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaUser, FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import AlumniLayout from '../../components/AlumniLayout';
 import { PlacementService } from '../../services/placement.service';
@@ -54,10 +54,7 @@ const CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)';
 
 function avgRating(p) {
   if (p.average_rating != null) return p.average_rating;
-  const self = Number(p.self_rating) || 0;
-  const admin = p.admin_rating != null ? Number(p.admin_rating) : null;
-  if (admin != null) return (self + admin) / 2;
-  return self;
+  return p.admin_rating != null ? Number(p.admin_rating) : null;
 }
 
 function formatCount(n) {
@@ -95,6 +92,7 @@ const AlumniProjects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [detailSnapIndex, setDetailSnapIndex] = useState(0);
   const [likingId, setLikingId] = useState(null);
+  const [favoritingId, setFavoritingId] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const heroCarouselRef = useRef(null);
 
@@ -190,6 +188,33 @@ const AlumniProjects = () => {
       toast({ title: 'Failed to update like', status: 'error', isClosable: true });
     } finally {
       setLikingId(null);
+    }
+  };
+
+  const handleFavorite = async (projectId, e) => {
+    if (e) e.stopPropagation();
+    if (favoritingId) return;
+    setFavoritingId(projectId);
+    try {
+      const result = await PlacementService.toggleProjectFavorite(projectId);
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, is_favorited: result.is_favorited, favorites_count: result.favorites_count }
+            : p
+        )
+      );
+      if (selectedProject?.id === projectId) {
+        setSelectedProject((prev) => ({
+          ...prev,
+          is_favorited: result.is_favorited,
+          favorites_count: result.favorites_count,
+        }));
+      }
+    } catch (err) {
+      toast({ title: 'Failed to update favorite', status: 'error', isClosable: true });
+    } finally {
+      setFavoritingId(null);
     }
   };
 
@@ -310,21 +335,31 @@ const AlumniProjects = () => {
                       ) : (
                         <Box w="100%" h="100%" bg={colors.secondary} borderRadius="2xl" />
                       )}
-                      {/* Like button on carousel */}
-                      <IconButton
-                        icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
-                        position="absolute"
-                        top={4}
-                        right={4}
-                        size="md"
-                        borderRadius="full"
-                        bg="whiteAlpha.900"
-                        color={p.is_liked ? 'red.500' : colors.secondary}
-                        _hover={{ bg: 'white' }}
-                        onClick={(e) => handleLike(p.id, e)}
-                        isLoading={likingId === p.id}
-                        aria-label={p.is_liked ? 'Unlike' : 'Like'}
-                      />
+                      {/* Like & Favorite buttons on carousel */}
+                      <HStack position="absolute" top={4} right={4} spacing={2}>
+                        <IconButton
+                          icon={<Icon as={p.is_favorited ? FaBookmark : FaRegBookmark} />}
+                          size="md"
+                          borderRadius="full"
+                          bg="whiteAlpha.900"
+                          color={p.is_favorited ? 'orange.500' : colors.secondary}
+                          _hover={{ bg: 'white' }}
+                          onClick={(e) => handleFavorite(p.id, e)}
+                          isLoading={favoritingId === p.id}
+                          aria-label={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                        />
+                        <IconButton
+                          icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
+                          size="md"
+                          borderRadius="full"
+                          bg="whiteAlpha.900"
+                          color={p.is_liked ? 'red.500' : colors.secondary}
+                          _hover={{ bg: 'white' }}
+                          onClick={(e) => handleLike(p.id, e)}
+                          isLoading={likingId === p.id}
+                          aria-label={p.is_liked ? 'Unlike' : 'Like'}
+                        />
+                      </HStack>
                       <Box position="absolute" bottom={6} left={6} color="white" maxW="md">
                         <Text fontWeight="bold" fontSize="xl" lineHeight="tight" mb={1}>
                           {p.title}
@@ -333,6 +368,10 @@ const AlumniProjects = () => {
                           {p.usn} • {p.genre || '—'}
                         </Text>
                         <HStack mt={2} spacing={4}>
+                          <HStack spacing={1}>
+                            <Icon as={FaBookmark} boxSize={3} />
+                            <Text fontSize="sm">{formatCount(p.favorites_count)}</Text>
+                          </HStack>
                           <HStack spacing={1}>
                             <Icon as={FaHeart} boxSize={3} />
                             <Text fontSize="sm">{formatCount(p.likes_count)}</Text>
@@ -404,6 +443,10 @@ const AlumniProjects = () => {
                         </Text>
                         <HStack mt={1} spacing={3}>
                           <HStack spacing={1}>
+                            <Icon as={FaBookmark} boxSize={2.5} color={p.is_favorited ? 'orange.500' : colors.secondary} />
+                            <Text fontSize="xs" color={colors.secondary}>{formatCount(p.favorites_count)}</Text>
+                          </HStack>
+                          <HStack spacing={1}>
                             <Icon as={FaHeart} boxSize={2.5} color={p.is_liked ? 'red.500' : colors.secondary} />
                             <Text fontSize="xs" color={colors.secondary}>{formatCount(p.likes_count)}</Text>
                           </HStack>
@@ -413,16 +456,28 @@ const AlumniProjects = () => {
                           </HStack>
                         </HStack>
                       </Box>
-                      <IconButton
-                        icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
-                        size="sm"
-                        variant="ghost"
-                        color={p.is_liked ? 'red.500' : colors.secondary}
-                        _hover={{ color: 'red.500' }}
-                        onClick={(e) => handleLike(p.id, e)}
-                        isLoading={likingId === p.id}
-                        aria-label={p.is_liked ? 'Unlike' : 'Like'}
-                      />
+                      <HStack spacing={1}>
+                        <IconButton
+                          icon={<Icon as={p.is_favorited ? FaBookmark : FaRegBookmark} />}
+                          size="sm"
+                          variant="ghost"
+                          color={p.is_favorited ? 'orange.500' : colors.secondary}
+                          _hover={{ color: 'orange.500' }}
+                          onClick={(e) => handleFavorite(p.id, e)}
+                          isLoading={favoritingId === p.id}
+                          aria-label={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                        />
+                        <IconButton
+                          icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
+                          size="sm"
+                          variant="ghost"
+                          color={p.is_liked ? 'red.500' : colors.secondary}
+                          _hover={{ color: 'red.500' }}
+                          onClick={(e) => handleLike(p.id, e)}
+                          isLoading={likingId === p.id}
+                          aria-label={p.is_liked ? 'Unlike' : 'Like'}
+                        />
+                      </HStack>
                     </Flex>
                   );
                 })}
@@ -499,6 +554,17 @@ const AlumniProjects = () => {
                         </HStack>
                         <HStack spacing={2}>
                           <Button
+                            leftIcon={<Icon as={p.is_favorited ? FaBookmark : FaRegBookmark} />}
+                            variant={p.is_favorited ? 'solid' : 'outline'}
+                            colorScheme={p.is_favorited ? 'orange' : 'gray'}
+                            size="sm"
+                            borderRadius="lg"
+                            onClick={(e) => handleFavorite(p.id, e)}
+                            isLoading={favoritingId === p.id}
+                          >
+                            {p.is_favorited ? 'Favorited' : 'Favorite'}
+                          </Button>
+                          <Button
                             leftIcon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
                             variant={p.is_liked ? 'solid' : 'outline'}
                             colorScheme={p.is_liked ? 'red' : 'gray'}
@@ -546,6 +612,11 @@ const AlumniProjects = () => {
                           <ViewIcon boxSize={3} color={colors.secondary} />
                           <Text fontWeight="600" fontSize="sm" color={colors.dark}>{formatCount(p.views_count)}</Text>
                           <Text fontSize="xs" color={colors.secondary}>views</Text>
+                        </HStack>
+                        <HStack spacing={1}>
+                          <Icon as={FaBookmark} boxSize={3} color={p.is_favorited ? 'orange.500' : colors.secondary} />
+                          <Text fontWeight="600" fontSize="sm" color={colors.dark}>{formatCount(p.favorites_count)}</Text>
+                          <Text fontSize="xs" color={colors.secondary}>favorites</Text>
                         </HStack>
                         <HStack spacing={1}>
                           <Icon as={FaHeart} boxSize={3} color={p.is_liked ? 'red.500' : colors.secondary} />
@@ -619,16 +690,28 @@ const AlumniProjects = () => {
                 <Heading size="md" color={colors.dark} noOfLines={2}>
                   {selectedProject?.title}
                 </Heading>
-                <IconButton
-                  icon={<Icon as={selectedProject?.is_liked ? FaHeart : FaRegHeart} />}
-                  colorScheme={selectedProject?.is_liked ? 'red' : 'gray'}
-                  variant={selectedProject?.is_liked ? 'solid' : 'outline'}
-                  size="sm"
-                  borderRadius="full"
-                  onClick={() => selectedProject && handleLike(selectedProject.id)}
-                  isLoading={likingId === selectedProject?.id}
-                  aria-label={selectedProject?.is_liked ? 'Unlike' : 'Like'}
-                />
+                <HStack spacing={2}>
+                  <IconButton
+                    icon={<Icon as={selectedProject?.is_favorited ? FaBookmark : FaRegBookmark} />}
+                    colorScheme={selectedProject?.is_favorited ? 'orange' : 'gray'}
+                    variant={selectedProject?.is_favorited ? 'solid' : 'outline'}
+                    size="sm"
+                    borderRadius="full"
+                    onClick={() => selectedProject && handleFavorite(selectedProject.id)}
+                    isLoading={favoritingId === selectedProject?.id}
+                    aria-label={selectedProject?.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                  />
+                  <IconButton
+                    icon={<Icon as={selectedProject?.is_liked ? FaHeart : FaRegHeart} />}
+                    colorScheme={selectedProject?.is_liked ? 'red' : 'gray'}
+                    variant={selectedProject?.is_liked ? 'solid' : 'outline'}
+                    size="sm"
+                    borderRadius="full"
+                    onClick={() => selectedProject && handleLike(selectedProject.id)}
+                    isLoading={likingId === selectedProject?.id}
+                    aria-label={selectedProject?.is_liked ? 'Unlike' : 'Like'}
+                  />
+                </HStack>
               </HStack>
               <Text fontSize="sm" color={colors.secondary}>
                 {selectedProject?.usn} · {selectedProject?.genre || '—'}
@@ -694,6 +777,13 @@ const AlumniProjects = () => {
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600">Views</Text>
                     <Text fontWeight="600" color={colors.dark}>{selectedProject.views_count ?? 0}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color={colors.secondary} fontWeight="600">Favorites</Text>
+                    <HStack>
+                      <Icon as={FaBookmark} color={selectedProject.is_favorited ? 'orange.500' : colors.secondary} />
+                      <Text fontWeight="600" color={colors.dark}>{selectedProject.favorites_count ?? 0}</Text>
+                    </HStack>
                   </Box>
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600">Likes</Text>
@@ -771,6 +861,15 @@ const AlumniProjects = () => {
               }}
             >
               View Student Profile
+            </Button>
+            <Button
+              leftIcon={<Icon as={selectedProject?.is_favorited ? FaBookmark : FaRegBookmark} />}
+              colorScheme={selectedProject?.is_favorited ? 'orange' : 'gray'}
+              variant={selectedProject?.is_favorited ? 'solid' : 'outline'}
+              onClick={() => selectedProject && handleFavorite(selectedProject.id)}
+              isLoading={favoritingId === selectedProject?.id}
+            >
+              {selectedProject?.is_favorited ? 'Favorited' : 'Add to favorites'}
             </Button>
             <Button
               ml="auto"

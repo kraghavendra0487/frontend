@@ -490,7 +490,6 @@ const AdminStudentDetail = ({ embedded = false }) => {
                     <Wrap spacing={2} mt={2}>
                       {p.genre && <Badge colorScheme="purple">{p.genre}</Badge>}
                       {p.visibility && <Badge colorScheme={p.visibility === 'PUBLIC' ? 'green' : 'gray'}>{p.visibility}</Badge>}
-                      {p.self_rating && <Badge colorScheme="orange">Self Rating: {p.self_rating}/10</Badge>}
                       {p.is_approved && <Badge colorScheme="green">Approved</Badge>}
                     </Wrap>
                     {p.technologies && p.technologies.length > 0 && (

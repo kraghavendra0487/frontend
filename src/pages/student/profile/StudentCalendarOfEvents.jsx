@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -42,9 +42,6 @@ export const StudentCalendarOfEvents = () => {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const containerRef = useRef(null);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-
   const range = useMemo(() => {
     const firstDay = new Date(current.getFullYear(), current.getMonth(), 1);
     const startIdx = firstDay.getDay();
@@ -121,17 +118,6 @@ export const StudentCalendarOfEvents = () => {
     fetchEvents();
   }, [fetchEvents]);
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      const { width, height } = entries[0]?.contentRect ?? {};
-      if (width > 0 && height > 0) setContainerSize({ width, height });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   const handleDayClick = (d) => setSelectedDate(d);
 
   const dayEvents = (d) => {
@@ -150,26 +136,18 @@ export const StudentCalendarOfEvents = () => {
 
   const HEADER_H = 56;
   const DAY_LABELS_H = 40;
-  const gridAvailableW = Math.max(0, containerSize.width);
-  const gridAvailableH = Math.max(0, containerSize.height - HEADER_H - DAY_LABELS_H);
-  const rawCellSize = Math.min(
-    gridAvailableW / 7,
-    gridAvailableH / Math.max(1, range.weeks)
-  );
-  const cellSize = Number.isFinite(rawCellSize) && rawCellSize > 0 ? rawCellSize : 40;
-  const gridW = 7 * cellSize;
-  const gridH = range.weeks * cellSize;
 
   return (
     <Box
       bg="gray.50"
-      h="calc(100vh - 72px - 64px)"
+      minH="520px"
+      h="calc(100vh - 140px)"
       py={4}
       px={4}
       display="flex"
       flexDirection="column"
       overflow="hidden"
-      minH={0}
+      minW="280px"
     >
       <Heading size="lg" color="#20343c" mb={2} flexShrink={0}>
         Calendar of Events & Drives
@@ -190,10 +168,9 @@ export const StudentCalendarOfEvents = () => {
       ) : (
         <HStack align="stretch" spacing={5} flex={1} minH={0} overflow="hidden" flexDir={{ base: 'column', lg: 'row' }}>
           <Box
-            ref={containerRef}
             flex={1}
-            minW={0}
-            minH={0}
+            minW={{ base: "280px", sm: "350px" }}
+            minH="320px"
             bg="white"
             borderRadius="xl"
             boxShadow="lg"
@@ -224,30 +201,27 @@ export const StudentCalendarOfEvents = () => {
                 />
               </HStack>
             </Box>
-            {/* Center calendar grid to avoid large left alignment on wide screens */}
-            <Box display="flex" justifyContent="center" px={4} pt={3}>
-              <Grid templateColumns={`repeat(7, ${cellSize}px)`} gap={0} flexShrink={0} w={`${gridW}px`}>
+            <Box flex={1} minH={0} display="flex" flexDirection="column" overflow="hidden" p={0}>
+              <Grid templateColumns="repeat(7, 1fr)" gap={0} flexShrink={0} h={`${DAY_LABELS_H}px`} w="100%">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((w) => (
-                  <Box key={w} bg="#fad373" py={2} px={1} h={`${DAY_LABELS_H}px`} borderBottom="1px solid" borderColor="gray.200">
+                  <Box key={w} bg="#fad373" py={2} px={1} borderBottom="1px solid" borderColor="gray.200">
                     <Text textAlign="center" fontSize="sm" fontWeight="bold" color="gray.800">
                       {w}
                     </Text>
                   </Box>
                 ))}
               </Grid>
-            </Box>
 
-            <Box flex={1} minH={0} display="flex" alignItems="flex-start" overflow="hidden" justifyContent="center">
               <Grid
-                templateColumns={`repeat(7, ${cellSize}px)`}
-                templateRows={`repeat(${range.weeks}, ${cellSize}px)`}
+                templateColumns="repeat(7, 1fr)"
+                templateRows={`repeat(${range.weeks}, 1fr)`}
                 gap={0}
+                flex={1}
+                minH={0}
+                w="100%"
                 borderTop="1px solid"
                 borderLeft="1px solid"
                 borderColor="gray.200"
-                w={`${gridW}px`}
-                h={`${gridH}px`}
-                flexShrink={0}
               >
                 {range.days.map((d, idx) => {
                   const inMonth = d.getMonth() === current.getMonth();
@@ -283,13 +257,13 @@ export const StudentCalendarOfEvents = () => {
                         borderColor={isSelected ? '#20343c' : 'transparent'}
                         boxShadow={isSelected ? '0 6px 18px rgba(32,52,60,0.08)' : 'none'}
                       >
-                        <Text fontWeight="bold" fontSize="sm" textAlign="center" color={isToday ? '#20343c' : 'gray.800'}>
+                        <Text fontWeight="bold" fontSize={{ base: "sm", md: "md" }} textAlign="center" color={isToday ? '#20343c' : 'gray.800'}>
                           {d.getDate()}
                         </Text>
                         {isToday && (
                           <Box position="absolute" top={1} right={1} w="2" h="2" borderRadius="full" bg="#d4a960" />
                         )}
-                        {hasEvents && cellSize >= 40 && (
+                        {hasEvents && (
                           <HStack spacing={1} mt={1} wrap="wrap" justify="center">
                             {evs.slice(0, 3).map((e, i) => (
                               <Box

@@ -32,6 +32,7 @@ import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { FaTrash, FaChevronDown, FaPlus, FaGraduationCap, FaFolderOpen, FaLock, FaUnlock } from "react-icons/fa"
 import { PlacementService } from "../../../services/placement.service"
+import { StyledFileInput } from "../../../components/ui/StyledFileInput"
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -682,11 +683,11 @@ export const AcademicsProfile = () => {
             Result / Marksheet (image)
             {!selectedSemesterId && " (required for new semester)"}
           </FormLabel>
-          <input
-            type="file"
+          <StyledFileInput
             accept="image/*,.pdf"
             onChange={(e) => setMarksheetFile(e.target.files?.[0] || null)}
-            style={{ fontSize: "14px", marginTop: "4px" }}
+            acceptLabel="Image, PDF"
+            mt={2}
           />
           {marksheetFile && (
             <Text fontSize="xs" color="gray.600" mt={1}>

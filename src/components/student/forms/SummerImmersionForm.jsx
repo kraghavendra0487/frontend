@@ -1,5 +1,6 @@
 import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, Image, Link } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
 import { FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { getFileUrl } from "../../../utils/fileUrl"
@@ -320,12 +321,10 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                 {isEditing && (
                   <VStack align="stretch" spacing={2}>
                     <Text fontSize="sm" color="gray.600">Upload proof (saved when you click Save changes)</Text>
-                    <Input
-                      type="file"
-                      p={1}
+                    <StyledFileInput
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                       onChange={handleFileChange}
-                      variant="outline"
+                      acceptLabel="PDF, JPG, PNG"
                     />
                     {pendingPreview && (
                       <Box border="2px dashed" borderColor="orange.300" borderRadius="md" p={2} bg="orange.50" w="full">

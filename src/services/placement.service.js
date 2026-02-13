@@ -666,12 +666,26 @@ export const PlacementService = {
     return response.data ?? [];
   },
 
-  /** Alumni: toggle like on a project */
+  /** Toggle favorite on a project (admin, alumni, or any authenticated user) */
+  toggleProjectFavorite: async (projectId) => {
+    const response = await apiFetch(`/projects/${projectId}/favorite`, { method: 'POST' });
+    const data = response.data ?? response;
+    return {
+      is_favorited: data.favorited ?? data.is_favorited ?? false,
+      favorites_count: data.favorites ?? data.favorites_count ?? 0,
+    };
+  },
+
+  /** Toggle like on a project (admin, alumni, or any authenticated user) */
   toggleProjectLike: async (projectId) => {
     const response = await apiFetch(`/placement/projects/${projectId}/like`, {
       method: 'POST',
     });
-    return response.data;
+    const data = response.data ?? response;
+    return {
+      is_liked: data.liked ?? data.is_liked ?? false,
+      likes_count: data.likes ?? data.likes_count ?? 0,
+    };
   },
 
   /** Increment project view count */

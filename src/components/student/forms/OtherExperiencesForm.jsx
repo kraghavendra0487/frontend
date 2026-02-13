@@ -5,6 +5,7 @@
 
 import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, useColorModeValue, useToast, Image, Link } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
+import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
 import { FaPlus, FaTrash, FaChevronDown, FaChevronUp } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
@@ -67,7 +68,12 @@ export const OtherExperiencesForm = ({ data = {}, onUpdate, isEditing = false, o
             index={index} 
             item={item} 
             onChange={handleChange} 
-            onDelete={handleDelete} 
+            onDelete={handleDelete}
+            onRemoveProof={(idx) => {
+              const newItems = [...items]
+              newItems[idx] = { ...newItems[idx], proofDocument: "", proof_document: "" }
+              onUpdate(newItems)
+            }}
             isEditing={isEditing}
             onFileSelect={onFileSelect ? (file) => onFileSelect(index, file) : undefined}
             fieldErrors={getErrorsForIndex(index)}
@@ -98,7 +104,7 @@ export const OtherExperiencesForm = ({ data = {}, onUpdate, isEditing = false, o
   )
 }
 
-const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect, fieldErrors = {} }) => {
+const OtherExperienceItem = ({ index, item, onChange, onDelete, onRemoveProof, isEditing, onFileSelect, fieldErrors = {} }) => {
   const hasErrors = !!(fieldErrors && typeof fieldErrors === "object" && Object.keys(fieldErrors).length > 0)
   const isNewEntry = item?._isNewEntry === true
   const [isOpen, setIsOpen] = useState(hasErrors || isNewEntry)
@@ -251,13 +257,11 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                     {isEditing && (
                       <Box>
                         <Text mb={2} fontWeight="medium">Upload proof (saved when you click Save changes)</Text>
-                        <Input
+                        <StyledFileInput
                           ref={fileInputRef}
-                          type="file"
-                          p={1}
                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                           onChange={handleFileChange}
-                          variant="outline"
+                          acceptLabel="PDF, JPG, PNG"
                           mb={2}
                         />
                         {pendingPreview && (
@@ -277,12 +281,26 @@ const OtherExperienceItem = ({ index, item, onChange, onDelete, isEditing, onFil
                     {(item.proof_document || item.proofDocument) && (
                       <Box mt={2}>
                         {(item.proof_document || item.proofDocument).match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                          <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={2} bg="gray.50">
+                          <Box border="1px solid" borderColor="gray.200" borderRadius="md" p={2} bg="gray.50" position="relative">
                             <Image src={getFileUrl(item.proof_document || item.proofDocument)} alt="Proof" maxH="150px" objectFit="contain" />
-                            <Link href={getFileUrl(item.proof_document || item.proofDocument)} isExternal color="blue.500" fontSize="sm" display="block" mt={1}>View full image</Link>
+                            <HStack mt={2} justify="space-between" align="center">
+                              <Link href={getFileUrl(item.proof_document || item.proofDocument)} isExternal color="blue.500" fontSize="sm">View full image</Link>
+                              {isEditing && (
+                                <Button size="sm" leftIcon={<FaTrash />} colorScheme="red" variant="outline" onClick={() => onRemoveProof(index)}>
+                                  Remove image
+                                </Button>
+                              )}
+                            </HStack>
                           </Box>
                         ) : (
-                          <Link href={getFileUrl(item.proof_document || item.proofDocument)} isExternal color="blue.500" fontSize="sm">View proof document</Link>
+                          <HStack spacing={2} align="center">
+                            <Link href={getFileUrl(item.proof_document || item.proofDocument)} isExternal color="blue.500" fontSize="sm">View proof document</Link>
+                            {isEditing && (
+                              <Button size="sm" leftIcon={<FaTrash />} colorScheme="red" variant="outline" onClick={() => onRemoveProof(index)}>
+                                Remove document
+                              </Button>
+                            )}
+                          </HStack>
                         )}
                       </Box>
                     )}

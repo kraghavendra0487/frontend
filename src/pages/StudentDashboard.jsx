@@ -237,36 +237,65 @@ export const StudentDashboard = ({ viewData = null, basePath = null, studentName
     [timelineData]
   );
 
-  const activeDrives = (drives || []).filter(
-    (d) =>
-      String(d?.placement_status || "").toLowerCase() === "ongoing" ||
-      String(d?.placement_status || "").toLowerCase() === "upcoming"
-  );
   const processByDriveId = (processRecords || []).reduce((acc, p) => {
     const id = p?.placement_drive_id ?? p?.drive?.id;
     if (id != null) acc[id] = p;
     return acc;
   }, {});
 
+  const eventStatusOrder = (s) => {
+    const x = String(s || "scheduled").toLowerCase();
+    if (x === "ongoing") return 0;
+    if (x === "scheduled") return 1;
+    if (x === "completed") return 2;
+    if (x === "failed" || x === "cancelled") return 3;
+    return 1;
+  };
+  const driveStatusOrder = (s) => {
+    const x = String(s || "").toLowerCase();
+    if (x === "ongoing") return 0;
+    if (x === "upcoming" || x === "scheduled") return 1;
+    if (x === "completed") return 2;
+    if (x === "cancelled" || x === "failed" || x === "postponed") return 3;
+    return 1;
+  };
+
   const upcomingEventsSorted = useMemo(() => {
-    return [...(events || [])]
+    const statusLower = (s) => String(s || "scheduled").toLowerCase();
+    return (events || [])
       .filter((e) => e.event_date || e.event_datetime)
-      .map((e) => ({ ...e, _date: new Date(e.event_date || e.event_datetime) }))
+      .map((e) => ({
+        ...e,
+        _date: new Date(e.event_date || e.event_datetime),
+        _title: e.title || e.name || "Event",
+        _type: e.type,
+        _status: e.status,
+      }))
       .filter((e) => !Number.isNaN(e._date.getTime()))
-      .sort((a, b) => a._date - b._date)
+      .sort((a, b) => {
+        const oa = eventStatusOrder(a._status);
+        const ob = eventStatusOrder(b._status);
+        if (oa !== ob) return oa - ob;
+        return a._date - b._date;
+      })
       .slice(0, 4);
   }, [events]);
 
   const upcomingDrivesSorted = useMemo(() => {
-    return [...activeDrives]
+    return (drives || [])
       .map((d) => ({
         ...d,
         _date: new Date(d.last_date_to_registration || d.event_datetime || d.created_at || 0),
       }))
       .filter((d) => !Number.isNaN(d._date.getTime()))
-      .sort((a, b) => a._date - b._date)
-      .slice(0, 10);
-  }, [activeDrives]);
+      .sort((a, b) => {
+        const oa = driveStatusOrder(a.placement_status);
+        const ob = driveStatusOrder(b.placement_status);
+        if (oa !== ob) return oa - ob;
+        return a._date - b._date;
+      })
+      .slice(0, 4);
+  }, [drives]);
 
   const highestCtc = jobOffers.length
     ? Math.max(
@@ -434,33 +463,78 @@ export const StudentDashboard = ({ viewData = null, basePath = null, studentName
         {/* Upcoming events & drives with dates — hidden in admin view */}
         {!isViewMode && (
         <Grid templateColumns={{ base: "1fr", lg: "minmax(0, 1fr) minmax(0, 1fr)" }} gap={{ base: 4, lg: 5 }} mb={6} w="100%" minW={0}>
-          <Box bg={CARD_BG} p={4} borderRadius={CARD_RADIUS} shadow={CARD_SHADOW} minW={0}>
-            <Heading size="sm" color={ACCENT} mb={3}>
+          <Box
+            bg={CARD_BG}
+            p={5}
+            borderRadius={CARD_RADIUS}
+            shadow={CARD_SHADOW}
+            minW={0}
+            borderWidth="1px"
+            borderColor="gray.100"
+            _hover={{ shadow: "lg", borderColor: "gray.200" }}
+            transition="all 0.2s ease"
+          >
+            <Heading size="sm" color={ACCENT} mb={4} fontWeight="600" letterSpacing="-0.01em">
               Upcoming events
             </Heading>
-            <VStack align="stretch" gap={3}>
+            <VStack align="stretch" gap={3} spacing={0}>
               {upcomingEventsSorted.length === 0 ? (
-                <Text color="gray.500">No upcoming events.</Text>
+                <Text color="gray.500" fontSize="sm" py={4}>
+                  No upcoming events.
+                </Text>
               ) : (
-                upcomingEventsSorted.map((e) => (
-                  <Box
-                    key={e.id}
-                    p={3}
-                    borderLeft="4px solid"
-                    borderColor={ACCENT_LIGHT}
-                    pl={4}
-                    borderRadius="md"
-                    bg="gray.50"
-                    _hover={{ bg: "gray.100" }}
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color={ACCENT}>
-                      {e.title || e.name || "Event"}
-                    </Text>
-                    <Text fontSize="sm" color="gray.600">
-                      {formatShortDate(e.event_date || e.event_datetime)} {e.type ? `• ${e.type}` : ""}
-                    </Text>
-                  </Box>
-                ))
+                upcomingEventsSorted.map((item) => {
+                  const s = String(item._status || "scheduled").toLowerCase();
+                  const statusConfig = {
+                    ongoing: { border: "green.500", badge: "green", label: "Ongoing" },
+                    scheduled: { border: ACCENT_LIGHT, badge: "yellow", label: "Upcoming" },
+                    completed: { border: "gray.400", badge: "gray", label: "Completed" },
+                    failed: { border: "red.400", badge: "red", label: "Cancelled" },
+                    cancelled: { border: "red.400", badge: "red", label: "Cancelled" },
+                  };
+                  const cfg = statusConfig[s] || statusConfig.scheduled;
+                  return (
+                    <Box
+                      key={`event-${item.id}`}
+                      p={3}
+                      pl={4}
+                      minH="60px"
+                      display="flex"
+                      alignItems="center"
+                      borderRadius="lg"
+                      bg="gray.50"
+                      borderLeft="4px solid"
+                      borderColor={cfg.border}
+                      transition="all 0.2s ease"
+                      _hover={{
+                        bg: "white",
+                        shadow: "sm",
+                        transform: "translateX(2px)",
+                      }}
+                    >
+                      <Flex justify="space-between" align="center" gap={2} w="100%">
+                        <Box flex={1} minW={0}>
+                          <Text fontWeight="600" fontSize="sm" color={ACCENT} lineHeight="tall">
+                            {item._title}
+                          </Text>
+                          <Text fontSize="xs" color="gray.600" mt={0.5}>
+                            {formatShortDate(item._date)}
+                            {item._type ? (
+                              <>
+                                {" "}
+                                <Text as="span" color="gray.400">•</Text>{" "}
+                                {item._type}
+                              </>
+                            ) : null}
+                          </Text>
+                        </Box>
+                        <Badge colorScheme={cfg.badge} size="sm" fontWeight="500" flexShrink={0}>
+                          {cfg.label}
+                        </Badge>
+                      </Flex>
+                    </Box>
+                  );
+                })
               )}
             </VStack>
             {!isViewMode && (
@@ -470,37 +544,87 @@ export const StudentDashboard = ({ viewData = null, basePath = null, studentName
             )}
           </Box>
 
-          <Box bg={CARD_BG} p={4} borderRadius={CARD_RADIUS} shadow={CARD_SHADOW} minW={0}>
-            <Heading size="sm" color={ACCENT} mb={3}>
+          <Box
+            bg={CARD_BG}
+            p={5}
+            borderRadius={CARD_RADIUS}
+            shadow={CARD_SHADOW}
+            minW={0}
+            borderWidth="1px"
+            borderColor="gray.100"
+            _hover={{ shadow: "lg", borderColor: "gray.200" }}
+            transition="all 0.2s ease"
+          >
+            <Heading size="sm" color={ACCENT} mb={4} fontWeight="600" letterSpacing="-0.01em">
               Upcoming drives
             </Heading>
-            <VStack align="stretch" gap={3}>
+            <VStack align="stretch" gap={3} spacing={0}>
               {upcomingDrivesSorted.length === 0 ? (
-                <Text color="gray.500">No upcoming drives.</Text>
+                <Text color="gray.500" fontSize="sm" py={4}>
+                  No upcoming drives.
+                </Text>
               ) : (
                 upcomingDrivesSorted.map((drive) => {
                   const proc = processByDriveId[drive.id];
                   const isRegistered = String(proc?.registration_status || "").toLowerCase() === "registered" || String(proc?.final_select_status || "").toLowerCase() === "selected";
                   const companyName = drive.company?.company_name || drive.company_name || "Company";
                   const dateStr = formatShortDate(drive.last_date_to_registration || drive.event_datetime);
+                  const jobType = drive.job_type || drive.job_role || "Role";
+                  const ds = String(drive.placement_status || "").toLowerCase();
+                  const driveStatusConfig = {
+                    ongoing: { border: "green.500", badge: "green", label: "Ongoing" },
+                    upcoming: { border: ACCENT_LIGHT, badge: "yellow", label: "Upcoming" },
+                    scheduled: { border: ACCENT_LIGHT, badge: "yellow", label: "Upcoming" },
+                    completed: { border: "gray.400", badge: "gray", label: "Completed" },
+                    cancelled: { border: "red.400", badge: "red", label: "Cancelled" },
+                    failed: { border: "red.400", badge: "red", label: "Failed" },
+                    postponed: { border: "orange.400", badge: "orange", label: "Postponed" },
+                  };
+                  const dCfg = driveStatusConfig[ds] || driveStatusConfig.scheduled;
                   return (
-                    <Box key={drive.id} p={3} borderWidth="1px" borderRadius="md" borderColor="gray.100" _hover={{ borderColor: ACCENT_LIGHT }}>
-                      <Flex justify="space-between" align="flex-start" gap={2}>
-                        <Box>
-                          <Text fontWeight="semibold" fontSize="sm" color={ACCENT}>
+                    <Box
+                      key={drive.id}
+                      p={3}
+                      pl={4}
+                      minH="60px"
+                      display="flex"
+                      alignItems="center"
+                      borderRadius="lg"
+                      bg="gray.50"
+                      borderLeft="4px solid"
+                      borderColor={dCfg.border}
+                      transition="all 0.2s ease"
+                      _hover={{
+                        bg: "white",
+                        shadow: "sm",
+                        transform: "translateX(2px)",
+                      }}
+                    >
+                      <Flex justify="space-between" align="center" gap={2} w="100%">
+                        <Box flex={1} minW={0}>
+                          <Text fontWeight="600" fontSize="sm" color={ACCENT} lineHeight="tall">
                             {companyName}
                           </Text>
-                          <Text fontSize="xs" color="gray.600">
-                            {dateStr} • {drive.job_type || drive.job_role || "Role"}
+                          <Text fontSize="xs" color="gray.600" mt={0.5}>
+                            {dateStr}
+                            <Text as="span" color="gray.400" mx={1}>•</Text>
+                            {jobType}
                           </Text>
                         </Box>
-                        <Badge colorScheme={isRegistered ? "green" : "gray"}>{isRegistered ? "Registered" : "Apply"}</Badge>
+                        <HStack gap={2} flexShrink={0}>
+                          <Badge colorScheme={dCfg.badge} size="sm" fontWeight="500">
+                            {dCfg.label}
+                          </Badge>
+                          {isRegistered && (
+                            <Icon as={FaCheckCircle} color="green.500" boxSize={4} aria-label="Registered" />
+                          )}
+                          {!isViewMode && (
+                            <Link as={RouterLink} to={`/student/placements/drive/${drive.id}`} fontSize="xs" color="blue.600" fontWeight="500">
+                              View
+                            </Link>
+                          )}
+                        </HStack>
                       </Flex>
-                      {!isViewMode && (
-                        <Button size="xs" mt={2} as={RouterLink} to={`/student/placements/drive/${drive.id}`} variant="ghost" colorScheme="blue">
-                          View details
-                        </Button>
-                      )}
                     </Box>
                   );
                 })

@@ -278,9 +278,21 @@ const router = createBrowserRouter([
       },
       {
         path: "/placement/gallery",
+        element: <Navigate to="/placement/gallery/showcase" replace />
+      },
+      {
+        path: "/placement/gallery/showcase",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
-            <AdminProjects />
+            <AdminProjects mode="showcase" />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/gallery/manage",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <AdminProjects mode="manage" />
           </PlacementProtectedRoute>
         )
       },

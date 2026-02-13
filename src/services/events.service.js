@@ -5,8 +5,12 @@ const BASE = '/events';
 export const EventsService = {
   list: async (status) => {
     const url = status ? `${BASE}?status=${status}` : BASE;
-    const { data } = await apiFetch(url);
-    return data || [];
+    const res = await apiFetch(url);
+    const data = res?.data;
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.events)) return data.events;
+    if (data && Array.isArray(data.data)) return data.data;
+    return [];
   },
 
   getNotificationStats: async () => {

@@ -34,6 +34,7 @@ import {
 import { SearchIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
+import { StyledFileInput } from '../../components/ui/StyledFileInput';
 import { PlacementService } from '../../services/placement.service';
 import { useAuth } from '../../context/AuthContext';
 
@@ -403,7 +404,7 @@ const Companies = () => {
                     </FormControl>
                     <FormControl>
                       <FormLabel>Logo</FormLabel>
-                      <Input type="file" accept="image/*" onChange={handleLogoChange} p={1} />
+                      <StyledFileInput accept="image/*" onChange={handleLogoChange} acceptLabel="Images" />
                       {newCompany.logo && (
                         <Image src={newCompany.logo} alt="Preview" boxSize="50px" mt={2} objectFit="contain" />
                       )}
