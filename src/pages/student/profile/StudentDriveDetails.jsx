@@ -153,7 +153,7 @@ export const StudentDriveDetails = () => {
   if (!drive) {
     return (
       <Box p={8} textAlign="center">
-          <Heading size="lg" color="gray.500">Drive Not Found</Heading>
+          <Heading size="lg" color="gray.600">Drive Not Found</Heading>
           <Button mt={4} type="button" onClick={() => navigate('/student/placements/feed')}>Back to Feed</Button>
         </Box>
     )
@@ -194,8 +194,8 @@ export const StudentDriveDetails = () => {
                         {drive.placement_status}
                       </Badge>
                     </HStack>
-                    <Text fontSize="lg" color="gray.600" mt={1}>{drive.job_type ?? "—"}</Text>
-                    <HStack mt={2} spacing={4} color="gray.500" flexWrap="wrap">
+                    <Text fontSize="lg" color="gray.700" mt={1}>{drive.job_type ?? "—"}</Text>
+                    <HStack mt={2} spacing={4} color="gray.600" flexWrap="wrap">
                       <HStack><Icon as={FaMapMarkerAlt} /><Text>{drive.job_location ?? "—"}</Text></HStack>
                       <HStack><Icon as={FaBriefcase} /><Text>{drive.company?.company_type ?? "—"}</Text></HStack>
                       {(drive.academic_year ?? drive.year) && (
@@ -243,7 +243,7 @@ export const StudentDriveDetails = () => {
                         <VStack align="stretch" spacing={3}>
                           {hasCtc && (
                             <Box>
-                              <Text fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>CTC</Text>
+                              <Text fontSize="sm" fontWeight="bold" color="gray.700" mb={2}>CTC</Text>
                               {ctcTotalDisplay != null && (
                                 <Text fontSize="lg" fontWeight="semibold" mb={2}>{ctcTotalDisplay} LPA{!(ctcBase || ctcMin || ctcMax || ctcVariable || ctcStock) ? "" : " (Total)"}</Text>
                               )}
@@ -259,7 +259,7 @@ export const StudentDriveDetails = () => {
                           )}
                           {hasStipend && (
                             <Box>
-                              <Text fontSize="sm" fontWeight="bold" color="gray.600" mb={2}>Stipend</Text>
+                              <Text fontSize="sm" fontWeight="bold" color="gray.700" mb={2}>Stipend</Text>
                               {(stipMin != null || stipMax != null) ? (
                                 <Text fontWeight="semibold">{[stipMin, stipMax].filter(Boolean).join(" – ")} / month</Text>
                               ) : stipSingle != null && stipSingle !== "" ? (
@@ -284,7 +284,7 @@ export const StudentDriveDetails = () => {
                   </Box>
                   <Box bg="gray.50" p={4} borderRadius="md">
                     <HStack mb={2}>
-                      <Icon as={FaBriefcase} color="gray.600" />
+                      <Icon as={FaBriefcase} color="gray.700" />
                       <Text fontWeight="bold" color="gray.700">Openings & applications</Text>
                     </HStack>
                     <Text fontSize="sm"><Text as="span" fontWeight="semibold">Openings:</Text> {drive.number_of_openings != null ? drive.number_of_openings : "—"}</Text>
@@ -302,19 +302,19 @@ export const StudentDriveDetails = () => {
                       <List spacing={2}>
                         {drive.company?.address && (
                           <ListItem display="flex" alignItems="flex-start" gap={2}>
-                            <ListIcon as={FaMapMarkerAlt} color="gray.500" mt={0.5} />
+                            <ListIcon as={FaMapMarkerAlt} color="gray.600" mt={0.5} />
                             <Text>{drive.company.address}</Text>
                           </ListItem>
                         )}
                         {drive.company?.website && (
                           <ListItem display="flex" alignItems="center" gap={2}>
-                            <Icon as={FaGlobe} color="gray.500" />
+                            <Icon as={FaGlobe} color="gray.600" />
                             <Text as="a" href={drive.company.website.startsWith("http") ? drive.company.website : `https://${drive.company.website}`} target="_blank" rel="noopener noreferrer" color="blue.600">{drive.company.website}</Text>
                           </ListItem>
                         )}
                         {drive.company?.linkedin && (
                           <ListItem display="flex" alignItems="center" gap={2}>
-                            <Icon as={FaLinkedin} color="gray.500" />
+                            <Icon as={FaLinkedin} color="gray.600" />
                             <Text as="a" href={drive.company.linkedin.startsWith("http") ? drive.company.linkedin : `https://${drive.company.linkedin}`} target="_blank" rel="noopener noreferrer" color="blue.600">{drive.company.linkedin}</Text>
                           </ListItem>
                         )}
@@ -329,7 +329,7 @@ export const StudentDriveDetails = () => {
                     <Box mb={6}>
                       {drive.tpo && (
                         <HStack align="start" mb={2}>
-                          <Icon as={FaUserTie} color="gray.500" mt={0.5} />
+                          <Icon as={FaUserTie} color="gray.600" mt={0.5} />
                           <Text><Text as="span" fontWeight="semibold">TPO:</Text> {drive.tpo}</Text>
                         </HStack>
                       )}
@@ -361,14 +361,14 @@ export const StudentDriveDetails = () => {
                             ? "Not Shortlisted"
                             : "Awaiting Shortlist"}
                         </Badge>
-                        <Text fontSize="sm" color="gray.600">
+                        <Text fontSize="sm" color="gray.700">
                           {application.approved_status === "Not Qualified"
                             ? "You were not shortlisted for this drive."
                             : "Process rounds will appear once your application is shortlisted."}
                         </Text>
                       </HStack>
                     ) : !Array.isArray(drive.process_rounds) || drive.process_rounds.length === 0 ? (
-                      <Text color="gray.500">
+                      <Text color="gray.600">
                         Process rounds are not configured for this drive.
                       </Text>
                     ) : (

@@ -592,7 +592,7 @@ const Violations = () => {
                             <Th color={headerColor} borderColor={borderColor}>USN</Th>
                             <Th color={headerColor} borderColor={borderColor}>Drive</Th>
                             <Th color={headerColor} borderColor={borderColor}>Eligible</Th>
-                            <Th color={headerColor} borderColor={borderColor}>Rejection Reasons</Th>
+                            <Th color={headerColor} borderColor={borderColor} minW="240px">Rejection Reasons</Th>
                             <Th color={headerColor} borderColor={borderColor}>Evaluated At</Th>
                             <Th color={headerColor} borderColor={borderColor}>Evaluated By</Th>
                           </Tr>
@@ -612,7 +612,7 @@ const Violations = () => {
                                   {row.is_eligible ? 'Yes' : 'No'}
                                 </Badge>
                               </Td>
-                              <Td borderColor={borderColor}>
+                              <Td borderColor={borderColor} minW="240px">
                                 {Array.isArray(row.rejection_reasons) && row.rejection_reasons.length > 0
                                   ? row.rejection_reasons.join(', ')
                                   : '—'}

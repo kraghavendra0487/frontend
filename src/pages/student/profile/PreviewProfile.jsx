@@ -134,16 +134,16 @@ export const PreviewProfile = () => {
           {/* Header Section */}
           <VStack align="center" gap={2} mb={8}>
             <Heading size="2xl">{profile.personal.fullName}</Heading>
-            <Text fontSize="lg" color="gray.600">
+            <Text fontSize="lg" color="gray.700">
               {profile.personal.programId} - {profile.personal.specializationId}
             </Text>
             <HStack gap={4} flexWrap="wrap" justify="center">
               <HStack>
-                <Icon as={FaEnvelope} color="gray.500" />
+                <Icon as={FaEnvelope} color="gray.600" />
                 <Text>{profile.communication.collegeEmail}</Text>
               </HStack>
               <HStack>
-                <Icon as={FaPhone} color="gray.500" />
+                <Icon as={FaPhone} color="gray.600" />
                 <Text>{profile.communication.phoneCountryCode} {profile.communication.phoneNumber}</Text>
               </HStack>
             </HStack>
@@ -189,10 +189,10 @@ export const PreviewProfile = () => {
                   <Box key={i}>
                     <HStack justify="space-between">
                       <Text fontWeight="bold">{edu.instituteName}</Text>
-                      <Text color="gray.600">{edu.yearOfPassing}</Text>
+                      <Text color="gray.700">{edu.yearOfPassing}</Text>
                     </HStack>
                     <Text>{edu.educationLevel} - {edu.board}</Text>
-                    <Text fontSize="sm" color="gray.500">Result: {edu.result} {edu.resultType}</Text>
+                    <Text fontSize="sm" color="gray.600">Result: {edu.result} {edu.resultType}</Text>
                   </Box>
                 ))}
               </Stack>
@@ -215,7 +215,7 @@ export const PreviewProfile = () => {
                       </HStack>
                     </HStack>
                     <Text fontSize="sm" mb={1}>{proj.description}</Text>
-                    {proj.mentorName && <Text fontSize="xs" color="gray.600">Mentor: {proj.mentorName}</Text>}
+                    {proj.mentorName && <Text fontSize="xs" color="gray.700">Mentor: {proj.mentorName}</Text>}
                     <HStack flexWrap="wrap" mt={1}>
                       {proj.skills && proj.skills.map((skill, j) => (
                         <Badge key={j} size="sm" variant="outline">{skill}</Badge>
@@ -233,15 +233,15 @@ export const PreviewProfile = () => {
                   <Box key={i}>
                     <HStack justify="space-between">
                       <Text fontWeight="bold">{job.jobRole} @ {job.organization}</Text>
-                      <Text color="gray.600">{job.startDate} - {job.endDate}</Text>
+                      <Text color="gray.700">{job.startDate} - {job.endDate}</Text>
                     </HStack>
                     <Text fontSize="sm" mb={1}>{job.description}</Text>
-                    <HStack gap={4} fontSize="xs" color="gray.500" mb={1}>
+                    <HStack gap={4} fontSize="xs" color="gray.600" mb={1}>
                       {job.location && <Text>Location: {job.location}</Text>}
                       {job.stipend && <Text>Stipend: {job.stipend}</Text>}
                     </HStack>
                     <HStack justify="space-between" fontSize="xs">
-                       {job.mentorName && <Text color="gray.600">Mentor: {job.mentorName}</Text>}
+                       {job.mentorName && <Text color="gray.700">Mentor: {job.mentorName}</Text>}
                        {job.certificateLink && (
                           <Link href={job.certificateLink} isExternal color="blue.500">View Certificate</Link>
                        )}
@@ -259,7 +259,7 @@ export const PreviewProfile = () => {
                     <Box key={i}>
                       <HStack justify="space-between">
                         <Text fontWeight="bold">{train.title} @ {train.organization}</Text>
-                        <Text color="gray.600">{train.startDate} - {train.endDate}</Text>
+                        <Text color="gray.700">{train.startDate} - {train.endDate}</Text>
                       </HStack>
                       <Text fontSize="sm" mb={1}>Type: {train.trainingType}</Text>
                       {train.certificateLink && (
@@ -282,7 +282,7 @@ export const PreviewProfile = () => {
                           <Text fontSize="sm" color="gray.600">{cert.issueDate} {cert.expiryDate ? `- ${cert.expiryDate}` : ''}</Text>
                         </HStack>
                         <Text fontSize="sm">{cert.issuingOrganization}</Text>
-                        <HStack justify="space-between" fontSize="sm" color="gray.500" mt={1}>
+                        <HStack justify="space-between" fontSize="sm" color="gray.600" mt={1}>
                            <HStack gap={3}>
                              <Text>Type: {cert.certificationType}</Text>
                              {cert.score && <Text>Score: {cert.score}</Text>}
@@ -305,11 +305,11 @@ export const PreviewProfile = () => {
                     <Box key={i}>
                       <HStack justify="space-between">
                         <Text fontWeight="bold">{pub.title}</Text>
-                        <Text color="gray.600" fontSize="sm">{pub.publicationDate}</Text>
+                        <Text color="gray.700" fontSize="sm">{pub.publicationDate}</Text>
                       </HStack>
                       <Text fontSize="sm">{pub.journalConference}</Text>
                       <Text fontSize="sm" mb={1}>{pub.description}</Text>
-                      <HStack justify="space-between" fontSize="xs" color="gray.500">
+                      <HStack justify="space-between" fontSize="xs" color="gray.600">
                          <HStack gap={3}>
                             <Text>Type: {pub.publicationType}</Text>
                             <Text>Authors: {pub.authorCount}</Text>
@@ -333,14 +333,14 @@ export const PreviewProfile = () => {
                     <Box key={i}>
                       <HStack justify="space-between">
                         <Text fontWeight="bold">{activity.activityName}</Text>
-                        <Text color="gray.600" fontSize="sm">{activity.date} {activity.endDate ? `- ${activity.endDate}` : ''}</Text>
+                        <Text color="gray.700" fontSize="sm">{activity.date} {activity.endDate ? `- ${activity.endDate}` : ''}</Text>
                       </HStack>
                       <Text fontSize="sm">{activity.role} @ {activity.organization}</Text>
                       <Text fontSize="sm" mb={1}>{activity.description}</Text>
-                      <Text fontSize="xs" color="gray.500" mb={1}>Achievement: {activity.achievement}</Text>
+                      <Text fontSize="xs" color="gray.600" mb={1}>Achievement: {activity.achievement}</Text>
                       <HStack justify="space-between" fontSize="xs">
                         <HStack gap={3}>
-                           <Text color="gray.500">Type: {activity.activityType}</Text>
+                           <Text color="gray.600">Type: {activity.activityType}</Text>
                         </HStack>
                         {activity.proofFile && (
                           <Link href={activity.proofFile} isExternal color="blue.500">View Proof</Link>

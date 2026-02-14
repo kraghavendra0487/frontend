@@ -12,9 +12,10 @@ import {
   Alert,
   AlertIcon,
   Divider,
-  useToast
+  useToast,
+  Button,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
@@ -133,6 +134,12 @@ const CalendarOfEvents = () => {
 
   const handleDayClick = (d) => setSelectedDate(d);
 
+  const goToToday = useCallback(() => {
+    const now = new Date();
+    setCurrent(new Date(now.getFullYear(), now.getMonth(), 1));
+    setSelectedDate(now);
+  }, []);
+
   const dayEvents = (d) => {
     const iso = formatDate(d);
     return monthEvents.filter(e => {
@@ -165,7 +172,18 @@ const CalendarOfEvents = () => {
           w="100%"
         >
           <VStack spacing={4} align="stretch" flex={1} minH={0}>
-            <Heading size="lg" flexShrink={0} mb={2} lineHeight="shorter">Calendar of Events</Heading>
+            <HStack justify="space-between" align="center" flexShrink={0} mb={2} w="100%">
+              <Heading size="lg" lineHeight="shorter">Calendar of Events</Heading>
+              <Button
+                leftIcon={<FiCalendar />}
+                size="sm"
+                colorScheme="green"
+                variant="outline"
+                onClick={goToToday}
+              >
+                Go to Today
+              </Button>
+            </HStack>
 
             {loading ? (
               <Box bg="white" borderRadius="xl" p={8} boxShadow="lg" textAlign="center" flexShrink={0}>

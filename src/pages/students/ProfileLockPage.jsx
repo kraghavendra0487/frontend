@@ -6,6 +6,8 @@ import {
   Heading,
   HStack,
   Input,
+  InputGroup,
+  InputLeftElement,
   Spinner,
   Switch,
   Table,
@@ -17,7 +19,7 @@ import {
   Tr,
   useToast,
 } from '@chakra-ui/react';
-import { FaSync } from 'react-icons/fa';
+import { FaSearch, FaSync } from 'react-icons/fa';
 import { PlacementService } from '../../services/placement.service';
 
 const SECTION_FIELDS = [
@@ -59,6 +61,18 @@ export default function ProfileLockPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [savingKey, setSavingKey] = useState(null); // `${usn}:${field}` for Reason input
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+    const q = searchQuery.trim().toLowerCase();
+    return rows.filter(
+      (r) =>
+        (r.usn || '').toLowerCase().includes(q) ||
+        (r.full_name || '').toLowerCase().includes(q) ||
+        (r.college_email || '').toLowerCase().includes(q)
+    );
+  }, [rows, searchQuery]);
 
   const missingControlCount = useMemo(
     () => rows.filter((r) => r && (r.is_sem1_locked == null)).length,
@@ -198,6 +212,21 @@ export default function ProfileLockPage() {
         </HStack>
       </Flex>
 
+      {!loading && rows.length > 0 && (
+        <InputGroup maxW="400px" mb={4}>
+          <InputLeftElement pointerEvents="none" color="gray.400">
+            <FaSearch />
+          </InputLeftElement>
+          <Input
+            placeholder="Search by USN, name, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            bg="white"
+            borderColor="gray.200"
+          />
+        </InputGroup>
+      )}
+
       {loading ? (
         <Flex py={12} justify="center">
           <Spinner />
@@ -222,18 +251,18 @@ export default function ProfileLockPage() {
                   </Th>
                 ))}
                 <Th>Locked By</Th>
-                <Th>Reason</Th>
+                <Th minW="220px">Reason</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {rows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <Tr>
                   <Td colSpan={4 + SECTION_FIELDS.length + SEM_FIELDS.length + 2} py={8} textAlign="center" color="gray.500">
-                    No students found.
+                    {rows.length === 0 ? 'No students found.' : 'No students match your search.'}
                   </Td>
                 </Tr>
               ) : (
-                rows.map((r) => {
+                filteredRows.map((r) => {
                   const hasControl = r.is_sem1_locked != null;
                   return (
                     <Tr key={r.usn}>
@@ -268,7 +297,7 @@ export default function ProfileLockPage() {
                         </Td>
                       ))}
                       <Td>{r.locked_by_name ?? r.locked_by ?? '-'}</Td>
-                      <Td>
+                      <Td minW="220px">
                         <Input
                           size="xs"
                           defaultValue={r.lock_reason || ''}

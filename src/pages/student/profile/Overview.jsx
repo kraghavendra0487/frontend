@@ -171,7 +171,7 @@ export const ProfileOverview = () => {
             <Icon as={FaChartPie} color="blue.600" boxSize={5} />
             <Heading size="sm">Overall Completion</Heading>
           </HStack>
-          <Text fontSize="sm" color="gray.600">Complete all sections to generate your resume.</Text>
+          <Text fontSize="sm" color="gray.700">Complete all sections to generate your resume.</Text>
       </Box>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} gap={4} mb={8}>
@@ -189,7 +189,7 @@ export const ProfileOverview = () => {
                   {isCompleteCategory ? "Complete" : "In progress"}
                 </Badge>
               </Flex>
-              <Text fontSize="sm" color="gray.600">
+              <Text fontSize="sm" color="gray.700">
                 {isCompleteCategory ? "All sections filled" : "Keep filling details in this category"}
               </Text>
             </Box>

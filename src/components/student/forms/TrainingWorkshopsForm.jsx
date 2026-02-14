@@ -92,7 +92,7 @@ export const TrainingWorkshopsForm = ({ data = {}, onUpdate, isEditing = false, 
         )}
 
         {items.length === 0 && (
-          <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+          <Box p={8} textAlign="center" color="gray.700" border="1px dashed" borderColor="gray.300" borderRadius="xl">
             No trainings added yet.
           </Box>
         )}
@@ -179,6 +179,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                   value={item.title || ""} 
                   onChange={(e) => onChange(index, "title", e.target.value)}
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
@@ -187,6 +188,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                   value={item.institution || ""} 
                   onChange={(e) => onChange(index, "institution", e.target.value)}
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
@@ -197,6 +199,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                     value={item.training_type || ""}
                     onChange={(e) => onChange(index, "training_type", e.target.value)}
                     isDisabled={!isEditing}
+                    _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                     placeholder="e.g. Technical Workshop, Soft Skills, Bootcamp"
                     _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -210,6 +213,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                         onChange={(e) => onChange(index, "startDate", toDateValue(e.target.value))}
                         variant="flushed"
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         min="1900-01-01"
                         max="2100-12-31"
                     />
@@ -221,6 +225,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                         onChange={(e) => onChange(index, "endDate", toDateValue(e.target.value))}
                         variant="flushed"
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         min="1900-01-01"
                         max="2100-12-31"
                     />
@@ -232,6 +237,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                     value={item.skills || ""}
                     onChange={(e) => onChange(index, "skills", e.target.value)}
                     isDisabled={!isEditing}
+                    _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                     placeholder="e.g. Leadership, Python, Public Speaking"
                     _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -242,6 +248,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
                 value={item.description || ""} 
                 onChange={(e) => onChange(index, "description", e.target.value)}
                 isDisabled={!isEditing}
+                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 rows={3}
                 _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
@@ -250,7 +257,7 @@ const TrainingItem = ({ index, item, onChange, onDelete, isEditing, onFileSelect
             <Field label="Proof Document *" errorText={getError("proof_document") || getError("proofDocument")}>
                 {isEditing && (
                     <Box>
-                        <Text mb={2} fontWeight="medium">Upload proof (saved when you click Save changes)</Text>
+                        <Text mb={2} fontWeight="medium" color="gray.700">Upload proof (saved when you click Save changes)</Text>
                         <StyledFileInput
                             accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                             onChange={handleFileChange}

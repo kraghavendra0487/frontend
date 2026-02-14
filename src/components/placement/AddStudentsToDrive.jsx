@@ -39,7 +39,7 @@ import {
 } from '@chakra-ui/react';
 import { SearchIcon, AddIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import { QuestionIcon } from '@chakra-ui/icons';
-import { MdFilterList } from 'react-icons/md';
+import { MdFilterList, MdViewColumn } from 'react-icons/md';
 import { PlacementService } from '../../services/placement.service';
 
 /** Multi-select filter: click to open, shows selected options as tags */
@@ -163,20 +163,47 @@ const AddStudentsToDrive = ({ driveId, onCancel, onSuccess, embedded = false, ex
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Fixed columns (no column picker)
+  // Column definitions (select is always visible)
   const baseColumns = [
-    { id: 'select', label: 'Select' },
+    { id: 'select', label: 'Select', alwaysVisible: true },
     { id: 'name', label: 'Name' },
     { id: 'usn', label: 'USN' },
-    ...(driveId ? [{ id: 'eligibility', label: 'Eligible' }] : []),
+    { id: 'year_of_joining', label: 'Joining Year' },
+    { id: 'graduation_year', label: 'Graduation Year' },
     { id: 'school', label: 'School' },
     { id: 'program', label: 'Program' },
-    { id: 'latest_sgpa', label: 'SGPA' },
-    { id: 'live_backlogs', label: 'Live BL' },
-    { id: 'closed_backlogs', label: 'Closed BL' },
+    { id: 'specialization', label: 'Specialization' },
+    { id: 'major', label: 'Majors' },
+    { id: 'latest_sgpa', label: 'CGPA' },
+    { id: 'live_backlogs', label: 'Current Backlogs' },
+    { id: 'closed_backlogs', label: 'Cleared Backlogs' },
+    { id: 'offers_count', label: 'No. of Offers' },
+    { id: 'max_ctc_lpa', label: 'Prev Max CTC (LPA)' },
+    { id: 'is_placed', label: 'Placed?' },
+    { id: 'is_placed_off_campus', label: 'Off-Campus Placed?' },
+    { id: 'disciplinary', label: 'Disciplinary Action?' },
+    { id: 'placement_violations', label: 'Placement Violation?' },
+    { id: 'admin_hold', label: 'Admin Override Hold?' },
+    ...(driveId ? [{ id: 'eligibility', label: 'Eligible' }] : []),
   ];
-  const visibleColumns = baseColumns.map(c => c.id);
-  const baseColumnIds = baseColumns.map(c => c.id);
+  const selectableColumns = baseColumns.filter((c) => !c.alwaysVisible);
+  const defaultVisibleIds = baseColumns.map((c) => c.id);
+  const [visibleColumns, setVisibleColumns] = useState(defaultVisibleIds);
+  const baseColumnIds = baseColumns.map((c) => c.id);
+
+  const handleColumnToggle = (columnId) => {
+    setVisibleColumns((prev) => {
+      if (prev.includes(columnId)) {
+        const next = prev.filter((id) => id !== columnId);
+        if (next.length <= 1) return prev;
+        return next;
+      }
+      return [...prev, columnId];
+    });
+  };
+  const handleSelectAllColumns = (checked) => {
+    setVisibleColumns(checked ? baseColumnIds : ['select']);
+  };
 
   const getLabelForColumn = (id) => {
     if (id === 'select') return '';
@@ -680,8 +707,58 @@ const AddStudentsToDrive = ({ driveId, onCancel, onSuccess, embedded = false, ex
           )}
         </Box>
 
+        {/* Table toolbar: column selector */}
+        <Flex align="center" justify="space-between" mb={3} flexWrap="wrap" gap={2}>
+          <Text fontSize="sm" fontWeight="600" color="gray.700">Students</Text>
+          <Popover placement="bottom-end" isLazy>
+            <PopoverTrigger>
+              <Button
+                size="sm"
+                variant="outline"
+                leftIcon={<Icon as={MdViewColumn} />}
+                colorScheme="teal"
+                aria-label="Select columns"
+              >
+                Columns ({visibleColumns.filter((id) => id !== 'select').length})
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent w="280px" _focus={{ outline: 'none' }}>
+              <PopoverBody p={3}>
+                <Text fontSize="sm" fontWeight="600" mb={3} color="gray.700">Select columns to display</Text>
+                <Checkbox
+                  size="sm"
+                  mb={2}
+                  isChecked={visibleColumns.length === baseColumnIds.length}
+                  isIndeterminate={visibleColumns.length > 1 && visibleColumns.length < baseColumnIds.length}
+                  onChange={(e) => handleSelectAllColumns(e.target.checked)}
+                  colorScheme="teal"
+                >
+                  Select All
+                </Checkbox>
+                <VStack align="stretch" spacing={0} maxH="280px" overflowY="auto">
+                  {selectableColumns.map((col) => (
+                    <Checkbox
+                      key={col.id}
+                      size="sm"
+                      isChecked={visibleColumns.includes(col.id)}
+                      onChange={() => handleColumnToggle(col.id)}
+                      py={1.5}
+                      px={2}
+                      _hover={{ bg: 'gray.50' }}
+                      borderRadius="md"
+                      colorScheme="teal"
+                    >
+                      {col.label}
+                    </Checkbox>
+                  ))}
+                </VStack>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+        </Flex>
+
         {/* Table */}
-        <TableContainer>
+        <TableContainer overflowX="auto" maxW="100%">
             <Table variant="simple" size="sm">
               <Thead bg="gray.50">
                 <Tr>
@@ -738,6 +815,42 @@ const AddStudentsToDrive = ({ driveId, onCancel, onSuccess, embedded = false, ex
                           <Badge colorScheme="blue" fontSize="xs" variant="subtle">{student.usn}</Badge>
                         </Td>
                       )}
+                      {visibleColumns.includes('year_of_joining') && <Td fontSize="sm" color="gray.600">{student.year_of_joining ?? '-'}</Td>}
+                      {visibleColumns.includes('graduation_year') && <Td fontSize="sm" color="gray.600">{student.graduation_year ?? '-'}</Td>}
+                      {visibleColumns.includes('school') && <Td fontSize="sm" color="gray.600">{student.school || '-'}</Td>}
+                      {visibleColumns.includes('program') && <Td fontSize="sm" color="gray.600">{student.program || '-'}</Td>}
+                      {visibleColumns.includes('specialization') && <Td fontSize="sm" color="gray.600">{student.specialization || '-'}</Td>}
+                      {visibleColumns.includes('major') && <Td fontSize="sm" color="gray.600">{student.major || '-'}</Td>}
+                      {visibleColumns.includes('latest_sgpa') && <Td fontSize="sm" fontWeight="bold">{student.latest_sgpa ?? '-'}</Td>}
+                      {visibleColumns.includes('live_backlogs') && <Td fontSize="sm" color={(student.live_backlogs ?? 0) > 0 ? "red.500" : "green.500"}>{student.live_backlogs !== null && student.live_backlogs !== undefined ? student.live_backlogs : '-'}</Td>}
+                      {visibleColumns.includes('closed_backlogs') && <Td fontSize="sm">{student.closed_backlogs !== null && student.closed_backlogs !== undefined ? student.closed_backlogs : '-'}</Td>}
+                      {visibleColumns.includes('offers_count') && <Td fontSize="sm" color="gray.600">{student.offers_count ?? '-'}</Td>}
+                      {visibleColumns.includes('max_ctc_lpa') && <Td fontSize="sm" color="gray.600">{student.max_ctc_lpa != null ? student.max_ctc_lpa : '-'}</Td>}
+                      {visibleColumns.includes('is_placed') && (
+                        <Td fontSize="sm">
+                          <Badge colorScheme={student.is_placed ? 'green' : 'gray'} size="sm">{student.is_placed ? 'Yes' : 'No'}</Badge>
+                        </Td>
+                      )}
+                      {visibleColumns.includes('is_placed_off_campus') && (
+                        <Td fontSize="sm">
+                          <Badge colorScheme={student.is_placed_off_campus ? 'orange' : 'gray'} size="sm">{student.is_placed_off_campus ? 'Yes' : 'No'}</Badge>
+                        </Td>
+                      )}
+                      {visibleColumns.includes('disciplinary') && (
+                        <Td fontSize="sm">
+                          <Badge colorScheme={(student.disciplinary ?? 0) > 0 ? 'red' : 'gray'} size="sm">{(student.disciplinary ?? 0) > 0 ? 'Yes' : 'No'}</Badge>
+                        </Td>
+                      )}
+                      {visibleColumns.includes('placement_violations') && (
+                        <Td fontSize="sm">
+                          <Badge colorScheme={(student.placement_violations ?? 0) > 0 ? 'red' : 'gray'} size="sm">{(student.placement_violations ?? 0) > 0 ? 'Yes' : 'No'}</Badge>
+                        </Td>
+                      )}
+                      {visibleColumns.includes('admin_hold') && (
+                        <Td fontSize="sm">
+                          <Badge colorScheme={student.admin_hold ? 'orange' : 'gray'} size="sm">{student.admin_hold ? 'Yes' : 'No'}</Badge>
+                        </Td>
+                      )}
                       {visibleColumns.includes('eligibility') && (
                         <Td>
                           {student.is_eligible === false ? (
@@ -749,14 +862,6 @@ const AddStudentsToDrive = ({ driveId, onCancel, onSuccess, embedded = false, ex
                           )}
                         </Td>
                       )}
-                      {visibleColumns.includes('school') && <Td fontSize="sm" color="gray.600">{student.school}</Td>}
-                      {visibleColumns.includes('program') && <Td fontSize="sm" color="gray.600">{student.program}</Td>}
-                      {visibleColumns.includes('specialization') && <Td fontSize="sm" color="gray.600">{student.specialization || '-'}</Td>}
-                      {visibleColumns.includes('email') && <Td fontSize="sm" color="gray.600">{student.email}</Td>}
-                      {visibleColumns.includes('contact') && <Td fontSize="sm" color="gray.600">{student.contact || '-'}</Td>}
-                      {visibleColumns.includes('latest_sgpa') && <Td fontSize="sm" fontWeight="bold">{student.latest_sgpa || '-'}</Td>}
-                      {visibleColumns.includes('live_backlogs') && <Td fontSize="sm" color={student.live_backlogs > 0 ? "red.500" : "green.500"}>{student.live_backlogs !== null ? student.live_backlogs : '-'}</Td>}
-                      {visibleColumns.includes('closed_backlogs') && <Td fontSize="sm">{student.closed_backlogs !== null ? student.closed_backlogs : '-'}</Td>}
                       
                       {/* Dynamic Columns Rendering */}
                       {visibleColumns.filter(id => !baseColumnIds.includes(id)).map(id => {

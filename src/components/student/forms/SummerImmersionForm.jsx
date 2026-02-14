@@ -130,7 +130,7 @@ export const SummerImmersionForm = ({ data, onUpdate, isEditing = false, onFileS
         )}
 
         {immersionItems.length === 0 && !isEditing && (
-          <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+          <Box p={8} textAlign="center" color="gray.700" border="1px dashed" borderColor="gray.300" borderRadius="xl">
             No summer immersion added yet.
           </Box>
         )}
@@ -184,7 +184,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
       <CardBody p={4}>
         <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0}>
           <HStack onClick={() => setIsOpen(!isOpen)} cursor="pointer" flex={1}>
-            <Text fontWeight="bold" color="gray.700">
+            <Text fontWeight="bold" color="gray.800">
               {getField(item, "organization") ? `${getField(item, "organization")} - ${getField(item, "job_role", "jobRole")}` : titleFallback}
             </Text>
             {isOpen ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
@@ -211,6 +211,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   onChange={(e) => onChange(index, "organization", e.target.value)}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="e.g. Tech Innovations Inc."
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -221,6 +222,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   onChange={(e) => onChange(index, "jobRole", e.target.value)}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="e.g. Data Science Intern"
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -231,6 +233,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   onChange={(e) => onChange(index, "location", e.target.value)}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="e.g. Bangalore"
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -245,6 +248,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   }}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="0"
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                   min={0}
@@ -264,6 +268,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   }}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 />
               </Field>
               <Field label="End Date" errorText={getError("end_date")}>
@@ -278,6 +283,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   }}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 />
               </Field>
               <Field label={durationLabel} errorText={getError("duration_weeks")}>
@@ -293,6 +299,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   }}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder={kind === "Immersion" ? "e.g. 12" : "e.g. 03"}
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -303,6 +310,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   onChange={(e) => onChange(index, "mentorName", sanitizeMentorName(e.target.value))}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="e.g. Dr. Priya Sharma"
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -313,6 +321,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                   onChange={(e) => onChange(index, "skills", e.target.value)}
                   variant="flushed"
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   placeholder="e.g. Python, Machine Learning"
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -320,7 +329,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
               <Field label="Proof Document (PDF/Image)">
                 {isEditing && (
                   <VStack align="stretch" spacing={2}>
-                    <Text fontSize="sm" color="gray.600">Upload proof (saved when you click Save changes)</Text>
+                    <Text fontSize="sm" color="gray.700">Upload proof (saved when you click Save changes)</Text>
                     <StyledFileInput
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                       onChange={handleFileChange}
@@ -387,6 +396,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                 variant="flushed"
                 rows={2}
                 isDisabled={!isEditing}
+                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 placeholder="Details about the organization..."
                 _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
@@ -398,6 +408,7 @@ const SummerExperienceItem = ({ index, item, onChange, onDelete, isEditing, kind
                 variant="flushed"
                 rows={3}
                 isDisabled={!isEditing}
+                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 placeholder="Describe your work and learnings..."
                 _placeholder={{ opacity: 0.7, color: "inherit" }}
               />

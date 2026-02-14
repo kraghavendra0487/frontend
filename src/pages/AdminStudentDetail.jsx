@@ -22,6 +22,7 @@ import {
   Td,
   TableContainer,
   Wrap,
+  WrapItem,
   Icon,
   Image,
   Link,
@@ -299,7 +300,31 @@ const AdminStudentDetail = ({ embedded = false }) => {
                   <InfoRow label="Gender" value={personal.gender} />
                   <InfoRow label="DOB" value={personal.date_of_birth} />
                   <InfoRow label="Blood Group" value={personal.blood_group} />
-                  <InfoRow label="Languages" value={personal.languages} />
+                  <Flex py={1} borderBottomWidth="1px" borderColor="gray.100" justify="space-between" gap={4} align="flex-start">
+                    <Text fontWeight="medium" color="gray.600" minW="140px">Languages</Text>
+                    <Wrap spacing={2} flex={1} justify="flex-end">
+                      {(() => {
+                        const val = personal.languages;
+                        const list = Array.isArray(val)
+                          ? val.filter(Boolean)
+                          : (typeof val === 'string' ? val.split(',').map((s) => s.trim()).filter(Boolean) : []);
+                        return list.length === 0 ? (
+                          <Text>—</Text>
+                        ) : (
+                          list.map((lang, i) => {
+                            const displayLang = String(lang).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                            return (
+                              <WrapItem key={i}>
+                                <Badge colorScheme="gray" variant="subtle" px={2} py={1} borderRadius="md" fontWeight="medium" textTransform="none">
+                                  {displayLang}
+                                </Badge>
+                              </WrapItem>
+                            );
+                          })
+                        );
+                      })()}
+                    </Wrap>
+                  </Flex>
                   <InfoRow label="Specially Abled" value={personal.specially_abled ? 'Yes' : 'No'} />
                   <InfoRow label="Section" value={personal.section} />
                   <InfoRow label="Current year" value={personal.current_year} />

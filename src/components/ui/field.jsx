@@ -8,7 +8,7 @@ export const Field = React.forwardRef(function Field(props, ref) {
       {label && (
         <FormLabel>
           {label}
-          {optionalText && <Box as="span" fontWeight="normal" color="gray.500"> {optionalText}</Box>}
+          {optionalText && <Box as="span" fontWeight="normal" color="gray.600"> {optionalText}</Box>}
         </FormLabel>
       )}
       {children}

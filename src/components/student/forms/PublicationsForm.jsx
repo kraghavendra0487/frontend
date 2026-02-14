@@ -82,6 +82,12 @@ export const PublicationsForm = ({ data = {}, onUpdate, isEditing = false, onFil
             Add Publication
           </Button>
         )}
+
+        {items.length === 0 && (
+          <Box p={8} textAlign="center" color="gray.700" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+            No publications added yet.
+          </Box>
+        )}
       </VStack>
     </Box>
   )
@@ -163,6 +169,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                   value={item.title || ""} 
                   onChange={(e) => onChange(index, "title", e.target.value)}
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
@@ -171,6 +178,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                   value={item.publication_name || ""} 
                   onChange={(e) => onChange(index, "publication_name", e.target.value)}
                   isDisabled={!isEditing}
+                  _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                   _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
               </Field>
@@ -182,6 +190,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={item.publication_type || ""}
                         onChange={(e) => onChange(index, "publication_type", e.target.value)}
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         placeholder="e.g. Journal, Conference, Article"
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
@@ -192,6 +201,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={toDateValue(item.publication_date)}
                         onChange={(e) => onChange(index, "publication_date", toDateValue(e.target.value))}
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         min="1900-01-01"
                         max="2100-12-31"
                     />
@@ -214,7 +224,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         }}
                         isDisabled={!isEditing}
                     >
-                        <NumberInputField />
+                        <NumberInputField _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }} />
                         <NumberInputStepper>
                             <NumberIncrementStepper />
                             <NumberDecrementStepper />
@@ -229,6 +239,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={item.mentor_name || ""}
                         onChange={(e) => onChange(index, "mentor_name", e.target.value)}
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
@@ -237,6 +248,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                         value={item.link || ""}
                         onChange={(e) => onChange(index, "link", e.target.value)}
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
@@ -247,6 +259,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                     value={item.skills || ""}
                     onChange={(e) => onChange(index, "skills", e.target.value)}
                     isDisabled={!isEditing}
+                    _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                     placeholder="e.g. Research, Data Analysis"
                     _placeholder={{ opacity: 0.7, color: "inherit" }}
                 />
@@ -257,6 +270,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
                 value={item.description || ""} 
                 onChange={(e) => onChange(index, "description", e.target.value)}
                 isDisabled={!isEditing}
+                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                 rows={3}
                 _placeholder={{ opacity: 0.7, color: "inherit" }}
               />
@@ -265,7 +279,7 @@ const PublicationItem = ({ index, item, onChange, onDelete, isEditing, onFileSel
             <Field label="Evidence Document" errorText={getError("evidence_document") || getError("evidenceDocument")}>
                 {isEditing && (
                     <Box>
-                        <Text mb={2} fontWeight="medium">Upload evidence (saved when you click Save changes)</Text>
+                        <Text mb={2} fontWeight="medium" color="gray.700">Upload evidence (saved when you click Save changes)</Text>
                         <StyledFileInput
                             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                             onChange={handleFileChange}

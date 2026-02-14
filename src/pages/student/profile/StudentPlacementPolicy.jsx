@@ -15,7 +15,7 @@ export const StudentPlacementPolicy = () => {
         {policyLoading ? (
           <Box py={4}>
             <Spinner size="sm" color="#d4a960" mr={2} />
-            <Text as="span" fontSize="sm" color="gray.600">Checking your batch policy…</Text>
+            <Text as="span" fontSize="sm" color="gray.700">Checking your batch policy…</Text>
           </Box>
         ) : (
           <Box bg="blue.50" p={4} borderRadius="md" borderLeft="4px solid" borderColor="blue.400" mb={6}>

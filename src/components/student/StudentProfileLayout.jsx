@@ -104,6 +104,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
   const NavContent = () => {
     const rows = []
     navItems.forEach((item, i) => {
+      // Hide Dashboard in sidebar when student is on profile section
+      if (item.label === "Dashboard" && !basePath && location.pathname.startsWith('/student/profile')) return
       // Hide Summer Immersion / Summer Internship when batch policy does not allow them
       if (item.label === "Summer Immersion" && trackPolicy && trackPolicy.summer_immersion === false) return
       if (item.label === "Summer Internship" && trackPolicy && trackPolicy.summer_internship === false) return
@@ -209,7 +211,7 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
         <HStack spacing={4}>
           <HStack spacing={3} minW="fit-content" cursor="pointer" onClick={() => navigate(isAdminView ? "/placement/students" : "/student-dashboard")} _hover={{ opacity: 0.9 }}>
             {isAdminView ? (
-              <Button leftIcon={<ChevronLeftIcon />} variant="ghost" color="white" size="sm" _hover={{ bg: "whiteAlpha.200" }}>
+              <Button leftIcon={<ChevronLeftIcon />} variant="ghost" color="white" size="sm" _hover={{ bg: "whiteAlpha.200" }} _focus={{ outline: "none", boxShadow: "none" }} _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}>
                 Back to Students
               </Button>
             ) : (
@@ -233,6 +235,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
               color={location.pathname === "/student-dashboard" ? "#FDE74C" : "white"}
               fontWeight={location.pathname === "/student-dashboard" ? "semibold" : "medium"}
               _hover={{ bg: "transparent", color: "#FDE74C" }}
+              _focus={{ outline: "none", boxShadow: "none" }}
+              _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
               px={1}
               onClick={() => navigate("/student-dashboard")}
               type="button"
@@ -248,6 +252,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
               color={location.pathname.startsWith("/student/profile") && !isPlacementTrackActive ? "#FDE74C" : "white"}
               fontWeight={location.pathname.startsWith("/student/profile") && !isPlacementTrackActive ? "semibold" : "medium"}
               _hover={{ bg: "transparent", color: "#FDE74C" }}
+              _focus={{ outline: "none", boxShadow: "none" }}
+              _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
               px={1}
               onClick={() => navigate("/student/profile/personal")}
               type="button"
@@ -265,6 +271,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
                   color={location.pathname === "/student/placements/feed" ? "#FDE74C" : "white"}
                   fontWeight={location.pathname === "/student/placements/feed" ? "semibold" : "medium"}
                   _hover={{ bg: "transparent", color: "#FDE74C" }}
+                  _focus={{ outline: "none", boxShadow: "none" }}
+                  _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
                   px={1}
                   onClick={() => navigate("/student/placements/feed")}
                   type="button"
@@ -280,6 +288,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
                   color={location.pathname === "/student/placements/offers" ? "#FDE74C" : "white"}
                   fontWeight={location.pathname === "/student/placements/offers" ? "semibold" : "medium"}
                   _hover={{ bg: "transparent", color: "#FDE74C" }}
+                  _focus={{ outline: "none", boxShadow: "none" }}
+                  _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
                   px={1}
                   onClick={() => navigate("/student/placements/offers")}
                   type="button"
@@ -297,6 +307,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
               color={location.pathname === "/student/placements/events" ? "#FDE74C" : "white"}
               fontWeight={location.pathname === "/student/placements/events" ? "semibold" : "medium"}
               _hover={{ bg: "transparent", color: "#FDE74C" }}
+              _focus={{ outline: "none", boxShadow: "none" }}
+              _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
               px={1}
               onClick={() => navigate("/student/placements/events")}
               type="button"
@@ -312,6 +324,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
               color={location.pathname === "/student/calendar" ? "#FDE74C" : "white"}
               fontWeight={location.pathname === "/student/calendar" ? "semibold" : "medium"}
               _hover={{ bg: "transparent", color: "#FDE74C" }}
+              _focus={{ outline: "none", boxShadow: "none" }}
+              _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
               px={1}
               onClick={() => navigate("/student/calendar")}
               type="button"
@@ -327,6 +341,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
               color={location.pathname === "/student/placements/policy" ? "#FDE74C" : "white"}
               fontWeight={location.pathname === "/student/placements/policy" ? "semibold" : "medium"}
               _hover={{ bg: "transparent", color: "#FDE74C" }}
+              _focus={{ outline: "none", boxShadow: "none" }}
+              _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
               px={1}
               onClick={() => navigate("/student/placements/policy")}
               type="button"
@@ -338,6 +354,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
             variant="ghost" 
             color="white" 
             _hover={{ bg: "whiteAlpha.200" }}
+            _focus={{ outline: "none", boxShadow: "none" }}
+            _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
             size="sm"
             aria-label="Notifications"
             pos="relative"
@@ -355,6 +373,8 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
             variant="ghost" 
             color="red.300" 
             _hover={{ bg: "whiteAlpha.200", color: "red.200" }}
+            _focus={{ outline: "none", boxShadow: "none" }}
+            _focusVisible={{ outline: "2px solid #FDE74C", outlineOffset: "2px" }}
             onClick={handleLogout}
             size="sm"
             fontWeight="medium"

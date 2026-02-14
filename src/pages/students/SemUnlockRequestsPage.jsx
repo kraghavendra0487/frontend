@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
   Flex,
   Heading,
   HStack,
+  Input,
+  InputGroup,
+  InputLeftElement,
   Spinner,
   Table,
   Tbody,
@@ -28,7 +31,7 @@ import {
   ModalCloseButton,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FaTimes, FaLockOpen, FaEye } from 'react-icons/fa';
+import { FaSearch, FaTimes, FaLockOpen, FaEye } from 'react-icons/fa';
 import { PlacementService } from '../../services/placement.service';
 import { StudentProfileService } from '../../services/studentProfile.service';
 import { useNavigate } from 'react-router-dom';
@@ -46,7 +49,19 @@ export default function SemUnlockRequestsPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState(''); // '' = all, 'pending', 'approved', 'rejected'
+  const [searchQuery, setSearchQuery] = useState('');
   const [actionId, setActionId] = useState(null);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery.trim()) return rows;
+    const q = searchQuery.trim().toLowerCase();
+    return rows.filter(
+      (r) =>
+        (r.usn || '').toLowerCase().includes(q) ||
+        (r.student_name || '').toLowerCase().includes(q) ||
+        (r.student_email || r.college_email || '').toLowerCase().includes(q)
+    );
+  }, [rows, searchQuery]);
   const [rejectNotes, setRejectNotes] = useState('');
   const [sendRejectNotification, setSendRejectNotification] = useState(true);
   const [detailRow, setDetailRow] = useState(null);
@@ -195,6 +210,21 @@ export default function SemUnlockRequestsPage() {
         </HStack>
       </Flex>
 
+      {!loading && rows.length > 0 && (
+        <InputGroup maxW="400px" mb={4}>
+          <InputLeftElement pointerEvents="none" color="gray.400">
+            <FaSearch />
+          </InputLeftElement>
+          <Input
+            placeholder="Search by USN, name, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            bg="white"
+            borderColor="gray.200"
+          />
+        </InputGroup>
+      )}
+
       {loading ? (
         <Flex py={12} justify="center">
           <Spinner />
@@ -207,7 +237,7 @@ export default function SemUnlockRequestsPage() {
                 <Th>USN</Th>
                 <Th>Student</Th>
                 <Th>Semester</Th>
-                <Th>Reason</Th>
+                <Th minW="280px">Reason</Th>
                 <Th>Status</Th>
                 <Th>Requested</Th>
                 <Th>Reviewed</Th>
@@ -215,14 +245,14 @@ export default function SemUnlockRequestsPage() {
               </Tr>
             </Thead>
             <Tbody>
-              {rows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <Tr>
                   <Td colSpan={8} py={8} textAlign="center" color="gray.500">
-                    No requests found.
+                    {rows.length === 0 ? 'No requests found.' : 'No requests match your search.'}
                   </Td>
                 </Tr>
               ) : (
-                rows.map((r) => (
+                filteredRows.map((r) => (
                   <Tr key={r.id}>
                     <Td fontWeight="semibold">
                       <Text
@@ -237,7 +267,7 @@ export default function SemUnlockRequestsPage() {
                     </Td>
                     <Td>{r.student_name || '—'}</Td>
                     <Td>Sem {r.semester}</Td>
-                    <Td maxW="200px" whiteSpace="pre-wrap" fontSize="sm">
+                    <Td minW="280px" maxW="400px" whiteSpace="pre-wrap" fontSize="sm">
                       {r.reason || '—'}
                     </Td>
                     <Td>

@@ -167,7 +167,7 @@ export const StudentJobOffers = () => {
                 </Box>
                 <Box>
                   <Heading size="md" color="#20343c">{offer.company_name || 'Company'}</Heading>
-                  <Text fontSize="sm" color="gray.600">{offer.designation || '—'}</Text>
+                  <Text fontSize="sm" color="gray.700">{offer.designation || '—'}</Text>
                 </Box>
               </HStack>
               <HStack spacing={2}>
@@ -197,25 +197,25 @@ export const StudentJobOffers = () => {
 
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
                <HStack>
-                 <Icon as={FaBriefcase} color="gray.500" />
+                 <Icon as={FaBriefcase} color="gray.600" />
                  <Box>
-                   <Text fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase">Job Type</Text>
+                   <Text fontWeight="bold" fontSize="xs" color="gray.600" textTransform="uppercase">Job Type</Text>
                    <Text fontWeight="medium">{formatJobType(offer.type_of_hiring) || offer.job_type || 'N/A'}</Text>
                  </Box>
                </HStack>
                
                <HStack>
-                 <Icon as={FaMoneyBillWave} color="gray.500" />
+                 <Icon as={FaMoneyBillWave} color="gray.600" />
                  <Box>
-                   <Text fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase">CTC / Stipend</Text>
+                   <Text fontWeight="bold" fontSize="xs" color="gray.600" textTransform="uppercase">CTC / Stipend</Text>
                    <Text fontWeight="medium">{formatCtcOrStipend(offer)}</Text>
                  </Box>
                </HStack>
 
                <HStack>
-                 <Icon as={FaBuilding} color="gray.500" />
+                 <Icon as={FaBuilding} color="gray.600" />
                  <Box>
-                   <Text fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase">Academic Year</Text>
+                   <Text fontWeight="bold" fontSize="xs" color="gray.600" textTransform="uppercase">Academic Year</Text>
                    <Text fontWeight="medium">{offer.academic_year || 'N/A'}</Text>
                  </Box>
                </HStack>
@@ -224,13 +224,13 @@ export const StudentJobOffers = () => {
             {(offer.remarks != null && offer.remarks !== '') && (
               <Box bg="white" p={4} borderRadius="md" border="1px dashed" borderColor={`${color}.300`}>
                 <Text fontSize="sm" fontWeight="bold" color={`${color}.700`} mb={1}>Remarks</Text>
-                <Text fontSize="sm" color="gray.600">{offer.remarks}</Text>
+                <Text fontSize="sm" color="gray.700">{offer.remarks}</Text>
               </Box>
             )}
             {offer.is_accepted === false && (offer.rejection_remarks != null && offer.rejection_remarks !== '') && (
               <Box bg="red.50" p={4} borderRadius="md" border="1px dashed" borderColor="red.200">
                 <Text fontSize="sm" fontWeight="bold" color="red.700" mb={1}>Reason for rejection</Text>
-                <Text fontSize="sm" color="gray.600">{offer.rejection_remarks}</Text>
+                <Text fontSize="sm" color="gray.700">{offer.rejection_remarks}</Text>
               </Box>
             )}
           </Stack>
@@ -377,7 +377,7 @@ export const StudentJobOffers = () => {
 const EmptyState = ({ message }) => (
   <Box textAlign="center" py={10} bg="gray.50" borderRadius="lg">
     <Icon as={FaBriefcase} boxSize={10} color="gray.300" mb={4} />
-    <Heading size="md" color="gray.500" mb={2}>{message}</Heading>
-    <Text color="gray.400">Keep working hard!</Text>
+    <Heading size="md" color="gray.600" mb={2}>{message}</Heading>
+    <Text color="gray.600">Keep working hard!</Text>
   </Box>
 );

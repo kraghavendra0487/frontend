@@ -146,10 +146,10 @@ export const PlacementFeed = () => {
                 />
                 <Box>
                   <Heading size="md" color="#20343c">{companyName}</Heading>
-                  <Text fontSize="sm" color="gray.600">
+                  <Text fontSize="sm" color="gray.700">
                     {jobType} • {hiringType}
                   </Text>
-                  <Text fontSize="sm" color="gray.500">
+                  <Text fontSize="sm" color="gray.700">
                     {jobLocation} • {companyType}
                   </Text>
                 </Box>
@@ -171,31 +171,31 @@ export const PlacementFeed = () => {
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">CTC</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">CTC</Text>
                 <Text>{getCtcLabel()}</Text>
               </Box>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">Location</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">Location</Text>
                 <Text>{jobLocation}</Text>
               </Box>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">Drive Date</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">Drive Date</Text>
                 <Text>{formatDate(drive.event_datetime)}</Text>
               </Box>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">Apply By</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">Apply By</Text>
                 <Text color="red.500" fontWeight="medium">
                   {formatDate(drive.last_date_to_registration)}
                 </Text>
               </Box>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">Eligibility</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">Eligibility</Text>
                 <Text fontSize="sm">
                   CGPA ≥ {drive.placement_drive_eligibility?.min_cgpa ?? drive.eligibility_academics?.min_cgpa ?? "N/A"}
                 </Text>
               </Box>
               <Box>
-                <Text fontWeight="bold" fontSize="sm" color="gray.600">Applications</Text>
+                <Text fontWeight="bold" fontSize="sm" color="gray.700">Applications</Text>
                 <Text fontSize="sm">
                   {totalApplied} applied{openings != null ? ` | ${openings} openings` : ""}
                 </Text>
@@ -288,7 +288,7 @@ export const PlacementFeed = () => {
             <TabPanel px={0}>
               <VStack gap={6} align="stretch">
                 {upcomingDrives.length === 0 ? (
-                  <Text color="gray.500">
+                  <Text color="gray.600">
                     No upcoming drives available for registration.
                   </Text>
                 ) : (
@@ -306,7 +306,7 @@ export const PlacementFeed = () => {
             <TabPanel px={0}>
               <VStack gap={6} align="stretch">
                 {ongoingDrives.length === 0 ? (
-                  <Text color="gray.500">No ongoing applications.</Text>
+                  <Text color="gray.600">No ongoing applications.</Text>
                 ) : (
                   ongoingDrives.map(drive => (
                     <DriveCard
@@ -322,7 +322,7 @@ export const PlacementFeed = () => {
             <TabPanel px={0}>
               <VStack gap={6} align="stretch">
                 {historyDrives.length === 0 ? (
-                  <Text color="gray.500">No completed drives found.</Text>
+                  <Text color="gray.600">No completed drives found.</Text>
                 ) : (
                   historyDrives.map(drive => (
                     <DriveCard
@@ -338,7 +338,7 @@ export const PlacementFeed = () => {
             <TabPanel px={0}>
               <VStack gap={6} align="stretch">
                 {missedDrives.length === 0 ? (
-                  <Text color="gray.500">No missed drives.</Text>
+                  <Text color="gray.600">No missed drives.</Text>
                 ) : (
                   missedDrives.map(drive => (
                     <DriveCard
@@ -354,7 +354,7 @@ export const PlacementFeed = () => {
             <TabPanel px={0}>
               <VStack gap={6} align="stretch">
                 {cancelledDrives.length === 0 ? (
-                  <Text color="gray.500">No cancelled or postponed drives.</Text>
+                  <Text color="gray.600">No cancelled or postponed drives.</Text>
                 ) : (
                   cancelledDrives.map(drive => (
                     <DriveCard

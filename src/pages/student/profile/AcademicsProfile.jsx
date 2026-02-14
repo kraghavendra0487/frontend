@@ -704,7 +704,7 @@ export const AcademicsProfile = () => {
         <VStack align="stretch" spacing={4}>
           {item?.result_file && (
             <FormControl>
-              <FormLabel fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+              <FormLabel fontSize="10px" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wider">
                 Result / Marksheet
               </FormLabel>
               <Text as="a" href={item.result_file} target="_blank" rel="noopener noreferrer" className="academics-marksheet-link">
@@ -725,7 +725,7 @@ export const AcademicsProfile = () => {
               </Thead>
               <Tbody>
                 {courses.length === 0 ? (
-                  <Tr><Td colSpan={5} color="gray.500" py={4}>No courses</Td></Tr>
+                  <Tr><Td colSpan={5} color="gray.600" py={4}>No courses</Td></Tr>
                 ) : (
                   courses.map((c, idx) => (
                     <Tr key={idx}>
@@ -779,7 +779,7 @@ export const AcademicsProfile = () => {
       <Box className="academics-semester-body-divider" />
       <VStack align="stretch" spacing={4}>
         <FormControl>
-          <FormLabel fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+          <FormLabel fontSize="10px" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wider">
             Result / Marksheet (image)
             {!selectedSemesterId && " (required for new semester)"}
           </FormLabel>
@@ -790,7 +790,7 @@ export const AcademicsProfile = () => {
             mt={2}
           />
           {marksheetFile && (
-            <Text fontSize="xs" color="gray.600" mt={1}>
+            <Text fontSize="xs" color="gray.700" mt={1}>
               Selected: {marksheetFile.name}
             </Text>
           )}
@@ -880,7 +880,7 @@ export const AcademicsProfile = () => {
                       icon={<FaTrash />}
                       size="xs"
                       variant="ghost"
-                      color="gray.400"
+                      color="gray.600"
                       _hover={{ color: "red.500" }}
                       onClick={() => handleRemoveCourseRow(index)}
                       isDisabled={formCourses.length <= 1}
@@ -1125,7 +1125,7 @@ export const AcademicsProfile = () => {
               <FormLabel fontSize="sm" fontWeight="semibold" color="gray.700">
                 Reason for unlock request
               </FormLabel>
-              <Text fontSize="xs" color="gray.600" mb={2}>
+              <Text fontSize="xs" color="gray.700" mb={2}>
                 This semester is locked. Provide a reason for the admin to review your request.
               </Text>
               <Textarea
@@ -1138,7 +1138,7 @@ export const AcademicsProfile = () => {
             </FormControl>
           </ModalBody>
           <ModalFooter gap={3} flexWrap="wrap">
-            <Text fontSize="sm" color="gray.600" alignSelf="center" mr="auto">
+            <Text fontSize="sm" color="gray.700" alignSelf="center" mr="auto">
               Semester {unlockModalSemester}
             </Text>
             <Button variant="ghost" onClick={closeUnlockModal}>

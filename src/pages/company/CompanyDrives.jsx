@@ -87,6 +87,14 @@ const CompanyDrives = () => {
     return derivePlacementStatusFromDates(drive.last_date_to_registration, drive.event_datetime);
   };
 
+  /** Use eligibility_display (school - program pairs) or fallback */
+  const getEligibilityDisplay = (drive) => {
+    if (drive?.eligibility_display) return drive.eligibility_display;
+    const pairs = drive?.school_program_pairs || [];
+    if (pairs.length > 0) return pairs.map((p) => `${p.school} - ${p.program}`).join(', ');
+    return [drive?.school, drive?.program].filter(Boolean).join(' • ') || '—';
+  };
+
   useEffect(() => {
     loadDrives();
   }, []);
@@ -150,8 +158,7 @@ const CompanyDrives = () => {
             py={1}
             borderRadius="md"
           >
-            {drive.school || 'General'}
-            {drive.program ? ` • ${drive.program}` : ''}
+            {getEligibilityDisplay(drive)}
           </Badge>
         );
       case 'location_description':

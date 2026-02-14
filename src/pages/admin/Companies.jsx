@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Heading,
@@ -36,7 +36,7 @@ import {
   AlertDescription,
 } from '@chakra-ui/react';
 import { SearchIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { CompanyLogo } from '../../components/CompanyLogo';
 import { StyledFileInput } from '../../components/ui/StyledFileInput';
@@ -45,8 +45,19 @@ import { useAuth } from '../../context/AuthContext';
 
 const emptyContact = () => ({ contact_name: '', email: '', phone_number: '', role_title: '', remarks: '' });
 
+const toCamelCase = (str) => {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .trim()
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word, i) => (i === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()))
+    .join('');
+};
+
 const Companies = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const { userRole } = useAuth();
   const isVc = (userRole || '').toLowerCase() === 'vc';
@@ -72,6 +83,9 @@ const Companies = () => {
     logo: '',
   });
   const [remarksList, setRemarksList] = useState(['']);
+  const [companyTypeDropdownOpen, setCompanyTypeDropdownOpen] = useState(false);
+  const companyTypeInputRef = useRef(null);
+  const companyTypeListRef = useRef(null);
 
   const schoolStats = [
     { name: 'SoB', count: 222 },
@@ -89,6 +103,14 @@ const Companies = () => {
   useEffect(() => {
     fetchCompanies();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('add') === '1') {
+      onOpen();
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search, location.pathname]);
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -159,10 +181,12 @@ const Companies = () => {
       return;
     }
     const remarks = remarksList.map((r) => (r || '').trim()).filter(Boolean);
+    const companyTypeRaw = (newCompany.company_type || '').trim();
+    const companyTypeCamel = companyTypeRaw ? toCamelCase(companyTypeRaw) : null;
     const payload = {
       company_name: name,
       description: newCompany.description || null,
-      company_type: newCompany.company_type || null,
+      company_type: companyTypeCamel,
       address: newCompany.address || null,
       website: newCompany.website || null,
       linkedin: newCompany.linkedin || null,
@@ -383,18 +407,92 @@ const Companies = () => {
                     </FormControl>
                     <FormControl>
                       <FormLabel>Company Type</FormLabel>
-                      <Select
-                        placeholder="Select type"
-                        value={newCompany.company_type}
-                        onChange={(e) => handleSelectChange('company_type', e.target.value)}
-                      >
-                        <option value="Service">Service</option>
-                        <option value="Product">Product</option>
-                        <option value="Startup">Startup</option>
-                        <option value="Fintech">Fintech</option>
-                        <option value="Consulting">Consulting</option>
-                        <option value="Other">Other</option>
-                      </Select>
+                      <Box position="relative" ref={companyTypeListRef}>
+                        <InputGroup>
+                          <InputLeftElement pointerEvents="none">
+                            <SearchIcon color="gray.400" />
+                          </InputLeftElement>
+                          <Input
+                            placeholder="Search or type company type"
+                            value={newCompany.company_type}
+                            onChange={(e) => handleSelectChange('company_type', e.target.value)}
+                            onFocus={() => setCompanyTypeDropdownOpen(true)}
+                            onBlur={() => setTimeout(() => setCompanyTypeDropdownOpen(false), 150)}
+                            pl={10}
+                            ref={companyTypeInputRef}
+                          />
+                        </InputGroup>
+                        {companyTypeDropdownOpen && (
+                          <Box
+                            position="absolute"
+                            top="100%"
+                            left={0}
+                            right={0}
+                            mt={1}
+                            bg="white"
+                            borderWidth="1px"
+                            borderColor="gray.200"
+                            borderRadius="md"
+                            shadow="lg"
+                            zIndex={10}
+                            maxH="200px"
+                            overflowY="auto"
+                          >
+                            {(() => {
+                              const query = (newCompany.company_type || '').toLowerCase().trim();
+                              const uniqueTypes = [...new Set(companies.map(c => c.company_type).filter(Boolean))];
+                              const filtered = query
+                                ? uniqueTypes.filter(t => (t || '').toLowerCase().includes(query))
+                                : uniqueTypes;
+                              const typedValue = (newCompany.company_type || '').trim();
+                              const canAddNew = typedValue && !uniqueTypes.some(t => (t || '').toLowerCase() === typedValue.toLowerCase());
+                              return (
+                                <>
+                                  {filtered.map((type) => (
+                                    <Box
+                                      key={type}
+                                      px={4}
+                                      py={2}
+                                      cursor="pointer"
+                                      _hover={{ bg: 'gray.100' }}
+                                      onClick={() => {
+                                        handleSelectChange('company_type', type);
+                                        setCompanyTypeDropdownOpen(false);
+                                      }}
+                                    >
+                                      <Text fontSize="sm">{type}</Text>
+                                    </Box>
+                                  ))}
+                                  {canAddNew && (
+                                    <Box
+                                      px={4}
+                                      py={2}
+                                      cursor="pointer"
+                                      _hover={{ bg: 'gray.100' }}
+                                      bg="blue.50"
+                                      borderTopWidth="1px"
+                                      borderColor="gray.100"
+                                      onClick={() => {
+                                        handleSelectChange('company_type', typedValue);
+                                        setCompanyTypeDropdownOpen(false);
+                                      }}
+                                    >
+                                      <Text fontSize="sm" fontWeight="medium" color="blue.600">
+                                        Use &quot;{typedValue}&quot; (new type)
+                                      </Text>
+                                    </Box>
+                                  )}
+                                  {filtered.length === 0 && !canAddNew && (
+                                    <Box px={4} py={3}>
+                                      <Text fontSize="sm" color="gray.500">No matching types. Type to add new.</Text>
+                                    </Box>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </Box>
+                        )}
+                      </Box>
                     </FormControl>
                     <FormControl>
                       <FormLabel>Address</FormLabel>

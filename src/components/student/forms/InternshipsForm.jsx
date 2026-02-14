@@ -24,7 +24,7 @@
  * - POST /api/student/profile/internships
  */
 
-import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, Image, Link } from "@chakra-ui/react"
+import { Box, VStack, Heading, Button, HStack, Input, SimpleGrid, IconButton, Text, Card, CardBody, Collapse, Flex, Textarea, Image, Link, Wrap, WrapItem, Badge } from "@chakra-ui/react"
 import { Field } from "../../ui/field"
 import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
@@ -97,8 +97,8 @@ export const InternshipsForm = ({ data = {}, onUpdate, isEditing = false, onFile
   }
 
   return (
-    <Box bg="white" p={8} borderRadius="xl" shadow="sm">
-      <Heading size="lg" mb={6} color="#20343c">Internships</Heading>
+    <Box bg="white" p={8} borderRadius="xl" shadow="sm" color="gray.800">
+      <Heading size="lg" mb={6} color="gray.800">Internships</Heading>
       
       <VStack spacing={6} align="stretch">
         {items.map((item, index) => (
@@ -129,7 +129,7 @@ export const InternshipsForm = ({ data = {}, onUpdate, isEditing = false, onFile
         )}
 
         {items.length === 0 && (
-            <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+            <Box p={8} textAlign="center" color="gray.600" border="1px dashed" borderColor="gray.300" borderRadius="xl">
                 No internships added yet.
             </Box>
         )}
@@ -181,11 +181,11 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
   }
 
   return (
-    <Card variant="outline" borderColor="gray.200">
+    <Card variant="outline" borderColor="gray.200" color="gray.800" sx={{ "& .chakra-form__label": { color: "gray.700" }, "& input:disabled, & select:disabled, & textarea:disabled": { color: "gray.800", opacity: 1 } }}>
       <CardBody p={4}>
         <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0}>
             <HStack onClick={() => setIsOpen(!isOpen)} cursor="pointer" flex={1}>
-                <Text fontWeight="bold" color="gray.700">
+                <Text fontWeight="bold" color="gray.800">
                     {getField(item, "organization") ? `${getField(item, "organization")} - ${getField(item, "jobRole", "job_role")}` : `Internship ${index + 1}`}
                 </Text>
                 {isOpen ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
@@ -303,19 +303,38 @@ const InternshipItem = ({ index, item, onChange, onDelete, isEditing, onFileSele
                         />
                     </Field>
                     <Field label="Skills (comma separated)">
-                        <Input 
+                        {isEditing ? (
+                          <Input 
                             value={getField(item, "skills", "skills")} 
                             onChange={(e) => onChange(index, "skills", e.target.value)} 
                             variant="flushed"
-                            isDisabled={!isEditing}
                             placeholder="e.g. React, Node.js"
                             _placeholder={{ opacity: 0.7, color: "inherit" }}
-                        />
+                          />
+                        ) : (
+                          <Wrap spacing={2}>
+                            {(() => {
+                              const val = getField(item, "skills", "skills");
+                              const list = typeof val === "string" ? val.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                              return list.length === 0 ? (
+                                <Text color="gray.700" fontSize="sm">—</Text>
+                              ) : (
+                                list.map((skill, i) => (
+                                  <WrapItem key={i}>
+                                    <Badge colorScheme="gray" variant="subtle" px={2} py={1} borderRadius="md" fontWeight="medium" textTransform="none">
+                                      {skill}
+                                    </Badge>
+                                  </WrapItem>
+                                ))
+                              );
+                            })()}
+                          </Wrap>
+                        )}
                     </Field>
                     <Field label="Proof Document (PDF/Image) *" errorText={getError("proof_document") || getError("proofDocument")}>
                         {isEditing && (
                           <VStack align="stretch" spacing={2}>
-                            <Text fontSize="sm" color="gray.600">Select a file (PDF or image), then click Save changes to upload.</Text>
+                            <Text fontSize="sm" color="gray.700">Select a file (PDF or image), then click Save changes to upload.</Text>
                             <StyledFileInput
                               accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,image/*,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                               onChange={handleFileChange}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -231,6 +231,15 @@ export default function ManageAcademicPage() {
   const majorsForProgram = selectedMajorProgram?.majors || [];
   const selectedSpecProgram = programsForSpecSchool.find((p) => String(p.id) === selectedSpecProgramId);
   const specializationsForProgram = selectedSpecProgram?.specializations || [];
+
+  const sortById = (a, b) => (Number(a?.id) || 0) - (Number(b?.id) || 0);
+  const sortedSchools = useMemo(() => [...schools].sort(sortById), [schools]);
+  const sortedProgramsForSchool = useMemo(() => [...programsForSchool].sort(sortById), [programsForSchool]);
+  const sortedProgramsForMajorSchool = useMemo(() => [...programsForMajorSchool].sort(sortById), [programsForMajorSchool]);
+  const sortedProgramsForSpecSchool = useMemo(() => [...programsForSpecSchool].sort(sortById), [programsForSpecSchool]);
+  const sortedMinorsForSchool = useMemo(() => [...minorsForSchool].sort(sortById), [minorsForSchool]);
+  const sortedMajorsForProgram = useMemo(() => [...majorsForProgram].sort(sortById), [majorsForProgram]);
+  const sortedSpecializationsForProgram = useMemo(() => [...specializationsForProgram].sort(sortById), [specializationsForProgram]);
 
   const openAddProgram = () => {
     setEditingProgram(null);
@@ -474,14 +483,14 @@ export default function ManageAcademicPage() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {schools.length === 0 ? (
+                        {sortedSchools.length === 0 ? (
                           <Tr>
                             <Td colSpan={5} textAlign="center" py={8} color="gray.500">
                               No schools yet. Add one to get started.
                             </Td>
                           </Tr>
                         ) : (
-                          schools.map((school) => (
+                          sortedSchools.map((school) => (
                             <Tr key={school.id} _hover={{ bg: 'gray.50' }}>
                               <Td textAlign="center" fontSize="sm" color="gray.600">{school.id}</Td>
                               <Td fontWeight="medium">{school.name || '—'}</Td>
@@ -518,7 +527,7 @@ export default function ManageAcademicPage() {
                       borderColor="gray.300"
                       placeholder="Select a school"
                     >
-                      {schools.map((s) => (
+                      {sortedSchools.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name || s.abbreviation || `School ${s.id}`}
                         </option>
@@ -552,14 +561,14 @@ export default function ManageAcademicPage() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {programsForSchool.length === 0 ? (
+                        {sortedProgramsForSchool.length === 0 ? (
                           <Tr>
                             <Td colSpan={7} textAlign="center" py={8} color="gray.500">
                               No programs for this school.
                             </Td>
                           </Tr>
                         ) : (
-                          programsForSchool.map((prog) => (
+                          sortedProgramsForSchool.map((prog) => (
                             <Tr key={prog.id} _hover={{ bg: 'gray.50' }}>
                               <Td textAlign="center" fontSize="sm" color="gray.600">{prog.id}</Td>
                               <Td fontWeight="medium">{prog.name || '—'}</Td>
@@ -598,7 +607,7 @@ export default function ManageAcademicPage() {
                       borderColor="gray.300"
                       placeholder="Select a school"
                     >
-                      {schools.map((s) => (
+                      {sortedSchools.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name || s.abbreviation || `School ${s.id}`}
                         </option>
@@ -628,14 +637,14 @@ export default function ManageAcademicPage() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {minorsForSchool.length === 0 ? (
+                        {sortedMinorsForSchool.length === 0 ? (
                           <Tr>
                             <Td colSpan={3} textAlign="center" py={8} color="gray.500">
                               No minors for this school.
                             </Td>
                           </Tr>
                         ) : (
-                          minorsForSchool.map((minor) => (
+                          sortedMinorsForSchool.map((minor) => (
                             <Tr key={minor.id} _hover={{ bg: 'gray.50' }}>
                               <Td textAlign="center" fontSize="sm" color="gray.600">{minor.id}</Td>
                               <Td fontWeight="medium">{minor.name || '—'}</Td>
@@ -671,7 +680,7 @@ export default function ManageAcademicPage() {
                         borderColor="gray.300"
                         placeholder="Select school"
                       >
-                        {schools.map((s) => (
+                        {sortedSchools.map((s) => (
                           <option key={s.id} value={s.id}>{s.name || s.abbreviation || `School ${s.id}`}</option>
                         ))}
                       </Select>
@@ -685,7 +694,7 @@ export default function ManageAcademicPage() {
                         borderColor="gray.300"
                         placeholder="Select program"
                       >
-                        {programsForMajorSchool.map((p) => (
+                        {sortedProgramsForMajorSchool.map((p) => (
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
                       </Select>
@@ -715,12 +724,12 @@ export default function ManageAcademicPage() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {majorsForProgram.length === 0 ? (
+                        {sortedMajorsForProgram.length === 0 ? (
                           <Tr>
                             <Td colSpan={3} textAlign="center" py={8} color="gray.500">No majors for this program.</Td>
                           </Tr>
                         ) : (
-                          majorsForProgram.map((m) => (
+                          sortedMajorsForProgram.map((m) => (
                             <Tr key={m.id} _hover={{ bg: 'gray.50' }}>
                               <Td textAlign="center" fontSize="sm" color="gray.600">{m.id}</Td>
                               <Td fontWeight="medium">{m.name || '—'}</Td>
@@ -748,7 +757,7 @@ export default function ManageAcademicPage() {
                         borderColor="gray.300"
                         placeholder="Select school"
                       >
-                        {schools.map((s) => (
+                        {sortedSchools.map((s) => (
                           <option key={s.id} value={s.id}>{s.name || s.abbreviation || `School ${s.id}`}</option>
                         ))}
                       </Select>
@@ -762,7 +771,7 @@ export default function ManageAcademicPage() {
                         borderColor="gray.300"
                         placeholder="Select program"
                       >
-                        {programsForSpecSchool.map((p) => (
+                        {sortedProgramsForSpecSchool.map((p) => (
                           <option key={p.id} value={p.id}>{p.name}</option>
                         ))}
                       </Select>
@@ -792,12 +801,12 @@ export default function ManageAcademicPage() {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {specializationsForProgram.length === 0 ? (
+                        {sortedSpecializationsForProgram.length === 0 ? (
                           <Tr>
                             <Td colSpan={3} textAlign="center" py={8} color="gray.500">No specializations for this program.</Td>
                           </Tr>
                         ) : (
-                          specializationsForProgram.map((s) => (
+                          sortedSpecializationsForProgram.map((s) => (
                             <Tr key={s.id} _hover={{ bg: 'gray.50' }}>
                               <Td textAlign="center" fontSize="sm" color="gray.600">{s.id}</Td>
                               <Td fontWeight="medium">{s.name || '—'}</Td>

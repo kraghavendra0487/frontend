@@ -16,6 +16,9 @@ import {
   Flex,
   IconButton,
   Icon,
+  Wrap,
+  WrapItem,
+  Badge,
 } from "@chakra-ui/react";
 import { useAuth } from "../../../context/AuthContext";
 import { FaEdit, FaUserCircle, FaIdCard, FaGraduationCap } from "react-icons/fa";
@@ -93,7 +96,7 @@ const Section = ({ title, bg, icon: IconComponent, children }) => (
     return (
       <Box ref={wrapperRef} position="relative">
         <FormControl>
-          <FormLabel fontWeight="semibold" color="gray.600">{label}</FormLabel>
+          <FormLabel fontWeight="semibold" color="gray.700">{label}</FormLabel>
           {isEnabled ? (
             <Input
               value={filter}
@@ -149,7 +152,7 @@ const Section = ({ title, bg, icon: IconComponent, children }) => (
                       ))
                   ) : (
                        <Box p={2}>
-                          <Text color="gray.500" fontSize="sm">No options found</Text>
+                          <Text color="gray.700" fontSize="sm">No options found</Text>
                       </Box>
                   )}
               </Box>
@@ -330,7 +333,7 @@ export const PersonalInformationForm = ({
           <VStack flex={1} w="full" spacing={6} align="stretch">
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
               <FormControl isInvalid={!!(fe.full_name || fe.fullName)}>
-                <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
+                <FormLabel fontSize="sm" fontWeight="medium" color="gray.700">
                   Full Name *
                 </FormLabel>
                 <Text fontSize="xl" fontWeight="semibold" color="gray.900" py={1}>
@@ -342,7 +345,7 @@ export const PersonalInformationForm = ({
               </FormControl>
 
               <FormControl>
-                <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
+                <FormLabel fontSize="sm" fontWeight="medium" color="gray.700">
                   USN
                 </FormLabel>
                 <Input
@@ -358,7 +361,7 @@ export const PersonalInformationForm = ({
             </SimpleGrid>
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
               <FormControl>
-                <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
+                <FormLabel fontSize="sm" fontWeight="medium" color="gray.700">
                   Current Year
                 </FormLabel>
                 <Input
@@ -370,7 +373,7 @@ export const PersonalInformationForm = ({
                 />
               </FormControl>
               <FormControl>
-                <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
+                <FormLabel fontSize="sm" fontWeight="medium" color="gray.700">
                   Current Semester
                 </FormLabel>
                 <Input
@@ -382,7 +385,7 @@ export const PersonalInformationForm = ({
                 />
               </FormControl>
               <FormControl isInvalid={!!(fe.section)}>
-                <FormLabel fontSize="sm" fontWeight="medium" color="gray.500">
+                <FormLabel fontSize="sm" fontWeight="medium" color="gray.700">
                   Section
                 </FormLabel>
                 <Input
@@ -409,7 +412,7 @@ export const PersonalInformationForm = ({
       <Section title="Basic Details" bg={bg} icon={FaIdCard}>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
           <FormControl isInvalid={!!(fe.gender)}>
-            <FormLabel fontWeight="semibold" color="gray.600">Gender</FormLabel>
+            <FormLabel fontWeight="semibold" color="gray.700">Gender</FormLabel>
             {isEditing ? (
               <Select
                 variant={inputVariant}
@@ -434,7 +437,7 @@ export const PersonalInformationForm = ({
           </FormControl>
 
           <FormControl isInvalid={!!(fe.date_of_birth || fe.dateOfBirth)}>
-            <FormLabel fontWeight="semibold" color="gray.600">Date of Birth</FormLabel>
+            <FormLabel fontWeight="semibold" color="gray.700">Date of Birth</FormLabel>
             {hasExistingDob ? (
               <Text fontSize="lg" color="gray.800" py={1}>
                 {toDdMmYyyy(formData.dateOfBirth)}
@@ -457,7 +460,7 @@ export const PersonalInformationForm = ({
           </FormControl>
 
           <FormControl isInvalid={!!(fe.blood_group || fe.bloodGroup)}>
-            <FormLabel fontWeight="semibold" color="gray.600">
+            <FormLabel fontWeight="semibold" color="gray.700">
               Blood Group
               {isEditing && (
                 <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
@@ -488,7 +491,7 @@ export const PersonalInformationForm = ({
           </FormControl>
 
           <FormControl>
-            <FormLabel fontWeight="semibold" color="gray.600">Specially Abled</FormLabel>
+            <FormLabel fontWeight="semibold" color="gray.700">Specially Abled</FormLabel>
             <Select
               variant={inputVariant}
               focusBorderColor={focusBorderColor}
@@ -504,18 +507,41 @@ export const PersonalInformationForm = ({
           </FormControl>
 
           <FormControl>
-            <FormLabel fontWeight="semibold" color="gray.600">Languages</FormLabel>
-            <Input
-              value={formData.languages || ""}
-              onChange={handleLanguageChange}
-              onBlur={handleLanguageBlur}
-              variant={inputVariant}
-              focusBorderColor={focusBorderColor}
-              px={inputPadding}
-              isDisabled={!isEditing}
-              _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
-              placeholder={isEditing ? "e.g. English, Hindi" : ""}
-            />
+            <FormLabel fontWeight="semibold" color="gray.700">Languages</FormLabel>
+            {isEditing ? (
+              <Input
+                value={formData.languages || ""}
+                onChange={handleLanguageChange}
+                onBlur={handleLanguageBlur}
+                variant={inputVariant}
+                focusBorderColor={focusBorderColor}
+                px={inputPadding}
+                placeholder="e.g. English, Hindi"
+              />
+            ) : (
+              <Wrap spacing={2}>
+                {(() => {
+                  const val = formData.languages;
+                  const list = Array.isArray(val)
+                    ? val.filter(Boolean)
+                    : (typeof val === "string" ? val.split(",").map((s) => s.trim()).filter(Boolean) : []);
+                  return list.length === 0 ? (
+                    <Text color="gray.700">—</Text>
+                  ) : (
+                    list.map((lang, i) => {
+                      const displayLang = String(lang).split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+                      return (
+                        <WrapItem key={i}>
+                          <Badge colorScheme="gray" variant="subtle" px={2} py={1} borderRadius="md" fontWeight="medium" textTransform="none">
+                            {displayLang}
+                          </Badge>
+                        </WrapItem>
+                      );
+                    })
+                  );
+                })()}
+              </Wrap>
+            )}
           </FormControl>
         </SimpleGrid>
       </Section>
@@ -537,7 +563,7 @@ export const PersonalInformationForm = ({
           />
 
           <FormControl>
-            <FormLabel fontWeight="semibold" color="gray.600">Year of Joining</FormLabel>
+            <FormLabel fontWeight="semibold" color="gray.700">Year of Joining</FormLabel>
             <Input
               value={formData.yearOfJoining ?? ""}
               readOnly
@@ -591,7 +617,7 @@ export const PersonalInformationForm = ({
             />
           ) : (
             <FormControl>
-              <FormLabel fontWeight="semibold" color="gray.600">Specialization</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.700">Specialization</FormLabel>
               <Input 
                 value={formData.specializationName || ""} 
                 onChange={(e) => handleChange({ specializationName: e.target.value })}
@@ -618,7 +644,7 @@ export const PersonalInformationForm = ({
             />
           ) : (
             <FormControl>
-              <FormLabel fontWeight="semibold" color="gray.600">Major</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.700">Major</FormLabel>
               <Input 
                 value={formData.majorName || ""} 
                 onChange={(e) => handleChange({ majorName: e.target.value })}
@@ -644,7 +670,7 @@ export const PersonalInformationForm = ({
             />
           ) : (
             <FormControl>
-              <FormLabel fontWeight="semibold" color="gray.600">Minor</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.700">Minor</FormLabel>
               <Input 
                 value={formData.minorName || ""} 
                 onChange={(e) => handleChange({ minorName: e.target.value })}

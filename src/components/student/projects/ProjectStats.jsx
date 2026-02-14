@@ -100,7 +100,7 @@ export const ProjectStats = ({ projects = [] }) => {
             <CardBody>
                 <Heading size="md" mb={6} color="gray.700">Technology Stack</Heading>
                 <Box h="300px">
-                    {skillLabels.length > 0 ? <Bar options={barOptions} data={barData} /> : <Text color="gray.500">No technology data available</Text>}
+                    {skillLabels.length > 0 ? <Bar options={barOptions} data={barData} /> : <Text color="gray.600">No technology data available</Text>}
                 </Box>
             </CardBody>
         </Card>
@@ -125,7 +125,7 @@ const StatsCard = ({ icon, title, value, color }) => (
     <CardBody>
       <Flex justify="space-between" align="center">
         <Box>
-          <Text color="gray.500" fontSize="sm">{title}</Text>
+          <Text color="gray.600" fontSize="sm">{title}</Text>
           <Heading size="lg" color="gray.700">{value}</Heading>
         </Box>
         <Box p={3} bg={`${color}20`} borderRadius="full" color={color}>

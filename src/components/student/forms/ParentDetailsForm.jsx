@@ -35,6 +35,11 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
       position="relative"
       transition="all 0.2s"
       _hover={{ shadow: "md" }}
+      color="gray.800"
+      sx={{ 
+        "& .chakra-form__label": { color: "gray.700" },
+        "& input:disabled, & select:disabled": { color: "gray.800", opacity: 1 }
+      }}
     >
       <Flex justify="space-between" align="center" mb={6}>
         <Flex align="center" gap={3}>
@@ -45,7 +50,7 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
             <Heading size="md" color="#20343c">
               {parent.parent_type || "Parent"}
             </Heading>
-            <Text fontSize="xs" color="gray.500" fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
+            <Text fontSize="xs" color="gray.600" fontWeight="medium" textTransform="uppercase" letterSpacing="wide">
               Family Member
             </Text>
           </Box>
@@ -111,7 +116,7 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
         <FormControl isInvalid={!!getError('email')}>
           <Field label="Email Address" required>
              <Flex align="center">
-               <Box mr={2} color="gray.400"><FaEnvelope /></Box>
+               <Box mr={2} color="gray.600"><FaEnvelope /></Box>
                <Input 
                 type="email" 
                 value={parent.email || ""} 
@@ -141,7 +146,7 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
                 isDisabled={!isEditing} 
               />
               <Flex align="center" flex={1} position="relative">
-                <Box position="absolute" left={3} zIndex={2} color="gray.400"><FaPhone size={12} /></Box>
+                <Box position="absolute" left={3} zIndex={2} color="gray.600"><FaPhone size={12} /></Box>
                 <Input 
                   pl={8}
                   type="tel" 
@@ -165,7 +170,7 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
 
         <Field label="Occupation">
            <Flex align="center">
-             <Box mr={2} color="gray.400"><FaBriefcase /></Box>
+             <Box mr={2} color="gray.600"><FaBriefcase /></Box>
              <Input 
               value={parent.occupation || ""} 
               onChange={(e) => onChange(index, "occupation", e.target.value)} 
@@ -180,7 +185,7 @@ const ParentCard = ({ parent, index, isEditing, onChange, onRemove, fieldErrors 
 
         <Field label="Organization">
            <Flex align="center">
-             <Box mr={2} color="gray.400"><FaBuilding /></Box>
+             <Box mr={2} color="gray.600"><FaBuilding /></Box>
              <Input 
               value={parent.organization || ""} 
               onChange={(e) => onChange(index, "organization", e.target.value)} 
@@ -345,7 +350,7 @@ export const ParentDetailsForm = ({ data = [], onUpdate, isEditing = false, fiel
   }, [])
 
   return (
-    <VStack spacing={6} align="stretch">
+    <VStack spacing={6} align="stretch" color="gray.800">
       {parents.length === 0 && (
         <Box 
           p={10} 
@@ -356,8 +361,8 @@ export const ParentDetailsForm = ({ data = [], onUpdate, isEditing = false, fiel
           textAlign="center"
           bg="gray.50"
         >
-          <Heading size="md" color="gray.500" mb={2}>No Family Details Added</Heading>
-          <Text color="gray.400" mb={6}>Add your parents or guardians to complete your profile.</Text>
+          <Heading size="md" color="gray.700" mb={2}>No Family Details Added</Heading>
+          <Text color="gray.700" mb={6}>Add your parents or guardians to complete your profile.</Text>
           
           {isEditing && parents.length < MAX_PARENTS && (
              <Menu>

@@ -44,7 +44,7 @@ const EducationItem = ({ item, onChange, onDelete, index, isOpen, onToggle, isEd
       <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0} cursor="pointer" onClick={onToggle}>
         <VStack align="start" gap={0}>
             <Heading size="sm" color="#20343c">{item.educationLevel || "New Education Entry"}</Heading>
-            <Text fontSize="xs" color="gray.500">{item.instituteName}</Text>
+            <Text fontSize="xs" color="gray.700">{item.instituteName}</Text>
         </VStack>
         <Flex gap={2}>
             <IconButton icon={<FaTrash />} size="sm" colorScheme="red" variant="ghost" onClick={(e) => { e.stopPropagation(); onDelete(index); }} aria-label="Delete" isDisabled={!isEditing} _disabled={{ opacity: 1, cursor: "default", bg: "gray.100", px: 2, py: 1, borderRadius: "md", color: "gray.800" }} />
@@ -417,7 +417,7 @@ const EducationGapsSection = ({ gaps = [], onChange, isEditing, fieldErrors = {}
   return (
     <Box>
       <Heading size="md" mb={4} color="#20343c">Education Gaps</Heading>
-      <Text fontSize="sm" color="gray.600" mb={4}>
+      <Text fontSize="sm" color="gray.700" mb={4}>
         Add any gaps in education (if applicable). These are saved separately from your education history.
       </Text>
       <VStack spacing={4} align="stretch">

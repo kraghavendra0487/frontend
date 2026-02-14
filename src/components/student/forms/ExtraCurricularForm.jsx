@@ -102,7 +102,7 @@ export const ExtraCurricularForm = ({ data = {}, onUpdate, isEditing = false, on
         )}
 
         {items.length === 0 && (
-            <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+            <Box p={8} textAlign="center" color="gray.700" border="1px dashed" borderColor="gray.300" borderRadius="xl">
                 No extra-curricular activities added yet.
             </Box>
         )}
@@ -158,7 +158,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
       <CardBody p={4}>
         <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0}>
             <HStack onClick={() => setIsOpen(!isOpen)} cursor="pointer" flex={1}>
-                <Text fontWeight="bold" color="gray.700">
+                <Text fontWeight="bold" color="gray.800">
                     {item.activityName || "New Activity"}
                 </Text>
                 {isOpen ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
@@ -184,6 +184,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "activityName", e.target.value)}
                             placeholder="e.g. Hackathon, Debate Club"
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                             _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
@@ -193,6 +194,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "activityType", e.target.value)}
                             placeholder="e.g. Competition, Club, Volunteering"
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                             _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
@@ -205,6 +207,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "role", e.target.value)}
                             placeholder="e.g. Participant, Organizer, Lead"
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                             _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
@@ -214,6 +217,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             onChange={(e) => onChange(index, "organization", e.target.value)}
                             placeholder="e.g. College Name, IEEE"
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                             _placeholder={{ opacity: 0.7, color: "inherit" }}
                         />
                     </Field>
@@ -228,6 +232,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             value={normalizeDateValue(item.startDate ?? item.start_date)} 
                             onChange={(e) => onChange(index, "startDate", e.target.value || "")}
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         />
                     </Field>
                     <Field label="End Date" errorText={getError("end_date") || getError("endDate")}>
@@ -238,6 +243,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                             value={normalizeDateValue(item.endDate ?? item.end_date)} 
                             onChange={(e) => onChange(index, "endDate", e.target.value || "")}
                             isDisabled={!isEditing}
+                            _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         />
                     </Field>
                 </SimpleGrid>
@@ -248,6 +254,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "achievements", e.target.value)}
                         placeholder="List your key achievements..."
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
@@ -258,6 +265,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "skills", e.target.value)}
                         placeholder="e.g. Leadership, Public Speaking, Coding"
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
@@ -268,6 +276,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                         onChange={(e) => onChange(index, "description", e.target.value)}
                         placeholder="Brief description of the activity..."
                         isDisabled={!isEditing}
+                        _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                         _placeholder={{ opacity: 0.7, color: "inherit" }}
                     />
                 </Field>
@@ -275,7 +284,7 @@ const ExtraCurricularItem = ({ index, item, onChange, onDelete, isEditing, onFil
                 <Field label="Proof Document (PDF/Image)" errorText={getError("proof_document") || getError("proofDocument")}>
                     {isEditing && (
                       <Box>
-                        <Text mb={2} fontWeight="medium">Upload proof (saved when you click Save changes)</Text>
+                        <Text mb={2} fontWeight="medium" color="gray.700">Upload proof (saved when you click Save changes)</Text>
                         <StyledFileInput
                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                           onChange={handleFileChange}

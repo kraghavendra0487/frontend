@@ -827,6 +827,24 @@ export const PlacementService = {
     return response.data;
   },
 
+  /** Admin: Get all alumni connection requests */
+  getAlumniConnectionRequests: async (params = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set('status', params.status);
+    const url = `/placement/alumni/connection-requests${qs.toString() ? `?${qs}` : ''}`;
+    const response = await apiFetch(url);
+    return response.data ?? { rows: [] };
+  },
+
+  /** Admin: Update connection request status */
+  updateAlumniConnectionRequest: async (id, { status, po_remarks }) => {
+    const response = await apiFetch(`/placement/alumni/connection-requests/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, po_remarks }),
+    });
+    return response.data;
+  },
+
   // ========== Student Eligibility Management ==========
 
   /** Get students with eligibility flags */

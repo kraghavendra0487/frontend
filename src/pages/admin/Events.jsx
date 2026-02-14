@@ -40,7 +40,6 @@ import {
 // Force refresh
 import { SearchIcon, SettingsIcon, EditIcon, InfoIcon, CheckCircleIcon, DownloadIcon, BellIcon } from '@chakra-ui/icons';
 import { FaRocket, FaPlus, FaTimes } from 'react-icons/fa';
-import { BsLayoutThreeColumns } from 'react-icons/bs';
 import { HiLocationMarker } from 'react-icons/hi';
 import { MdCalendarToday, MdHourglassEmpty } from 'react-icons/md';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -62,13 +61,38 @@ const TABLE_COLUMNS = [
   { id: 'actions', label: 'Actions' },
 ];
 
+/* Granular export columns (merged display columns split for download) */
+const EXPORT_COLUMNS = [
+  { id: 'company_name', label: 'Company Name', group: 'Company' },
+  { id: 'company_remarks', label: 'Company Remarks', group: 'Company' },
+  { id: 'tpo', label: 'TPO', group: 'Company' },
+  { id: 'eligibility', label: 'Eligibility (School - Program)', group: 'Eligibility' },
+  { id: 'job_location', label: 'Job Location', group: 'Location' },
+  { id: 'type_of_hiring', label: 'Type of Hiring', group: 'Location' },
+  { id: 'job_description', label: 'Job Description', group: 'Location' },
+  { id: 'ctc_lpa', label: 'CTC (LPA)', group: 'Compensation' },
+  { id: 'base_min', label: 'Base Min (LPA)', group: 'Compensation' },
+  { id: 'base_max', label: 'Base Max (LPA)', group: 'Compensation' },
+  { id: 'variable_pct', label: 'Variable %', group: 'Compensation' },
+  { id: 'stock', label: 'Stock (LPA)', group: 'Compensation' },
+  { id: 'stipend', label: 'Stipend', group: 'Compensation' },
+  { id: 'drive_date', label: 'Drive Date', group: 'Dates' },
+  { id: 'registration_deadline', label: 'Registration Deadline', group: 'Dates' },
+  { id: 'registrations_count', label: 'Registrations', group: 'Openings' },
+  { id: 'number_of_openings', label: 'Seats', group: 'Openings' },
+  { id: 'job_type', label: 'Job Type', group: 'Other' },
+  { id: 'academic_year', label: 'Academic Year', group: 'Other' },
+  { id: 'placement_status', label: 'Placement Status', group: 'Other' },
+];
+
 const Events = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isEligibilityOpen, onOpen: onEligibilityOpen, onClose: onEligibilityClose } = useDisclosure();
-  const { isOpen: isColumnModalOpen, onOpen: onColumnModalOpen, onClose: onColumnModalClose } = useDisclosure();
+  const { isOpen: isExportModalOpen, onOpen: onExportModalOpen, onClose: onExportModalClose } = useDisclosure();
+  const [exportColumnsSelected, setExportColumnsSelected] = useState(() => EXPORT_COLUMNS.map(c => c.id));
   const [modalStep, setModalStep] = useState(1);
   const [visibleColumns, setVisibleColumns] = useState(() => TABLE_COLUMNS.map(c => c.id));
   const [drives, setDrives] = useState([]);
@@ -151,24 +175,42 @@ const Events = () => {
     return avg || min || max || '-';
   };
 
-  /** Resolve eligibility to school and program names for display */
+  /** Resolve eligibility display. Prefer eligibility_display (school - program pairs from process table).
+   * Fallback to eligibility_criteria or drive.school/program when no registrations yet. */
   const getEligibilityDisplay = (drive) => {
+    if (drive?.eligibility_display) {
+      return { display: drive.eligibility_display };
+    }
+    const pairs = drive?.school_program_pairs || [];
+    if (pairs.length > 0) {
+      const display = pairs.map((p) => `${p.school} - ${p.program}`).join(', ');
+      return { display };
+    }
     const elig = drive?.placement_drive_eligibility;
-    const schoolMap = (schoolList || []).reduce((acc, s) => { acc[s.id] = s.name || s.abbreviation || String(s.id); return acc; }, {});
-    const programMap = (programList || []).reduce((acc, p) => { acc[p.id] = p.name || String(p.id); return acc; }, {});
+    const schoolMap = (schoolList || []).reduce((acc, s) => {
+      const id = s.id;
+      acc[id] = acc[Number(id)] = s.name || s.abbreviation || String(s.id);
+      return acc;
+    }, {});
+    const programMap = (programList || []).reduce((acc, p) => {
+      const id = p.id;
+      acc[id] = acc[Number(id)] = p.name || String(p.id);
+      return acc;
+    }, {});
     let schoolNames = [];
     let programNames = [];
     if (elig?.allowed_school_ids?.length) {
-      schoolNames = elig.allowed_school_ids.map((id) => schoolMap[id] || `ID ${id}`).filter(Boolean);
+      schoolNames = elig.allowed_school_ids.map((id) => schoolMap[id] ?? schoolMap[Number(id)] ?? `ID ${id}`).filter(Boolean);
     }
     if (elig?.allowed_program_ids?.length) {
-      programNames = elig.allowed_program_ids.map((id) => programMap[id] || `ID ${id}`).filter(Boolean);
+      programNames = elig.allowed_program_ids.map((id) => programMap[id] ?? programMap[Number(id)] ?? `ID ${id}`).filter(Boolean);
     }
     if (schoolNames.length === 0 && drive?.school) schoolNames = [drive.school];
     if (programNames.length === 0 && drive?.program) programNames = [drive.program];
     const schoolStr = schoolNames.length ? schoolNames.join(', ') : null;
     const programStr = programNames.length ? programNames.join(', ') : null;
-    return { schoolStr, programStr, schoolNames, programNames };
+    const display = [schoolStr, programStr].filter(Boolean).join(' • ') || '—';
+    return { display };
   };
 
   // Edit State
@@ -498,11 +540,8 @@ const Events = () => {
           </Box>
         );
       case 'eligibility': {
-        const { schoolStr, programStr } = getEligibilityDisplay(drive);
-        const display = [schoolStr || 'General', programStr].filter(Boolean).join(' - ');
-        const tooltipParts = [];
-        if (schoolStr) tooltipParts.push(`Schools: ${schoolStr}`);
-        if (programStr) tooltipParts.push(`Programs: ${programStr}`);
+        const { display } = getEligibilityDisplay(drive);
+        const tooltipParts = [display];
         const elig = drive?.placement_drive_eligibility;
         if (elig?.min_cgpa) tooltipParts.push(`Min CGPA: ${elig.min_cgpa}`);
         if (elig?.max_active_backlogs != null) tooltipParts.push(`Max Backlogs: ${elig.max_active_backlogs}`);
@@ -619,7 +658,7 @@ const Events = () => {
       if (statusTab === 'postponed') return s === 'postponed';
       return true;
     });
-    const tabSchools = new Set(tabDrives.map(d => d.school).filter(Boolean));
+    const tabSchools = new Set(tabDrives.flatMap(d => (d.school_program_pairs || []).map(p => p.school)).filter(Boolean));
     if (selectedSchool && !tabSchools.has(selectedSchool)) {
       setSelectedSchool('');
     }
@@ -684,13 +723,42 @@ const Events = () => {
     return true;
   });
 
-  const academicYearList = [...new Set(drives.map(d => d.academic_year || (d.year ? String(d.year) : null)).filter(Boolean))].sort().reverse();
-  // Schools: prefer tab-specific from drives; fallback to all schools from API when drives lack school (eligibility not configured)
-  const schoolsFromTab = [...new Set(drivesByStatus.map(d => d.school).filter(Boolean))];
-  const schoolsFromApi = (schoolList || []).map(s => (typeof s === 'object' ? s?.name : s)).filter(Boolean);
-  const schools = (schoolsFromTab.length > 0 ? schoolsFromTab : schoolsFromApi).sort();
-  const jobProfiles = [...new Set(drives.map(d => d.job_type).filter(Boolean))];
-  const tpoList = [...new Set(drives.map(d => d.tpo).filter(Boolean))].sort();
+  const rawYears = drives.map(d => d.academic_year || (d.year ? String(d.year) : null)).filter(Boolean);
+  const academicYearList = [...new Set(rawYears)]
+    .filter(y => (y || '').toString().toLowerCase().replace(/\s+/g, ' ') !== 'all year')
+    .sort()
+    .reverse();
+  // Schools: only those that appear in the eligibility column (from school_program_pairs / process table)
+  // Dedupe by normalized name, exclude "All Schools", default is no filter
+  const rawSchools = drivesByStatus.flatMap(d => (d.school_program_pairs || []).map(p => (p.school || '').trim())).filter(Boolean);
+  const seenNormalized = new Set();
+  const schools = rawSchools
+    .filter(s => {
+      if (!s) return false;
+      const n = s.replace(/\s+/g, ' ').trim().toLowerCase();
+      if (n === 'all schools') return false;
+      if (seenNormalized.has(n)) return false;
+      seenNormalized.add(n);
+      return true;
+    })
+    .sort();
+  const rawJobProfiles = drives.map(d => (d.job_type || '').trim()).filter(Boolean);
+  const jobProfilesByKey = new Map();
+  rawJobProfiles.forEach(j => {
+    const key = j.toLowerCase().replace(/\s+/g, ' ');
+    if (key === 'all types') return;
+    if (!jobProfilesByKey.has(key)) jobProfilesByKey.set(key, j);
+  });
+  const jobProfiles = Array.from(jobProfilesByKey.values());
+  const rawTpos = drives.map(d => (d.tpo || '').trim()).filter(Boolean);
+  const tpoSeen = new Set();
+  const tpoList = rawTpos.filter(t => {
+    const n = t.toLowerCase().replace(/\s+/g, ' ');
+    if (n === 'all tpos') return false;
+    if (tpoSeen.has(n)) return false;
+    tpoSeen.add(n);
+    return true;
+  }).sort();
 
   const filteredDrives = drivesByStatus.filter(drive => {
     const query = searchQuery.toLowerCase().trim();
@@ -698,13 +766,14 @@ const Events = () => {
       (drive.company_name?.toLowerCase() || '').includes(query) ||
       (drive.job_profile?.toLowerCase() || '').includes(query) ||
       (drive.job_type?.toLowerCase() || '').includes(query) ||
-      (drive.school?.toLowerCase() || '').includes(query) ||
+      (drive.school_program_pairs || []).some(p => (p.school || '').toLowerCase().includes(query)) ||
       (drive.tpo?.toLowerCase() || '').includes(query) ||
       (drive.job_location?.toLowerCase() || '').includes(query) ||
       (drive.company_remarks?.toLowerCase() || '').includes(query);
     const driveYear = drive.academic_year || (drive.year ? String(drive.year) : '');
     const matchesAcademicYear = !selectedAcademicYear || driveYear === selectedAcademicYear;
-    const matchesSchool = !selectedSchool || drive.school === selectedSchool;
+    const driveSchools = (drive.school_program_pairs || []).map(p => p.school).filter(Boolean);
+    const matchesSchool = !selectedSchool || driveSchools.includes(selectedSchool);
     const matchesJobProfile = !selectedJobProfile || drive.job_type === selectedJobProfile;
     const matchesTpo = !selectedTpo || (drive.tpo || '') === selectedTpo;
     return matchesSearch && matchesAcademicYear && matchesSchool && matchesJobProfile && matchesTpo;
@@ -722,8 +791,8 @@ const Events = () => {
       case 'company_remarks_tpo':
         return [drive.company_name || '', drive.company_remarks || '', drive.tpo || ''].join(' | ');
       case 'eligibility': {
-        const { schoolStr, programStr } = getEligibilityDisplay(drive);
-        return [schoolStr || '', programStr].filter(Boolean).join(' - ') || '—';
+        const { display } = getEligibilityDisplay(drive);
+        return display || '—';
       }
       case 'location_description':
         return `${drive.job_location || '—'} (${drive.type_of_hiring || '—'})\n${drive.job_description || ''}`;
@@ -744,8 +813,44 @@ const Events = () => {
     }
   };
 
+  /** Get value for granular export column (used by Export modal) */
+  const getExportValueForColumn = (drive, colId) => {
+    const ctc = drive.ctc_structure || {};
+    const stipend = drive.stipend_structure || {};
+    switch (colId) {
+      case 'company_name': return drive.company_name || '';
+      case 'company_remarks': return drive.company_remarks || '';
+      case 'tpo': return drive.tpo || '';
+      case 'eligibility': {
+        const { display } = getEligibilityDisplay(drive);
+        return display || '';
+      }
+      case 'job_location': return drive.job_location || '';
+      case 'type_of_hiring': return drive.type_of_hiring || '';
+      case 'job_description': return drive.job_description || '';
+      case 'ctc_lpa': return getDisplayCTCValue(ctc) ?? '';
+      case 'base_min': return ctc.min ?? '';
+      case 'base_max': return ctc.max ?? '';
+      case 'variable_pct': return ctc.variable ?? '';
+      case 'stock': return ctc.stock ?? '';
+      case 'stipend': return (stipend.avg || stipend.min || stipend.max) != null ? `₹${parseInt(stipend.avg || stipend.min || stipend.max || 0, 10).toLocaleString()}` : '';
+      case 'drive_date': return drive.event_datetime ? new Date(drive.event_datetime).toLocaleDateString() : '';
+      case 'registration_deadline': return drive.last_date_to_registration ? new Date(drive.last_date_to_registration).toLocaleDateString() : '';
+      case 'registrations_count': return registeredCount(drive) ?? '';
+      case 'number_of_openings': return drive.number_of_openings ?? '';
+      case 'job_type': return drive.job_type || '';
+      case 'academic_year': return drive.academic_year || (drive.year ? String(drive.year) : '') || '';
+      case 'placement_status': return drive.placement_status || '';
+      default: return '';
+    }
+  };
+
   const handleExportExcel = () => {
-    const colsToExport = visibleTableColumns.filter(c => c.id !== 'actions');
+    onExportModalOpen();
+  };
+
+  const doExportExcel = () => {
+    const colsToExport = EXPORT_COLUMNS.filter(c => exportColumnsSelected.includes(c.id));
     if (colsToExport.length === 0) {
       toast({ title: 'Select at least one column to export', status: 'warning' });
       return;
@@ -753,7 +858,7 @@ const Events = () => {
     const data = filteredDrives.map(drive => {
       const row = {};
       colsToExport.forEach(col => {
-        row[col.label] = getExportValue(drive, col.id);
+        row[col.label] = getExportValueForColumn(drive, col.id);
       });
       return row;
     });
@@ -761,14 +866,14 @@ const Events = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Placement Drives');
     XLSX.writeFile(wb, `Placement_Drives_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    onExportModalClose();
     toast({ title: 'Export downloaded', status: 'success', duration: 2000 });
   };
 
-  const toggleColumn = (id) => {
-    setVisibleColumns(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
+  const toggleExportColumn = (id) => {
+    setExportColumnsSelected(prev => prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]);
   };
-  const selectAllColumns = () => setVisibleColumns(TABLE_COLUMNS.map(c => c.id));
-  const resetColumns = () => setVisibleColumns(TABLE_COLUMNS.map(c => c.id));
+  const selectAllExportColumns = () => setExportColumnsSelected(EXPORT_COLUMNS.map(c => c.id));
 
   return (
     <AdminLayout fullWidth>
@@ -798,9 +903,6 @@ const Events = () => {
               </button>
             </div>
             <HStack spacing={2} flexWrap="wrap">
-              <Button size="sm" variant="outline" leftIcon={<Box as={BsLayoutThreeColumns} boxSize={4} />} onClick={onColumnModalOpen} bg="white" borderColor="gray.200" _hover={{ borderColor: 'blue.200' }}>
-                Select columns
-              </Button>
               <Button size="sm" variant="outline" leftIcon={<DownloadIcon />} onClick={handleExportExcel} bg="white" borderColor="gray.200" _hover={{ borderColor: 'blue.200' }}>
                 Export Excel
               </Button>
@@ -842,21 +944,15 @@ const Events = () => {
               </InputGroup>
             </Box>
             <Select placeholder="All Year" value={selectedAcademicYear || ''} onChange={(e) => setSelectedAcademicYear(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
-              <option value="">All Year</option>
               {academicYearList.map(ay => <option key={ay} value={ay}>{ay}</option>)}
             </Select>
             <Select placeholder="All Schools" value={selectedSchool || ''} onChange={(e) => setSelectedSchool(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
-              <option value="">All Schools</option>
               {schools.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
             <Select placeholder="All Types" value={selectedJobProfile || ''} onChange={(e) => setSelectedJobProfile(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
-              <option value="">All Types</option>
-              <option value="Internship">Internship</option>
-              <option value="Full Time">Full Time</option>
-              {jobProfiles.filter(j => j && j !== 'Internship' && j !== 'Full Time').map(j => <option key={j} value={j}>{j}</option>)}
+              {jobProfiles.map(j => <option key={j} value={j}>{j}</option>)}
             </Select>
             <Select placeholder="All TPOs" value={selectedTpo || ''} onChange={(e) => setSelectedTpo(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
-              <option value="">All TPOs</option>
               {tpoList.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
             <button type="button" className="clear-btn" onClick={handleClearFilters}><FaTimes size={12} /> Clear</button>
@@ -932,7 +1028,7 @@ const Events = () => {
                         <Box>
                           <Heading size="md" color="gray.900">{drive.company_name}</Heading>
                           <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-                            {(() => { const { schoolStr, programStr } = getEligibilityDisplay(drive); return [schoolStr, programStr].filter(Boolean).join(' - ') || '—'; })()}
+                            {getEligibilityDisplay(drive).display || '—'}
                           </Text>
                         </Box>
                       </Flex>
@@ -979,36 +1075,39 @@ const Events = () => {
             </div>
           )}
 
-        {/* Select columns modal */}
-        <Modal isOpen={isColumnModalOpen} onClose={onColumnModalClose} size="md" scrollBehavior="inside">
+        {/* Export Excel modal - select columns for download */}
+        <Modal isOpen={isExportModalOpen} onClose={onExportModalClose} size="md" scrollBehavior="inside">
           <ModalOverlay />
           <ModalContent>
             <ModalHeader display="flex" alignItems="center" gap={2}>
-              <Box as={BsLayoutThreeColumns} boxSize={5} color="blue.500" />
-              Select columns
+              <Box as={DownloadIcon} boxSize={5} color="green.500" />
+              Export to Excel
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               <Text fontSize="sm" color="gray.600" mb={4}>
-                Choose which columns to show in the table. Export Excel uses the same selection.
+                Select which columns to include in the download. Merged display columns are split into individual fields.
               </Text>
-              <VStack align="stretch" spacing={2}>
-                {TABLE_COLUMNS.map((col) => (
-                  <Checkbox
-                    key={col.id}
-                    isChecked={visibleColumns.includes(col.id)}
-                    onChange={() => toggleColumn(col.id)}
-                  >
-                    <Text fontSize="sm">{col.label}</Text>
-                  </Checkbox>
+              <VStack align="stretch" spacing={3}>
+                {['Company', 'Eligibility', 'Location', 'Compensation', 'Dates', 'Openings', 'Other'].map(group => (
+                  <Box key={group}>
+                    <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={2}>{group}</Text>
+                    <VStack align="stretch" spacing={1} pl={2}>
+                      {EXPORT_COLUMNS.filter(c => c.group === group).map(col => (
+                        <Checkbox key={col.id} isChecked={exportColumnsSelected.includes(col.id)} onChange={() => toggleExportColumn(col.id)} size="sm">
+                          <Text fontSize="sm">{col.label}</Text>
+                        </Checkbox>
+                      ))}
+                    </VStack>
+                  </Box>
                 ))}
               </VStack>
               <HStack mt={4} gap={2}>
-                <Button size="sm" variant="outline" onClick={selectAllColumns}>
+                <Button size="sm" variant="outline" onClick={selectAllExportColumns}>
                   Select all
                 </Button>
-                <Button size="sm" variant="outline" onClick={resetColumns}>
-                  Reset
+                <Button size="sm" colorScheme="green" leftIcon={<DownloadIcon />} onClick={doExportExcel}>
+                  Download
                 </Button>
               </HStack>
             </ModalBody>
@@ -1037,9 +1136,14 @@ const Events = () => {
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                     <FormControl isRequired>
                       <FormLabel fontWeight="medium" color="gray.600">Company Name</FormLabel>
-                      <Select name="company_id" value={newEvent.company_id} onChange={handleInputChange} placeholder="Select Company" bg="gray.50" _focus={{ bg: 'white', borderColor: 'blue.500' }}>
-                        {companyList.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-                      </Select>
+                      <HStack spacing={2} align="stretch">
+                        <Select name="company_id" value={newEvent.company_id} onChange={handleInputChange} placeholder="Select Company" bg="gray.50" _focus={{ bg: 'white', borderColor: 'blue.500' }} flex={1}>
+                          {companyList.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                        </Select>
+                        <Button size="md" variant="outline" colorScheme="blue" leftIcon={<FaPlus size={12} />} onClick={() => navigate('/placement/companies?add=1')} whiteSpace="nowrap">
+                          Add new
+                        </Button>
+                      </HStack>
                     </FormControl>
 
                     <FormControl>

@@ -99,14 +99,14 @@ export const ContactLinksForm = ({
         <VStack spacing={6} align="stretch">
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
             <FormControl>
-              <FormLabel fontWeight="semibold" color="gray.600">College Email</FormLabel>
+              <FormLabel fontWeight="semibold" color="gray.700">College Email</FormLabel>
               <Text fontSize="lg" color="gray.800" py={1}>
                 {formData.collegeEmail || formData.college_email || "—"}
               </Text>
             </FormControl>
 
             <FormControl isInvalid={!!(fe.personal_email || fe.personalEmail)}>
-              <FormLabel fontWeight="semibold" color="gray.600">
+              <FormLabel fontWeight="semibold" color="gray.700">
                 Personal Email
                 {isEditing && (
                   <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
@@ -126,12 +126,12 @@ export const ContactLinksForm = ({
                 <Text fontSize="sm" color="red.500" mt={1}>{fe.personal_email || fe.personalEmail}</Text>
               )}
               {isEditing && (
-                <Text fontSize="sm" color="gray.500" mt={1}>Personal email is required and cannot be cleared.</Text>
+                <Text fontSize="sm" color="gray.700" mt={1}>Personal email is required and cannot be cleared.</Text>
               )}
             </FormControl>
 
             <FormControl isInvalid={phoneInvalid}>
-              <FormLabel fontWeight="semibold" color="gray.600">
+              <FormLabel fontWeight="semibold" color="gray.700">
                 Phone
                 {isEditing && (
                   <Text as="span" color="red.500" ml={2} fontSize="sm">*</Text>
@@ -157,7 +157,7 @@ export const ContactLinksForm = ({
                 <Text fontSize="sm" color="red.500" mt={1}>{fe.phoneNumber || fe.phone_number}</Text>
               )}
               {isEditing && (
-                <Text fontSize="sm" color="gray.500" mt={1}>Phone number is required and cannot be cleared.</Text>
+                <Text fontSize="sm" color="gray.700" mt={1}>Phone number is required and cannot be cleared.</Text>
               )}
             </FormControl>
           </SimpleGrid>
@@ -185,14 +185,14 @@ export const ContactLinksForm = ({
 
           <VStack spacing={4} align="stretch">
             {linksArray.length === 0 && !isEditing && (
-                <Text color="gray.500" fontSize="sm">No links added.</Text>
+                <Text color="gray.700" fontSize="sm">No links added.</Text>
             )}
             {linksArray.map((it, idx) => {
               const linkError = fe.links || fe[`links[${idx}].url`] || fe[`link_${idx}`];
               return (
                 <Box key={idx}>
                   <HStack spacing={4}>
-                    <Box color="gray.500" fontSize="xl" minW="24px" display="flex" justifyContent="center">
+                    <Box color="gray.700" fontSize="xl" minW="24px" display="flex" justifyContent="center">
                       {getLinkIcon(it.name)}
                     </Box>
                     <Input

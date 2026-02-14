@@ -139,7 +139,7 @@ const AcademicsFileInput = ({ isEditing, value, onChange, onFileSelect, index })
                 
                 {fileUrl && !selectedFileName && (
                     <Box mt={2}>
-                        <Text fontSize="xs" color="gray.500" mb={1}>Uploaded marksheet:</Text>
+                        <Text fontSize="xs" color="gray.600" mb={1}>Uploaded marksheet:</Text>
                         <Flex align="center" gap={3} flexWrap="wrap">
                             <Link 
                                 href={getFileUrl(fileUrl)} 
@@ -176,7 +176,7 @@ const AcademicsFileInput = ({ isEditing, value, onChange, onFileSelect, index })
                             )}
                             {isPdfUrl(fileUrl) && (
                                 <Box mt={2} w="100%" border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden" bg="gray.100" h="280px">
-                                    <Text fontSize="xs" color="gray.600" p={2}>Preview:</Text>
+                                    <Text fontSize="xs" color="gray.700" p={2}>Preview:</Text>
                                     <iframe
                                         title="Marksheet preview"
                                         src={getFileUrl(fileUrl)}
@@ -265,7 +265,7 @@ const AcademicsFileInput = ({ isEditing, value, onChange, onFileSelect, index })
                         View Marksheet (opens in new tab)
                       </Link>
                       <Box border="1px solid" borderColor="gray.200" borderRadius="md" overflow="hidden" bg="gray.100" h="320px">
-                        <Text fontSize="xs" color="gray.600" p={2}>Preview:</Text>
+                        <Text fontSize="xs" color="gray.700" p={2}>Preview:</Text>
                         <iframe
                           title="Marksheet preview"
                           src={getFileUrl(fileUrl)}
@@ -308,7 +308,7 @@ const AcademicsFileInput = ({ isEditing, value, onChange, onFileSelect, index })
                   )}
                 </Box>
             ) : (
-                <Text fontSize="sm" color="gray.500">No marksheet uploaded</Text>
+                <Text fontSize="sm" color="gray.600">No marksheet uploaded</Text>
             )
         )}
     </Box>
@@ -423,7 +423,7 @@ const SemesterItem = ({ item, onChange, index, isOpen, onToggle, isEditing, onFi
       <Flex justify="space-between" align="center" mb={isOpen ? 4 : 0} cursor="pointer" onClick={onToggle}>
         <VStack align="start" gap={0}>
             <Heading size="sm" color="#20343c">{item.semester ? `Semester ${item.semester}` : "New Semester Entry"}</Heading>
-            <Text fontSize="xs" color="gray.500">{item.academicYear || "Year"}{locked ? " · Locked (no backlogs)" : ""}</Text>
+            <Text fontSize="xs" color="gray.600">{item.academicYear || "Year"}{locked ? " · Locked (no backlogs)" : ""}</Text>
         </VStack>
         <IconButton icon={isOpen ? <FaChevronUp /> : <FaChevronDown />} size="sm" variant="ghost" aria-label="Toggle" />
       </Flex>
@@ -720,7 +720,7 @@ export const AcademicPerformanceForm = ({ data = {}, onUpdate, isEditing, onFile
           />
         ))}
         {academics.length === 0 && (
-            <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+            <Box p={8} textAlign="center" color="gray.600" border="1px dashed" borderColor="gray.300" borderRadius="xl">
                 No academic records added yet.
             </Box>
         )}

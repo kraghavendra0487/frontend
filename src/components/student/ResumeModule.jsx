@@ -289,7 +289,7 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile, readOnly = 
               />
             </Flex>
           ) : readOnly ? (
-            <Text color="gray.500" py={4}>No resume uploaded.</Text>
+            <Text color="gray.600" py={4}>No resume uploaded.</Text>
           ) : (
             <Box 
               border="2px dashed" 
@@ -317,12 +317,12 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile, readOnly = 
                 accept="application/pdf"
               />
               <VStack gap={4}>
-                <Icon as={FaCloudUploadAlt} boxSize={10} color="gray.400" />
+                <Icon as={FaCloudUploadAlt} boxSize={10} color="gray.500" />
                 <Box>
                   <Heading size="sm" color="gray.600">
                     Click or Drag to Upload PDF
                   </Heading>
-                  <Text fontSize="sm" color="gray.500" mt={1}>
+                  <Text fontSize="sm" color="gray.600" mt={1}>
                     Max file size: {MAX_FILE_SIZE_MB}MB
                   </Text>
                 </Box>
@@ -340,7 +340,7 @@ export const ResumeModule = ({ usn, fullProfile: initialFullProfile, readOnly = 
         {!readOnly && (
         <Box bg="white" p={6} borderRadius="xl" shadow="sm">
           <Heading size="md" color="#20343c" mb={4}>Auto-Generate Resume</Heading>
-          <Text color="gray.600" mb={6}>
+          <Text color="gray.700" mb={6}>
             Create a professional resume instantly using the data from your profile sections (Education, Projects, Skills, etc.).
           </Text>
           <HStack gap={4}>

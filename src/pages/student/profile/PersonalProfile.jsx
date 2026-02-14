@@ -408,7 +408,7 @@ export const PersonalProfile = () => {
             {isOptedIn ? (
               <HStack>
                 <Badge colorScheme="green" fontSize="sm">Opted in</Badge>
-                <Text fontSize="sm" color="gray.600">You have agreed to the placement policy and are opted in to the placement track. Opt-in cannot be reverted.</Text>
+                <Text fontSize="sm" color="gray.700">You have agreed to the placement policy and are opted in to the placement track. Opt-in cannot be reverted.</Text>
               </HStack>
             ) : (
               <>
@@ -487,7 +487,7 @@ export const PersonalProfile = () => {
             <ModalCloseButton isDisabled={optInSaving} />
             <ModalBody>
               {optInModalCompletion != null && (
-                <Text mb={3} fontSize="sm" color="gray.600">
+                <Text mb={3} fontSize="sm" color="gray.700">
                   Your profile completion: <strong>{optInModalCompletion}%</strong> (minimum {MIN_COMPLETION_TO_OPT_IN}% required).
                 </Text>
               )}

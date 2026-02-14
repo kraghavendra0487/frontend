@@ -97,7 +97,7 @@ export const CertificationsForm = ({ data = {}, onUpdate, isEditing, onFileSelec
         )}
 
         {certifications.length === 0 && (
-            <Box p={8} textAlign="center" color="gray.500" border="1px dashed" borderColor="gray.300" borderRadius="xl">
+            <Box p={8} textAlign="center" color="gray.700" border="1px dashed" borderColor="gray.300" borderRadius="xl">
                 No certifications added yet.
             </Box>
         )}
@@ -161,7 +161,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                     <Heading size="sm" color="blue.600">
                         {item.title || "New Certification"}
                     </Heading>
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color="gray.700">
                         {item.organization || "Organization Name"}
                     </Text>
                 </Box>
@@ -195,6 +195,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "title", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 placeholder="e.g. AWS Solutions Architect"
                                 _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
@@ -206,6 +207,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "organization", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 placeholder="e.g. Amazon Web Services"
                                 _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
@@ -217,6 +219,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "certificationType", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 placeholder="e.g. Technical / Professional"
                                 _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
@@ -228,6 +231,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "skills", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 placeholder="e.g. Cloud Computing, Architecture"
                                 _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
@@ -239,6 +243,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "score", e.target.value)} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 _placeholder={{ opacity: 0.7, color: "inherit" }}
                             />
                         </Field>
@@ -250,6 +255,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "issueDate", toDateValue(e.target.value))} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 min="1900-01-01"
                                 max="2100-12-31"
                             />
@@ -262,6 +268,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                                 onChange={(e) => onChange(index, "expiryDate", toDateValue(e.target.value))} 
                                 variant="flushed"
                                 isDisabled={!isEditing}
+                                _disabled={{ opacity: 1, color: "gray.800", cursor: "default" }}
                                 min="1900-01-01"
                                 max="2100-12-31"
                             />
@@ -270,7 +277,7 @@ const CertificationItem = ({ index, item, onChange, onDelete, isEditing, onFileS
                         <Field label="Proof Document (PDF/Image)" errorText={getError("proof_document") || getError("proofDocument")}>
                             {isEditing && (
                               <VStack align="stretch" spacing={2}>
-                                <Text fontSize="sm" color="gray.600">Upload proof (saved when you click Save changes)</Text>
+                                <Text fontSize="sm" color="gray.700">Upload proof (saved when you click Save changes)</Text>
                                 <StyledFileInput
                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
                                   onChange={handleFileChange}

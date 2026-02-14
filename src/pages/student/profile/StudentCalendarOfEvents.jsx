@@ -12,8 +12,9 @@ import {
   Alert,
   AlertIcon,
   Divider,
+  Button,
 } from '@chakra-ui/react';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { PlacementService } from '../../../services/placement.service';
 import { EventsService } from '../../../services/events.service';
@@ -42,6 +43,19 @@ export const StudentCalendarOfEvents = () => {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+
+  const today = useMemo(() => new Date(), []);
+  const minDate = useMemo(() => new Date(today.getFullYear() - 1, today.getMonth(), 1), [today]);
+  const maxDate = useMemo(() => new Date(today.getFullYear() + 1, today.getMonth(), 1), [today]);
+  const canGoPrev = current > minDate;
+  const canGoNext = current < maxDate;
+
+  const goToToday = useCallback(() => {
+    const now = new Date();
+    setCurrent(new Date(now.getFullYear(), now.getMonth(), 1));
+    setSelectedDate(now);
+  }, []);
+
   const range = useMemo(() => {
     const firstDay = new Date(current.getFullYear(), current.getMonth(), 1);
     const startIdx = firstDay.getDay();
@@ -149,12 +163,26 @@ export const StudentCalendarOfEvents = () => {
       overflow="hidden"
       minW="280px"
     >
-      <Heading size="lg" color="#20343c" mb={2} flexShrink={0}>
-        Calendar of Events & Drives
-      </Heading>
-      <Text fontSize="sm" color="gray.600" mb={4} flexShrink={0}>
-        Upcoming events and placement drives. Click a day to see details.
-      </Text>
+      <HStack justify="space-between" align="flex-start" wrap="wrap" gap={3} mb={4} flexShrink={0}>
+        <Box>
+          <Heading size="lg" color="#20343c" mb={2}>
+            Calendar of Events & Drives
+          </Heading>
+          <Text fontSize="sm" color="gray.700">
+            Upcoming events and placement drives. Click a day to see details.
+          </Text>
+        </Box>
+        <Button
+          leftIcon={<FiCalendar />}
+          size="sm"
+          colorScheme="teal"
+          variant="outline"
+          onClick={goToToday}
+          flexShrink={0}
+        >
+          Go to Today
+        </Button>
+      </HStack>
 
       {loading ? (
         <Box bg="white" borderRadius="xl" p={8} boxShadow="lg" textAlign="center" flex={1}>
@@ -187,6 +215,8 @@ export const StudentCalendarOfEvents = () => {
                   colorScheme="whiteAlpha"
                   icon={<FiChevronLeft />}
                   onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+                  isDisabled={!canGoPrev}
+                  opacity={canGoPrev ? 1 : 0.5}
                 />
                 <Heading as="h1" fontSize={{ base: 'lg', sm: 'xl' }} fontWeight="bold" textTransform="uppercase">
                   {current.toLocaleString(undefined, { month: 'short' })} {current.getFullYear()}
@@ -198,6 +228,8 @@ export const StudentCalendarOfEvents = () => {
                   colorScheme="whiteAlpha"
                   icon={<FiChevronRight />}
                   onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+                  isDisabled={!canGoNext}
+                  opacity={canGoNext ? 1 : 0.5}
                 />
               </HStack>
             </Box>
@@ -293,7 +325,7 @@ export const StudentCalendarOfEvents = () => {
             <Divider mb={3} />
             <VStack align="stretch" spacing={3}>
               {dayEvents(selectedDate).length === 0 ? (
-                <Text color="gray.500" fontSize="sm">
+                <Text color="gray.700" fontSize="sm">
                   No events for this date.
                 </Text>
               ) : (
@@ -312,7 +344,7 @@ export const StudentCalendarOfEvents = () => {
                     <Text fontWeight="bold" fontSize="sm" mb={1}>
                       {e.title}
                     </Text>
-                    <Text fontSize="xs" color="gray.600">
+                    <Text fontSize="xs" color="gray.700">
                       {e.start_time ? `${e.start_time} – ` : ''}
                       {e.type}
                     </Text>
