@@ -761,30 +761,34 @@
 /* Edit Project modal – light theme like showcase */
 .projects-edit-modal {
   background: white !important;
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
 }
 
 .projects-edit-modal-header {
-  font-size: 1.25rem;
+  font-size: 1.375rem;
   font-weight: 700;
   color: #0f172a;
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #fafbfc 0%, #f8fafc 100%);
 }
 
 .projects-edit-modal-body {
-  padding: 1.5rem !important;
+  padding: 1.75rem !important;
   background: white;
   color: #1e293b;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .projects-edit-modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 1.25rem 1.75rem;
   border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
-  border-radius: 0 0 1rem 1rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 0 0 1.25rem 1.25rem;
 }
 
 .projects-edit-modal-body .chakra-form__label {
@@ -792,7 +796,7 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   color: #64748b;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
 }
 
 .projects-edit-input,
@@ -801,25 +805,62 @@
 .projects-edit-number {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   color: #0f172a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.projects-edit-input:hover,
+.projects-edit-textarea:hover,
+.projects-edit-select:hover {
+  border-color: #cbd5e1 !important;
 }
 
 .projects-edit-input:focus,
 .projects-edit-textarea:focus,
 .projects-edit-select:focus {
   border-color: var(--palette-bright-green) !important;
-  box-shadow: 0 0 0 1px rgba(3, 192, 60, 0.25);
+  box-shadow: 0 0 0 2px rgba(3, 192, 60, 0.2);
+}
+
+.projects-edit-textarea {
+  resize: vertical;
+  min-height: 100px;
 }
 
 .projects-save-project-btn {
   background: linear-gradient(135deg, #03C03C 0%, #A2D43D 100%) !important;
-  color: #0f172a !important;
+  color: white !important;
   font-weight: 600;
+  border-radius: 0.625rem;
+  padding-inline: 1.5rem;
+  box-shadow: 0 2px 8px rgba(3, 192, 60, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .projects-save-project-btn:hover {
   background: linear-gradient(135deg, #02a832 0%, #8fc234 100%) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(3, 192, 60, 0.35);
+}
+
+/* Technologies tag input */
+.projects-edit-tag-input-wrap {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.projects-edit-tag {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.projects-edit-tag-input {
+  min-width: 120px;
+}
+
+.projects-edit-tag-add-btn {
+  flex-shrink: 0;
+  border-radius: 0.5rem;
 }
 
 /* Field error message – ensure visible below fields (manage projects) */

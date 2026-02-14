@@ -157,7 +157,7 @@ const UniversalSearch = () => {
       <Modal initialFocusRef={initialRef} isOpen={isOpen} onClose={onClose} size="xl" motionPreset="slideInBottom">
         <ModalOverlay backdropFilter="blur(8px)" bg="blackAlpha.700" />
         <ModalContent 
-          bg="#172e36" 
+          bg="#166534" 
           color="white" 
           borderRadius="2xl" 
           overflow="hidden" 

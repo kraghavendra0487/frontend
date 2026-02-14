@@ -7,6 +7,7 @@ const tabPaths = [
   { path: '/placement/students', label: 'View All Students', end: true },
   { path: '/placement/students/academic', label: 'Manage Academic', end: false },
   { path: '/placement/students/profile_lock', label: 'Profile Lock', end: false },
+  { path: '/placement/students/sem_unlock_requests', label: 'Sem Unlock Requests', end: false },
 ];
 
 export default function StudentsLayout() {

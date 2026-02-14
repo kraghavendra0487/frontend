@@ -633,7 +633,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                       display="grid"
                       gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}
                       gap={{ base: 2, md: 8 }}
-                      gapY={4}
                     >
                       {topByLikes.map((p, i) => {
                         const icon = (p.project_snaps || [])[0];

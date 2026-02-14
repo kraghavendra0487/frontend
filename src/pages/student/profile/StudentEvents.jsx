@@ -75,7 +75,7 @@ export const StudentEvents = () => {
   return (
     <Box bg="gray.50" minH="80vh" py={8}>
         <Box maxW="container.xl" mx="auto" px={4}>
-          <Heading size="lg" color="#172e36" mb={6}>
+          <Heading size="lg" color="#166534" mb={6}>
             Events
           </Heading>
 

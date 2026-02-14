@@ -454,7 +454,7 @@ export const StudentProfileLayout = ({ children, basePath = null, isAdminView = 
 
         <Box ref={contentRef} flex={1} p={8} minW={0} position="relative">
           <StudentProfileContentRefContext.Provider value={contentRef}>
-            <Box maxW={location.pathname === "/student/calendar" ? "1400px" : "960px"} mx="auto">
+            <Box maxW={location.pathname === "/student-dashboard" || location.pathname === "/student/calendar" ? "1600px" : "960px"} mx="auto" w="100%">
               {basePath ? children : <ProfileViewProvider>{children}</ProfileViewProvider>}
             </Box>
           </StudentProfileContentRefContext.Provider>

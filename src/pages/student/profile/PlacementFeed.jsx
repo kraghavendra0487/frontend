@@ -2,6 +2,7 @@ import { Box, Heading, Text, VStack, Button, Badge, HStack, Spinner, Image, Card
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../../context/AuthContext"
+import { CompanyLogo } from "../../../components/CompanyLogo"
 import { usePlacementTrackPolicy } from "../../../context/PlacementTrackPolicyContext"
 import { useStudentDataCache } from "../../../context/StudentDataCacheContext"
 
@@ -137,34 +138,12 @@ export const PlacementFeed = () => {
           <Stack spacing={4}>
             <HStack justify="space-between" align="start">
               <HStack spacing={4}>
-                {companyLogo ? (
-                  <Image 
-                    src={companyLogo} 
-                    boxSize="50px" 
-                    objectFit="contain" 
-                    alt={companyName}
-                  />
-                ) : (
-                  <Box 
-                    boxSize="50px" 
-                    bg="white" 
-                    display="flex" 
-                    alignItems="center" 
-                    justifyContent="center" 
-                    border="1px solid" 
-                    borderColor="gray.200"
-                    borderRadius="md"
-                  >
-                     <Text 
-                       fontWeight="bold" 
-                       fontSize="lg" 
-                       color={drive.company?.color || "gray.500"}
-                       fontFamily={drive.company?.fontFamily || "serif"}
-                     >
-                       {companyName.substring(0, 2).toUpperCase()}
-                     </Text>
-                  </Box>
-                )}
+                <CompanyLogo
+                  src={companyLogo}
+                  name={companyName}
+                  boxSize="50px"
+                  variant="square"
+                />
                 <Box>
                   <Heading size="md" color="#20343c">{companyName}</Heading>
                   <Text fontSize="sm" color="gray.600">

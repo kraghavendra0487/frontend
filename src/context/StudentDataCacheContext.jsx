@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, useEffect, useMemo, useRef, use
 import { PlacementService } from '../services/placement.service';
 import { StudentProfileService } from '../services/studentProfile.service';
 import { EventsService } from '../services/events.service';
+import { NotificationService } from '../services/notification.service';
 import { calculateProfileCompletion, getMissingSections } from '../utils/profileHelper';
 import { useAuth } from './AuthContext';
 
@@ -167,6 +168,9 @@ export function StudentDataCacheProvider({ children }) {
   const fetchNotifications = useCallback(async (silent = false) => {
     if (!silent) setLoadingForKey('notifications', true);
     try {
+      const unreadCount = await NotificationService.getUnreadCount();
+      updateCache('notifications', { list: [], unreadCount });
+    } catch {
       updateCache('notifications', { list: [], unreadCount: 0 });
     } finally {
       if (!silent) setLoadingForKey('notifications', false);

@@ -3,39 +3,49 @@
   width: 100%;
   z-index: 1100;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .card-nav {
   display: block;
   height: 72px; /* Standard navbar height */
+  min-height: 72px;
   padding: 0;
-  background-color: #172e36; /* Solid deep teal/slate */
-  border-bottom: 1px solid #172e36; /* Same as navbar – no visible color break */
+  margin: 0;
+  background-color: #171b2f; /* Navbar pink */
+  border-bottom: none; /* No border – eliminates strip */
   box-shadow: 
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06),
     0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Layered shadows for depth */
   position: relative;
   overflow: hidden;
-  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+  transition: height 0.25s ease, background-color 0.3s ease;
   color: white;
   z-index: 1000;
 }
 
+/* No transition when closing – collapse immediately to avoid ghost strip */
+.card-nav:not(.open) {
+  transition: none;
+  background-color:#172e36; /* Explicit pink when closed */
+}
+
 .card-nav:hover, .card-nav.open {
-  background-color: #172e36; /* Keep consistent color */
+  background-color: #172e36; /* Keep consistent color when open */
 }
 
 .card-nav.open {
   height: 300px; /* Compact height for nav groups and links */
+  min-height: 72px;
   background-color: #172e36; /* Same as navbar - no color difference */
   box-shadow: 
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    0 10px 10px -5px rgba(224, 220, 220, 0.04);
 }
 
 .card-nav-top {
-  position: absolute;
+  position: relative;
   top: 0;
   left: 0;
   right: 0;
@@ -114,29 +124,20 @@
   flex-shrink: 0;
 }
 
+/* Only rendered when open (conditional in JSX) – no ghost strip when closed */
 .card-nav-content {
   position: absolute;
   left: 0;
   right: 0;
   top: 72px; 
   bottom: 0;
-  padding: 0.4rem 2.5rem 0.75rem 2.5rem; /* Tighter padding for shorter boxes */
+  padding: 0.4rem 2.5rem 0.75rem 2.5rem;
   display: flex;
-  align-items: stretch; /* Cards stretch to fill height */
+  align-items: stretch;
   gap: 16px;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
   z-index: 1;
-  background-color: #172e36; /* Same as navbar - no color difference on expand */
-  transition: opacity 0.3s ease, visibility 0s linear 0.3s;
-}
-
-.card-nav.open .card-nav-content {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transition: opacity 0.4s ease 0.1s, visibility 0s linear 0s;
+  background-color: transparent;
+  transition: opacity 0.3s ease 0.05s;
 }
 
 .nav-card {

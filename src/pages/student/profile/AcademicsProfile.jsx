@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
+import "./AcademicsProfile.css"
 import {
   Box,
   Heading,
@@ -13,6 +14,7 @@ import {
   Th,
   Td,
   Input,
+  Textarea,
   useToast,
   FormControl,
   FormLabel,
@@ -25,6 +27,14 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  useDisclosure,
 } from "@chakra-ui/react"
 import { useAuth } from "../../../context/AuthContext"
 import { useProfileView } from "../../../context/ProfileViewContext"
@@ -135,6 +145,11 @@ export const AcademicsProfile = () => {
   const [marksheetFile, setMarksheetFile] = useState(null)
   const [expandedSemesterId, setExpandedSemesterId] = useState(null)
   const [updatingLockSemester, setUpdatingLockSemester] = useState(null)
+  const [requestReason, setRequestReason] = useState("")
+  const [requestSubmitting, setRequestSubmitting] = useState(false)
+  const [unlockModalSemester, setUnlockModalSemester] = useState(null)
+  const [pendingUnlockSemesters, setPendingUnlockSemesters] = useState(new Set())
+  const { isOpen: isUnlockModalOpen, onOpen: onUnlockModalOpen, onClose: onUnlockModalClose } = useDisclosure()
 
   const yearOptions = useMemo(() => {
     const years = []
@@ -212,6 +227,22 @@ export const AcademicsProfile = () => {
     loadSemesters()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usn])
+
+  const loadPendingUnlockRequests = async () => {
+    if (!usn || profileView?.isAdminView) return
+    try {
+      const data = await PlacementService.getMySemesterUnlockRequests()
+      const list = Array.isArray(data?.semesters) ? data.semesters : []
+      setPendingUnlockSemesters(new Set(list))
+    } catch {
+      setPendingUnlockSemesters(new Set())
+    }
+  }
+
+  useEffect(() => {
+    loadPendingUnlockRequests()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usn, profileView?.isAdminView])
 
   const handleSelectSemesterRow = (semesterRow) => {
     if (!semesterRow) return
@@ -609,36 +640,87 @@ export const AcademicsProfile = () => {
     }
   }
 
+  const openUnlockModal = (semNum) => {
+    setUnlockModalSemester(semNum)
+    setRequestReason("")
+    onUnlockModalOpen()
+  }
+
+  const closeUnlockModal = () => {
+    onUnlockModalClose()
+    setUnlockModalSemester(null)
+    setRequestReason("")
+  }
+
+  const handleRequestUnlock = async () => {
+    const semNum = unlockModalSemester
+    if (!semNum) return
+    const reason = (requestReason || "").toString().trim()
+    if (!reason) {
+      toast({
+        title: "Reason required",
+        description: "Please provide a reason for your unlock request.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      })
+      return
+    }
+    setRequestSubmitting(true)
+    try {
+      await PlacementService.createSemesterUnlockRequest(semNum, reason)
+      setPendingUnlockSemesters((prev) => new Set([...prev, semNum]))
+      closeUnlockModal()
+      toast({
+        title: "Request submitted",
+        description: "Your unlock request has been sent. Admin will review it shortly.",
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      })
+    } catch (err) {
+      toast({
+        title: "Request failed",
+        description: err?.message || "Could not submit unlock request.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      })
+    } finally {
+      setRequestSubmitting(false)
+    }
+  }
+
   const isFormExpanded = (item) =>
     item.id === "draft" ? expandedSemesterId === "draft" : expandedSemesterId == item.id
 
   const isSavedSemester = (item) => item != null && item.id !== "draft"
 
-  const renderViewContent = (item) => {
+  const renderViewContent = (item, { isSemesterLocked, semNum } = {}) => {
     const courses = Array.isArray(item?.courses) ? item.courses : []
     return (
-      <>
-        <Box h="1px" bg="gray.100" mb={6} />
-        <VStack align="stretch" spacing={4} px={8} pb={8} pt={2}>
+      <Box className="academics-semester-body">
+        <Box className="academics-semester-body-divider" />
+        <VStack align="stretch" spacing={4}>
           {item?.result_file && (
             <FormControl>
               <FormLabel fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
                 Result / Marksheet
               </FormLabel>
-              <Text as="a" href={item.result_file} target="_blank" rel="noopener noreferrer" fontSize="sm" color="indigo.600" textDecoration="underline">
+              <Text as="a" href={item.result_file} target="_blank" rel="noopener noreferrer" className="academics-marksheet-link">
                 View marksheet
               </Text>
             </FormControl>
           )}
-          <Box borderWidth="1px" borderColor="gray.100" borderRadius="2xl" overflow="hidden" bg="white" boxShadow="sm">
-            <Table size="sm">
-              <Thead bg="gray.50" borderBottomWidth="1px" borderColor="gray.100">
+          <Box className="academics-courses-table-wrap">
+            <Table size="sm" className="academics-courses-table">
+              <Thead>
                 <Tr>
-                  <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">Course Code</Th>
-                  <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">Course Title</Th>
-                  <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" isNumeric>Credits</Th>
-                  <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" isNumeric>Grade Points</Th>
-                  <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">Grade</Th>
+                  <Th>Course Code</Th>
+                  <Th>Course Title</Th>
+                  <Th data-numeric>Credits</Th>
+                  <Th data-numeric>Grade Points</Th>
+                  <Th>Grade</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -651,33 +733,51 @@ export const AcademicsProfile = () => {
                       <Td>{c.course_title ?? "—"}</Td>
                       <Td isNumeric>{c.credits ?? "—"}</Td>
                       <Td isNumeric>{c.grade_points ?? "—"}</Td>
-                      <Td fontWeight="bold" color="indigo.600">{c.grade ?? "—"}</Td>
+                      <Td className="grade-cell">{c.grade ?? "—"}</Td>
                     </Tr>
                   ))
                 )}
               </Tbody>
             </Table>
           </Box>
-          <Flex gap={4} pt={2}>
-            <Box bg="gray.100" px={4} py={2} borderRadius="xl">
-              <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={1}>Semester Credits</Text>
-              <Text fontWeight="bold" color="gray.700">{item?.total_credits ?? 0}</Text>
-            </Box>
-            <Box bg="gray.100" px={4} py={2} borderRadius="xl">
-              <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={1}>SGPA</Text>
-              <Text fontWeight="bold" color="gray.700">{item?.sgpa != null ? Number(item.sgpa).toFixed(2) : "—"}</Text>
-            </Box>
-            <Text fontSize="xs" color="gray.500" alignSelf="center">Saved record — view only</Text>
+          <Flex className="academics-form-stats" gap={4} pt={2} align="center" justify="space-between" flexWrap="wrap">
+            <HStack spacing={4}>
+              <Box className="academics-form-stat">
+                <Text className="academics-form-stat-label">Semester Credits</Text>
+                <Text className="academics-form-stat-value">{item?.total_credits ?? 0}</Text>
+              </Box>
+              <Box className="academics-form-stat">
+                <Text className="academics-form-stat-label">SGPA</Text>
+                <Text className="academics-form-stat-value">{item?.sgpa != null ? Number(item.sgpa).toFixed(2) : "—"}</Text>
+              </Box>
+            </HStack>
+            {isSemesterLocked && !profileView?.isAdminView && viewUsn && user?.usn && viewUsn === (user.usn || "").toString().trim().toUpperCase() && (
+              pendingUnlockSemesters.has(Number(semNum)) ? (
+                <Text fontSize="sm" fontWeight="medium" color="orange.600" className="academics-requested-badge">
+                  Requested for unlock
+                </Text>
+              ) : (
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  leftIcon={<FaUnlock />}
+                  onClick={() => openUnlockModal(semNum)}
+                  className="academics-unlock-btn"
+                >
+                  Request Unlock
+                </Button>
+              )
+            )}
           </Flex>
         </VStack>
-      </>
+      </Box>
     )
   }
 
   const renderFormContent = () => (
-    <>
-      <Box h="1px" bg="gray.100" mb={6} />
-      <VStack align="stretch" spacing={4} px={8} pb={8} pt={2}>
+    <Box className="academics-semester-body">
+      <Box className="academics-semester-body-divider" />
+      <VStack align="stretch" spacing={4}>
         <FormControl>
           <FormLabel fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
             Result / Marksheet (image)
@@ -696,25 +796,26 @@ export const AcademicsProfile = () => {
           )}
         </FormControl>
 
-        <Box borderWidth="1px" borderColor="gray.100" borderRadius="2xl" overflow="hidden" bg="white" boxShadow="sm">
-          <Table size="sm">
-            <Thead bg="gray.50" borderBottomWidth="1px" borderColor="gray.100">
+        <Box className="academics-courses-table-wrap">
+          <Table size="sm" className="academics-courses-table">
+            <Thead>
               <Tr>
-                <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">Course Code</Th>
-                <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">Course Title</Th>
-                <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" isNumeric w="80px">Credits</Th>
-                <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" isNumeric w="100px">Grade Points</Th>
-                <Th fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" w="60px">Grade</Th>
+                <Th>Course Code</Th>
+                <Th>Course Title</Th>
+                <Th data-numeric>Credits</Th>
+                <Th data-numeric>Grade Points</Th>
+                <Th>Grade</Th>
                 <Th w="40px" />
               </Tr>
             </Thead>
             <Tbody>
               {formCourses.map((c, index) => (
-                <Tr key={index} _hover={{ bg: "gray.50" }}>
+                <Tr key={index}>
                   <Td>
                     <Input
                       size="sm"
                       variant="unstyled"
+                      className="academics-course-input"
                       value={c.course_code}
                       onChange={(e) =>
                         handleCourseChange(index, "course_code", e.target.value.toUpperCase())
@@ -726,6 +827,7 @@ export const AcademicsProfile = () => {
                     <Input
                       size="sm"
                       variant="unstyled"
+                      className="academics-course-input"
                       value={c.course_title}
                       onChange={(e) =>
                         handleCourseChange(index, "course_title", e.target.value)
@@ -737,6 +839,7 @@ export const AcademicsProfile = () => {
                     <Input
                       size="sm"
                       variant="unstyled"
+                      className="academics-course-input"
                       type="number"
                       min={0}
                       value={c.credits}
@@ -751,6 +854,7 @@ export const AcademicsProfile = () => {
                     <Input
                       size="sm"
                       variant="unstyled"
+                      className="academics-course-input"
                       type="number"
                       min={0}
                       max={10}
@@ -787,66 +891,53 @@ export const AcademicsProfile = () => {
             </Tbody>
           </Table>
           <Button
+            className="academics-add-course-btn"
             size="sm"
             variant="ghost"
             w="full"
             py={3}
-            bg="gray.50"
-            _hover={{ bg: "gray.100" }}
-            color="indigo.600"
-            fontWeight="bold"
-            fontSize="xs"
             leftIcon={<FaPlus />}
             onClick={handleAddCourseRow}
-            sx={{ "&": { backgroundColor: "#f7fafc !important", color: "#4f46e5 !important", minHeight: "48px" } }}
           >
             Add Course
           </Button>
         </Box>
 
-        <Flex justify="space-between" align="center" pt={4} flexWrap="wrap" gap={4}>
-          <HStack spacing={4}>
-            <Box bg="gray.100" px={4} py={2} borderRadius="xl">
-              <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={1}>
-                Semester Credits
-              </Text>
-              <Text fontWeight="bold" color="gray.700">
-                {previewTotalCredits}
-              </Text>
+        <Flex className="academics-save-row" justify="space-between" align="center" flexWrap="wrap" gap={4}>
+          <HStack className="academics-form-stats" spacing={4}>
+            <Box className="academics-form-stat">
+              <Text className="academics-form-stat-label">Semester Credits</Text>
+              <Text className="academics-form-stat-value">{previewTotalCredits}</Text>
             </Box>
-            <Box bg="gray.100" px={4} py={2} borderRadius="xl">
-              <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" mb={1}>
-                SGPA
-              </Text>
-              <Text fontWeight="bold" color="gray.700">
+            <Box className="academics-form-stat">
+              <Text className="academics-form-stat-label">SGPA</Text>
+              <Text className="academics-form-stat-value">
                 {previewSgpa != null ? previewSgpa.toFixed(2) : "-"}
               </Text>
             </Box>
           </HStack>
           {canEdit && (
-          <Button
-            onClick={handleSaveSemester}
-            isLoading={saving}
-            loadingText="Saving..."
-            leftIcon={<FaGraduationCap />}
-            size="md"
-            fontWeight="bold"
-            borderRadius="xl"
-            shadow="lg"
-            sx={{ "&": { backgroundColor: "#4f46e5 !important", color: "#ffffff !important", minHeight: "44px" }, "&:hover:not(:disabled)": { backgroundColor: "#4338ca !important" } }}
-          >
-            Save Semester
-          </Button>
+            <Button
+              className="academics-save-btn"
+              onClick={handleSaveSemester}
+              isLoading={saving}
+              loadingText="Saving..."
+              leftIcon={<FaGraduationCap />}
+              size="md"
+            >
+              Save Semester
+            </Button>
           )}
         </Flex>
       </VStack>
-    </>
+    </Box>
   )
 
   return (
-    <Box maxW="5xl" mx="auto" pt={4} pb={20} bg="gray.50" minH="100vh">
+    <Box className="academics-profile-page" maxW="5xl" mx="auto" pt={4} pb={20} minH="100vh">
+      {/* Locked alert – only when section is locked */}
       {isLocked && (
-        <Alert status="info" mb={4} mx={6} borderRadius="md">
+        <Alert status="info" className="academics-locked-alert" mb={4} mx={{ base: 4, md: 6 }} borderRadius="md">
           <AlertIcon />
           <Box>
             <AlertTitle>View only</AlertTitle>
@@ -854,147 +945,100 @@ export const AcademicsProfile = () => {
           </Box>
         </Alert>
       )}
-      {/* Sticky glass-style header — top offset so it sits below main navbar (72px) */}
+
+      {/* Header – sticky summary stats */}
       <Box
+        className="academics-profile-header"
         position="sticky"
         top={{ base: "60px", md: "72px" }}
         zIndex={40}
-        bg="white"
-        bgGradient="linear(to-b, whiteAlpha.900, whiteAlpha.800)"
-        backdropFilter="blur(12px)"
-        borderBottomWidth="1px"
-        borderColor="gray.200"
+        mx={{ base: 4, md: 6 }}
       >
-        <Box maxW="5xl" mx="auto" px={6} py={4}>
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            align={{ base: "stretch", md: "center" }}
-            justify="space-between"
-            gap={4}
-          >
-            <Box>
-              <Heading size="md" fontWeight="extrabold" letterSpacing="tight" color="indigo.700">
-                Academic Performance
-              </Heading>
-            </Box>
-
-            <HStack spacing={4} flexWrap="wrap" justify={{ base: "flex-start", md: "flex-end" }}>
-              <Box textAlign="right">
-                <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">
-                  Cumulative CGPA
-                </Text>
-                <Heading size="lg" color="indigo.600" fontWeight="black" lineHeight="none">
-                  {overallCgpa != null ? overallCgpa.toFixed(2) : "0.00"}
-                </Heading>
-              </Box>
-              <Box h={8} w="1px" bg="gray.200" flexShrink={0} />
-              <Box textAlign="right">
-                <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">
-                  Total Credits
-                </Text>
-                <Heading size="lg" color="teal.700" fontWeight="black" lineHeight="none">
-                  {totalCreditsDisplay}
-                </Heading>
-              </Box>
-              <Box h={8} w="1px" bg="gray.200" flexShrink={0} />
-              <Box textAlign="right">
-                <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">
-                  Earned Credits
-                </Text>
-                <Heading size="lg" color="teal.700" fontWeight="black" lineHeight="none">
-                  {earnedCreditsDisplay}
-                </Heading>
-              </Box>
-              <Box h={8} w="1px" bg="gray.200" flexShrink={0} />
-              <Box textAlign="right">
-                <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">
-                  Active Backlogs
-                </Text>
-                <Heading size="lg" color={activeBacklogsDisplay > 0 ? "red.600" : "green.600"} fontWeight="black" lineHeight="none">
-                  {activeBacklogsDisplay}
-                </Heading>
-              </Box>
-              <Box h={8} w="1px" bg="gray.200" flexShrink={0} />
-              <Box textAlign="right">
-                <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase">
-                  Cleared Backlogs
-                </Text>
-                <Heading size="lg" color="green.700" fontWeight="black" lineHeight="none">
-                  {clearedBacklogsDisplay}
-                </Heading>
-              </Box>
-            </HStack>
-          </Flex>
-        </Box>
+        <Heading as="h1" size="md">
+          Academic Performance
+        </Heading>
+        <Flex className="academics-stats-row" flexWrap="wrap" gap={4} mt={4}>
+          <Box className="academics-stat-item">
+            <Text className="academics-stat-label">Cumulative CGPA</Text>
+            <Text className="academics-stat-value academics-stat-value--cgpa">
+              {overallCgpa != null ? overallCgpa.toFixed(2) : "0.00"}
+            </Text>
+          </Box>
+          <Box className="academics-stat-divider" />
+          <Box className="academics-stat-item">
+            <Text className="academics-stat-label">Total Credits</Text>
+            <Text className="academics-stat-value academics-stat-value--credits">
+              {totalCreditsDisplay}
+            </Text>
+          </Box>
+          <Box className="academics-stat-divider" />
+          <Box className="academics-stat-item">
+            <Text className="academics-stat-label">Earned Credits</Text>
+            <Text className="academics-stat-value academics-stat-value--credits-earned">
+              {earnedCreditsDisplay}
+            </Text>
+          </Box>
+          <Box className="academics-stat-divider" />
+          <Box className="academics-stat-item">
+            <Text className="academics-stat-label">Active Backlogs</Text>
+            <Text
+              className={`academics-stat-value ${activeBacklogsDisplay > 0 ? "academics-stat-value--backlogs" : "academics-stat-value--backlogs-zero"}`}
+            >
+              {activeBacklogsDisplay}
+            </Text>
+          </Box>
+          <Box className="academics-stat-divider" />
+          <Box className="academics-stat-item">
+            <Text className="academics-stat-label">Cleared Backlogs</Text>
+            <Text className="academics-stat-value academics-stat-value--cleared">
+              {clearedBacklogsDisplay}
+            </Text>
+          </Box>
+        </Flex>
       </Box>
 
+      {/* Add Semester button – only when canEdit */}
       {canEdit && (
-      <Flex maxW="5xl" mx="auto" px={6} justify="flex-end" py={4} mb={2}>
-        <Button
-          px={5}
-          py={2.5}
-          borderRadius="xl"
-          size="sm"
-          fontWeight="bold"
-          leftIcon={<FaPlus />}
-          onClick={handleAddSemester}
-          isDisabled={loading}
-          shadow="lg"
-          sx={{ "&": { backgroundColor: "#1f2937 !important", color: "#ffffff !important", minHeight: "42px" }, "&:hover:not(:disabled)": { backgroundColor: "#374151 !important" } }}
-        >
-          Add Semester
-        </Button>
-      </Flex>
+        <Flex className="academics-add-semester-wrap" maxW="5xl" mx="auto" px={{ base: 4, md: 6 }}>
+          <Button
+            className="academics-add-semester-btn"
+            leftIcon={<FaPlus />}
+            onClick={handleAddSemester}
+            isDisabled={loading}
+          >
+            Add Semester
+          </Button>
+        </Flex>
       )}
 
-      <Box as="main" maxW="5xl" mx="auto" px={6}>
+      <Box as="main" maxW="5xl" mx="auto" px={{ base: 4, md: 6 }}>
         {loading ? (
-          <Center py={20}>
+          <Center className="academics-loading" py={20}>
             <Spinner size="lg" color="indigo.500" />
           </Center>
         ) : displayList.length === 0 ? (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            py={20}
-            bg="white"
-            borderRadius="3xl"
-            borderWidth="2px"
-            borderStyle="dashed"
-            borderColor="gray.200"
-            textAlign="center"
-          >
-            <Flex
-              w={16}
-              h={16}
-              borderRadius="full"
-              bg="gray.50"
-              align="center"
-              justify="center"
-              color="gray.400"
-              mb={4}
-            >
-              <FaFolderOpen fontSize="2rem" />
-            </Flex>
-            <Heading size="md" fontWeight="bold" color="gray.800" mb={2}>
+          <Box className="academics-empty-state">
+            <Box className="academics-empty-state-icon">
+              <FaFolderOpen />
+            </Box>
+            <Heading as="h2" className="academics-empty-state-title" size="md">
               No records found
             </Heading>
-            <Text color="gray.500" fontSize="sm" mb={6}>
-              Start by adding your first semester results.
+            <Text className="academics-empty-state-subtitle">
+              {canEdit ? "Start by adding your first semester results." : "No academic records have been added yet."}
             </Text>
-            <Button
-              size="md"
-              fontWeight="bold"
-              borderRadius="xl"
-              onClick={handleAddSemester}
-              sx={{ "&": { backgroundColor: "#4f46e5 !important", color: "#ffffff !important", minHeight: "44px" }, "&:hover": { backgroundColor: "#4338ca !important" } }}
-            >
-              Initialize Sem 1
-            </Button>
-          </Flex>
+            {canEdit ? (
+              <Button className="academics-empty-state-btn" onClick={handleAddSemester}>
+                Initialize Sem 1
+              </Button>
+            ) : (
+              <Text className="academics-empty-state-locked">
+                Contact your administrator to add academic records.
+              </Text>
+            )}
+          </Box>
         ) : (
-          <VStack spacing={4} align="stretch">
+          <VStack className="academics-semester-list" spacing={4} align="stretch">
             {displayList.map((item) => {
               const expanded = isFormExpanded(item)
               const isDraft = item.id === "draft"
@@ -1009,66 +1053,39 @@ export const AcademicsProfile = () => {
               const totalBlg = activeBlg + clearedBlg
               const earnedText = totalCred > 0 ? `Earned ${earnedCred}/${totalCred}` : "Earned —"
               const backlogText = totalBlg > 0 ? `Cleared ${clearedBlg}/${totalBlg}` : "Cleared 0/0"
+              const semNumN = Number(semNum)
+              const isSemesterLocked = !isDraft && semNumN >= 1 && semNumN <= 8 && profileView?.editControl?.[`is_sem${semNumN}_locked`] === true
+              const showForm = canEdit && (isDraft || !isSemesterLocked)
 
               return (
                 <Box
                   key={isDraft ? "draft" : String(item.id)}
-                  bg="white"
-                  borderRadius="2xl"
+                  className={`academics-semester-card ${expanded ? "academics-semester-card--expanded" : ""} ${isDraft ? "academics-semester-card--draft" : ""}`}
                   overflow="hidden"
-                  borderWidth="1px"
-                  borderColor={expanded ? "indigo.500" : "gray.200"}
-                  boxShadow={expanded ? "lg" : "sm"}
-                  transition="all 0.2s"
                 >
                   <Flex
-                    px={6}
-                    py={5}
-                    align="center"
-                    justify="space-between"
-                    cursor="pointer"
+                    className="academics-semester-card-header"
                     onClick={() => handleToggleCard(item)}
-                    _hover={{ bg: "gray.50" }}
-                    transition="colors"
                   >
-                    <HStack spacing={4}>
-                      <Flex
-                        w={10}
-                        h={10}
-                        borderRadius="full"
-                        bg="gray.100"
-                        align="center"
-                        justify="center"
-                        fontWeight="black"
-                        color="indigo.600"
-                      >
-                        {semNum}
-                      </Flex>
+                    <Box className="academics-semester-card-header-left">
+                      <Flex className="academics-semester-badge">{semNum}</Flex>
                       <Box>
-                        <HStack spacing={2}>
-                          <Heading size="sm" fontWeight="bold" color="indigo.800">
-                            Semester {semNum}
-                            {isDraft && " (New)"}
-                          </Heading>
-                        </HStack>
-                        <Text fontSize="xs" fontWeight="medium" color="gray.600">
-                          {year}
-                        </Text>
-                        <HStack spacing={3} mt={1} fontSize="xs" fontWeight="600">
-                          <Text color="teal.600">{earnedText}</Text>
-                          <Text color="gray.400">·</Text>
-                          <Text color={activeBlg > 0 ? "orange.600" : "green.600"}>{backlogText}</Text>
+                        <Heading as="h3" className="academics-semester-card-title" size="sm">
+                          Semester {semNum}
+                          {isDraft && " (New)"}
+                        </Heading>
+                        <Text className="academics-semester-card-meta">{year}</Text>
+                        <HStack className="academics-semester-card-stats" spacing={3} mt={1}>
+                          <Text className="earned">{earnedText}</Text>
+                          <Text className="dot">·</Text>
+                          <Text className={activeBlg > 0 ? "backlogs" : "backlogs-zero"}>{backlogText}</Text>
                         </HStack>
                       </Box>
-                    </HStack>
-                    <HStack spacing={6}>
-                      <Box textAlign="right">
-                        <Text fontSize="10px" fontWeight="bold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
-                          SGPA
-                        </Text>
-                        <Text fontSize="xl" fontWeight="black" color="indigo.600">
-                          {sgpaVal}
-                        </Text>
+                    </Box>
+                    <HStack className="academics-semester-card-header-right" spacing={4}>
+                      <Box className="academics-sgpa-display">
+                        <Text className="academics-sgpa-label">SGPA</Text>
+                        <Text className="academics-sgpa-value">{sgpaVal}</Text>
                       </Box>
                       {profileView?.isAdminView && !isDraft && semNum >= 1 && semNum <= 8 && (
                         <IconButton
@@ -1082,24 +1099,14 @@ export const AcademicsProfile = () => {
                           title={profileView.editControl?.[`is_sem${semNum}_locked`] ? "Locked — click to unlock" : "Unlocked — click to lock"}
                         />
                       )}
-                      <Flex
-                        w={8}
-                        h={8}
-                        borderRadius="full"
-                        align="center"
-                        justify="center"
-                        color={expanded ? "indigo.600" : "gray.400"}
-                        bg={expanded ? "indigo.50" : "transparent"}
-                        transform={expanded ? "rotate(180deg)" : "rotate(0)"}
-                        transition="all 0.2s"
-                      >
+                      <Flex className="academics-chevron">
                         <FaChevronDown />
                       </Flex>
                     </HStack>
                   </Flex>
 
                   <Collapse in={expanded} animateOpacity>
-                    {expanded && (isDraft || canEdit ? renderFormContent() : renderViewContent(item))}
+                    {expanded && (showForm ? renderFormContent() : renderViewContent(item, { isSemesterLocked, semNum: semNumN }))}
                   </Collapse>
                 </Box>
               )
@@ -1107,6 +1114,47 @@ export const AcademicsProfile = () => {
           </VStack>
         )}
       </Box>
+
+      <Modal isOpen={isUnlockModalOpen} onClose={closeUnlockModal}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Request Unlock — Semester {unlockModalSemester}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="semibold" color="gray.700">
+                Reason for unlock request
+              </FormLabel>
+              <Text fontSize="xs" color="gray.600" mb={2}>
+                This semester is locked. Provide a reason for the admin to review your request.
+              </Text>
+              <Textarea
+                placeholder="e.g. Need to correct grade entry, add missing course..."
+                value={requestReason}
+                onChange={(e) => setRequestReason(e.target.value)}
+                rows={4}
+                size="sm"
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter gap={3} flexWrap="wrap">
+            <Text fontSize="sm" color="gray.600" alignSelf="center" mr="auto">
+              Semester {unlockModalSemester}
+            </Text>
+            <Button variant="ghost" onClick={closeUnlockModal}>
+              Cancel
+            </Button>
+            <Button
+              className="academics-unlock-submit-btn"
+              leftIcon={<FaUnlock />}
+              onClick={handleRequestUnlock}
+              isLoading={requestSubmitting}
+            >
+              Submit
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   )
 }

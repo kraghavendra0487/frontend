@@ -213,41 +213,52 @@ const CTCCard = ({ title, value, bg, color = "gray.800" }) => (
   </Box>
 );
 
-const PartnerLogo = ({ name, color, logo, onClick, style }) => (
-  <Flex 
-    align="center" 
-    justify="center" 
-    bg="white" 
-    h="80px" 
-    w="200px"
-    px={6} 
-    borderRadius="md" 
-    border="1px solid" 
-    borderColor="gray.100"
-    flexShrink={0}
-    mx={3}
-    boxShadow="sm"
-    onClick={onClick}
-    cursor="pointer"
-    _hover={{ borderColor: "blue.300", transform: "scale(1.02)", boxShadow: "md" }}
-    transition="all 0.2s"
-  >
-    {logo ? (
-      <Image src={logo} alt={name} maxH="50px" maxW="150px" objectFit="contain" />
-    ) : (
-      <Text 
-        fontWeight="bold" 
-        color={style?.color || color} 
-        fontSize="xl" 
-        fontFamily={style?.fontFamily || "serif"} 
-        textAlign="center"
-        noOfLines={2}
-      >
-        {name}
-      </Text>
-    )}
-  </Flex>
-);
+const PartnerLogo = ({ name, color, logo, onClick, style }) => {
+  const [imgError, setImgError] = React.useState(false);
+  const showFallback = !logo || imgError;
+  return (
+    <Flex 
+      align="center" 
+      justify="center" 
+      bg="white" 
+      h="80px" 
+      w="200px"
+      px={6} 
+      borderRadius="md" 
+      border="1px solid" 
+      borderColor="gray.100"
+      flexShrink={0}
+      mx={3}
+      boxShadow="sm"
+      onClick={onClick}
+      cursor="pointer"
+      _hover={{ borderColor: "blue.300", transform: "scale(1.02)", boxShadow: "md" }}
+      transition="all 0.2s"
+    >
+      {showFallback ? (
+        <Text 
+          fontWeight="bold" 
+          color={style?.color || color} 
+          fontSize="xl" 
+          fontFamily={style?.fontFamily || "serif"} 
+          textAlign="center"
+          noOfLines={2}
+        >
+          {name}
+        </Text>
+      ) : (
+        <Image 
+          src={logo} 
+          alt={name} 
+          maxH="50px" 
+          maxW="150px" 
+          objectFit="contain" 
+          onError={() => setImgError(true)}
+        />
+      )}
+    </Flex>
+  );
+};
 
 const AdminDashboard = () => {
   const { user, userRole } = useAuth();

@@ -40,6 +40,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon, ExternalLinkIcon, EditIcon, DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/AdminLayout';
+import { CompanyLogo } from '../../components/CompanyLogo';
 import { PlacementService } from '../../services/placement.service';
 import { useAuth } from '../../context/AuthContext';
 
@@ -215,30 +216,13 @@ const CompanyDetails = () => {
           <Card mb={8} borderRadius="xl" shadow="sm" overflow="hidden">
             <CardBody p={6}>
               <Flex direction={{ base: 'column', md: 'row' }} gap={6} align="start">
-                <Box
-                  boxSize="100px"
-                  bg="white"
-                  border="1px solid"
-                  borderColor="gray.100"
-                  borderRadius="lg"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  flexShrink={0}
-                >
-                  {company.logo || company.company_logo_link ? (
-                    <Image
-                      src={company.logo || company.company_logo_link}
-                      alt={company.company_name}
-                      objectFit="contain"
-                      maxH="80%"
-                      maxW="80%"
-                    />
-                  ) : (
-                    <Text fontWeight="bold" fontSize="3xl" color="gray.300" fontFamily="serif">
-                      {(company.company_name || '').substring(0, 2).toUpperCase()}
-                    </Text>
-                  )}
+                <Box flexShrink={0} border="1px solid" borderColor="gray.100">
+                  <CompanyLogo
+                    src={company.logo || company.company_logo_link}
+                    name={company.company_name}
+                    boxSize="100px"
+                    variant="square"
+                  />
                 </Box>
                 <Box flex="1">
                   <Flex justify="space-between" align="start">

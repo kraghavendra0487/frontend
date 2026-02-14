@@ -15,9 +15,11 @@ import AdminStudentDashboardInsights from './pages/AdminStudentDashboardInsights
 import AdminStudentDashboardView from './pages/AdminStudentDashboardView';
 import StudentsLayout from './components/StudentsLayout';
 import PlacementOverviewPage from './pages/students/PlacementOverviewPage';
+import PlacementReportsPage from './pages/admin/PlacementReportsPage';
 import StudentEligibilityPage from './pages/students/StudentEligibilityPage';
 import ManageAcademicPage from './pages/students/ManageAcademicPage';
 import ProfileLockPage from './pages/students/ProfileLockPage';
+import SemUnlockRequestsPage from './pages/students/SemUnlockRequestsPage';
 import CalendarOfEvents from './pages/admin/CalendarOfEvents';
 import Events from './pages/admin/Events';
 import DriveRegistrations from './pages/admin/DriveRegistrations';
@@ -31,6 +33,7 @@ import AlumniConnect from './pages/admin/AlumniConnect';
 import AdminCompanies from './pages/admin/Companies';
 import CompanyDetails from './pages/admin/CompanyDetails';
 import NotificationsComingSoon from './pages/NotificationsComingSoon';
+import StudentNotificationsPage from './pages/student/StudentNotificationsPage';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminNotificationLayout from './pages/admin/AdminNotificationLayout';
 import AdminNotificationPage from './pages/admin/AdminNotificationPage';
@@ -110,10 +113,11 @@ const Layout = () => {
   const isAlumniPage = location.pathname.startsWith('/placement/alumni-');
   const isCompanyPage = location.pathname.startsWith('/company/');
   const isAdminStudentDetail = /^\/placement\/students\/[^/]+/.test(location.pathname);
+  const isPlacementRoute = location.pathname.startsWith('/placement/');
   const onStudentPath = isStudentPath(location.pathname);
 
-  // Hide Navbar on student pages, alumni dashboard, company pages, and admin student detail (they have their own layouts)
-  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage || isCompanyPage || isAdminStudentDetail;
+  // Hide Navbar on student pages, placement (admin) pages, alumni, company pages (they have their own layouts)
+  const hideNavbar = isStudentDashboard || isStudentProfile || isAlumniPage || isCompanyPage || isAdminStudentDetail || isPlacementRoute;
 
   // Show Footer only on dashboard pages
   const isDashboard =
@@ -444,6 +448,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: "/placement/reports",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <PlacementReportsPage />
+          </PlacementProtectedRoute>
+        ),
+      },
+      {
         path: "/placement/students",
         element: (
           <PlacementProtectedRoute requiredRole="admin">
@@ -455,6 +467,7 @@ const router = createBrowserRouter([
           { path: "eligibility", element: <StudentEligibilityPage /> },
           { path: "academic", element: <ManageAcademicPage /> },
           { path: "profile_lock", element: <ProfileLockPage /> },
+          { path: "sem_unlock_requests", element: <SemUnlockRequestsPage /> },
         ],
       },
       {
@@ -506,7 +519,7 @@ const router = createBrowserRouter([
         path: "/student/notifications",
         element: (
           <PlacementProtectedRoute>
-            <NotificationsComingSoon />
+            <StudentNotificationsPage />
           </PlacementProtectedRoute>
         )
       },

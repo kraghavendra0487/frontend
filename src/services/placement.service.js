@@ -455,6 +455,15 @@ export const PlacementService = {
     }
   },
 
+  getPlacementReport: async (dateFrom, dateTo) => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    const qs = params.toString();
+    const response = await apiFetch(`/placement/reports${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
   getAllPolicies: async () => {
     try {
       const response = await apiFetch('/placement/policies');
@@ -876,5 +885,51 @@ export const PlacementService = {
   getStudentEditControl: async (usn) => {
     const response = await apiFetch(`/placement/students/${encodeURIComponent(usn)}/edit-control`);
     return response.data ?? null;
+  },
+
+  // ========== Semester Unlock Requests ==========
+
+  /** List semester unlock requests (admin). Optional: ?status=pending|approved|rejected */
+  getSemesterUnlockRequests: async (status) => {
+    const q = status && ['pending', 'approved', 'rejected'].includes(String(status).toLowerCase())
+      ? `?status=${encodeURIComponent(status)}`
+      : '';
+    const response = await apiFetch(`/placement/students/sem-unlock-requests${q}`);
+    return response.data ?? { rows: [] };
+  },
+
+  /** Get student's own pending unlock requests (semester numbers). */
+  getMySemesterUnlockRequests: async () => {
+    const response = await apiFetch('/placement/students/sem-unlock-requests/me');
+    return response.data ?? { semesters: [] };
+  },
+
+  /** Create semester unlock request (student). */
+  createSemesterUnlockRequest: async (semester, reason) => {
+    const response = await apiFetch('/placement/students/sem-unlock-requests', {
+      method: 'POST',
+      body: JSON.stringify({ semester, reason }),
+    });
+    return response.data;
+  },
+
+  /** Approve request and unlock semester (admin). */
+  approveSemesterUnlockRequest: async (id) => {
+    const response = await apiFetch(`/placement/students/sem-unlock-requests/${id}/approve`, {
+      method: 'PUT',
+    });
+    return response.data;
+  },
+
+  /** Reject request (admin). */
+  rejectSemesterUnlockRequest: async (id, adminNotes, sendNotification = false) => {
+    const response = await apiFetch(`/placement/students/sem-unlock-requests/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        admin_notes: adminNotes || '',
+        send_notification: !!sendNotification,
+      }),
+    });
+    return response.data;
   },
 };

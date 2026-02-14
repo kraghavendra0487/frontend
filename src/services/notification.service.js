@@ -120,4 +120,39 @@ export const NotificationService = {
     return response.data;
   },
 
+  // ============== STUDENT NOTIFICATIONS ==============
+
+  /**
+   * List my notifications (student). Params: tab (unread|read|archived|starred), search, page, limit.
+   */
+  listMine: async (params = {}) => {
+    const sp = new URLSearchParams();
+    if (params.tab) sp.set('tab', params.tab);
+    if (params.search) sp.set('search', params.search);
+    if (params.page != null) sp.set('page', params.page);
+    if (params.limit != null) sp.set('limit', params.limit);
+    const qs = sp.toString();
+    const response = await apiFetch(`/student/notifications${qs ? `?${qs}` : ''}`);
+    return response.data;
+  },
+
+  /**
+   * Get unread count for badge.
+   */
+  getUnreadCount: async () => {
+    const response = await apiFetch('/student/notifications/unread-count');
+    return response.data?.unreadCount ?? 0;
+  },
+
+  /**
+   * Update a notification node (mark read, archive, star).
+   */
+  updateNode: async (nodeId, payload) => {
+    const response = await apiFetch(`/student/notifications/${nodeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
+  },
+
 };

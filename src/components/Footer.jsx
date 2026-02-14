@@ -1,4 +1,5 @@
-import { Box, Container, Grid, Heading, Text, Link, Stack } from "@chakra-ui/react"
+import { Box, Grid, Heading, Text, Link, Stack } from "@chakra-ui/react"
+import { Link as RouterLink } from "react-router-dom"
 
 export const Footer = () => {
   return (
@@ -16,10 +17,10 @@ export const Footer = () => {
           <Box>
             <Heading size="md" color="#d4a960" mb={4}>Quick Links</Heading>
             <Stack gap={2}>
-              <Link href="#" color="white" _hover={{ color: "#d4a960" }}>About Us</Link>
-              <Link href="#" color="white" _hover={{ color: "#d4a960" }}>Placement Process</Link>
-              <Link href="#" color="white" _hover={{ color: "#d4a960" }}>Recruiters</Link>
-              <Link href="#" color="white" _hover={{ color: "#d4a960" }}>Contact Us</Link>
+              <Link as={RouterLink} to="/about" color="white" _hover={{ color: "#d4a960" }}>About Us</Link>
+              <Link as={RouterLink} to="/events" color="white" _hover={{ color: "#d4a960" }}>Placement Process</Link>
+              <Link as={RouterLink} to="/companies" color="white" _hover={{ color: "#d4a960" }}>Recruiters</Link>
+              <Link as={RouterLink} to="/contact" color="white" _hover={{ color: "#d4a960" }}>Contact Us</Link>
             </Stack>
           </Box>
 

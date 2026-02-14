@@ -242,7 +242,7 @@
 .events-form select:focus,
 .events-form textarea:focus {
   outline: none;
-  border-color: #172e36;
+  border-color: #166534;
   box-shadow: 0 0 0 3px rgba(23, 46, 54, 0.12);
 }
 
@@ -317,7 +317,7 @@
 .event-notification-modal input:focus,
 .event-notification-modal select:focus,
 .event-notification-modal textarea:focus {
-  border-color: #172e36;
+  border-color: #166534;
   box-shadow: 0 0 0 2px rgba(23, 46, 54, 0.15);
 }
 
@@ -328,7 +328,7 @@
 }
 
 .event-notification-modal .chakra-modal__footer .chakra-button:last-of-type {
-  background: #172e36;
+  background: #166534;
   color: white;
   font-weight: 600;
   border-radius: 8px;

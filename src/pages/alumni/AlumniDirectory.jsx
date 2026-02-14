@@ -52,7 +52,7 @@ const AlumniDirectory = () => {
 
   return (
     <AlumniLayout>
-      <Heading size="lg" mb={4} color="#172e36">Alumni Directory</Heading>
+      <Heading size="lg" mb={4} color="#166534">Alumni Directory</Heading>
       <Text color="gray.600" mb={6}>Browse and search the alumni network.</Text>
 
       <InputGroup maxW="400px" mb={6}>
@@ -67,7 +67,7 @@ const AlumniDirectory = () => {
           {filteredAlumni.map((a) => (
             <Card key={a.id} variant="outline" boxShadow="sm" _hover={{ boxShadow: 'md' }}>
               <CardBody>
-                <Text fontWeight="bold" fontSize="lg" color="#172e36">{a.full_name || '—'}</Text>
+                <Text fontWeight="bold" fontSize="lg" color="#166534">{a.full_name || '—'}</Text>
                 {a.student_id && <Text fontSize="sm" color="gray.500">USN: {a.student_id}</Text>}
                 {a.graduation_year && <Text fontSize="sm" color="gray.500">Batch: {a.graduation_year}</Text>}
                 {a.current_company && <Text fontSize="sm" mt={2} color="gray.700">{a.current_company}</Text>}

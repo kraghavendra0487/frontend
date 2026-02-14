@@ -9,6 +9,8 @@ const CardNav = ({
   logoAlt = 'Logo',
   items,
   className = '',
+  isOpen: isOpenProp,
+  onOpenChange,
   // Deprecated props kept for compatibility
   ease,
   baseColor,
@@ -25,6 +27,9 @@ const CardNav = ({
   const navItemsList = Array.isArray(items) ? items : items?.items || [];
   const hasNavItems = navItemsList.length > 0;
 
+  // Use controlled isOpen when provided (e.g. from AdminLayout), else internal state
+  const isOpen = isOpenProp !== undefined ? isOpenProp : isExpanded;
+
   const openMenu = () => {
     if (!hasNavItems) return;
     setIsHamburgerOpen(true);
@@ -40,7 +45,9 @@ const CardNav = ({
 
   const toggleMenu = () => {
     if (!hasNavItems) return;
-    if (isExpanded) {
+    if (isOpenProp !== undefined && onOpenChange) {
+      onOpenChange(!isOpen);
+    } else if (isOpen) {
       closeMenu();
     } else {
       openMenu();
@@ -51,9 +58,9 @@ const CardNav = ({
     <div className={`card-nav-container ${className}`}>
       <nav 
         ref={navRef} 
-        className={`card-nav ${isExpanded && hasNavItems ? 'open' : ''}`} 
-        onMouseEnter={openMenu}
-        onMouseLeave={closeMenu}
+        className={`card-nav ${isOpen && hasNavItems ? 'open' : ''}`} 
+        onMouseEnter={isOpenProp === undefined ? openMenu : undefined}
+        onMouseLeave={isOpenProp === undefined ? closeMenu : undefined}
       >
         <div className="card-nav-top">
           <div className="logo-container">
@@ -79,7 +86,7 @@ const CardNav = ({
               className={`hamburger-menu ${isHamburgerOpen ? 'open' : ''}`}
               onClick={toggleMenu}
               role="button"
-              aria-label={isExpanded ? 'Close menu' : 'Open menu'}
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
               tabIndex={0}
               style={{ color: '#fff' }}
             >
@@ -89,7 +96,8 @@ const CardNav = ({
           )}
         </div>
 
-        <div className="card-nav-content" aria-hidden={!isExpanded || !hasNavItems}>
+        {isOpen && hasNavItems && (
+        <div className="card-nav-content" aria-hidden={false}>
             {navItemsList.map((item, idx) => (
               <div
                 key={`${item.label}-${idx}`}
@@ -117,6 +125,7 @@ const CardNav = ({
               </div>
             ))}
           </div>
+        )}
       </nav>
     </div>
   );

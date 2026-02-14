@@ -140,10 +140,16 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
         right={0}
         zIndex={1000}
         w="100%"
+        // h={isNavHovered ? '300px' : '72px'}
+        h="72px"
+        // overflow="hidden"
+        overflow="visible"
         onMouseEnter={() => setIsNavHovered(true)}
         onMouseLeave={() => setIsNavHovered(false)}
       >
         <CardNav 
+          isOpen={isNavHovered}
+          onOpenChange={setIsNavHovered}
           logo={CustomLogo}
           items={{
             items: navItems,

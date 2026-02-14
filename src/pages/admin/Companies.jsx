@@ -30,10 +30,15 @@ import {
   Select,
   IconButton,
   Spinner,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { SearchIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
+import { CompanyLogo } from '../../components/CompanyLogo';
 import { StyledFileInput } from '../../components/ui/StyledFileInput';
 import { PlacementService } from '../../services/placement.service';
 import { useAuth } from '../../context/AuthContext';
@@ -48,6 +53,7 @@ const Companies = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSchool, setSelectedSchool] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
@@ -86,11 +92,20 @@ const Companies = () => {
 
   const fetchCompanies = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const data = await PlacementService.getAllCompanies();
       setCompanies(Array.isArray(data) ? data : []);
     } catch (err) {
-      toast({ title: 'Error fetching companies', status: 'error', duration: 3000, isClosable: true });
+      setCompanies([]);
+      const msg = err?.message || '';
+      if (msg.includes('403') || msg.includes('Forbidden') || msg.includes('Session expired')) {
+        setFetchError('Session expired. Please log out and log in again.');
+        toast({ title: 'Session expired', description: 'Please log out and log in again.', status: 'error', duration: 5000, isClosable: true });
+      } else {
+        setFetchError(msg || 'Failed to load companies');
+        toast({ title: 'Error fetching companies', description: msg || 'Please try again.', status: 'error', duration: 4000, isClosable: true });
+      }
     } finally {
       setLoading(false);
     }
@@ -295,6 +310,15 @@ const Companies = () => {
             <Flex justify="center" py={12}>
               <Spinner size="xl" color="blue.500" />
             </Flex>
+          ) : fetchError ? (
+            <Alert status="error" borderRadius="lg" flexDirection="column" alignItems="stretch" textAlign="center" py={6}>
+              <AlertIcon boxSize="6" />
+              <AlertTitle>Could not load companies</AlertTitle>
+              <AlertDescription mb={4}>{fetchError}</AlertDescription>
+              <Button colorScheme="red" variant="outline" size="sm" onClick={fetchCompanies} alignSelf="center">
+                Retry
+              </Button>
+            </Alert>
           ) : filteredCompanies.length === 0 ? (
             <Box bg="white" p={8} borderRadius="xl" shadow="sm" textAlign="center">
               <Text color="gray.500">
@@ -318,30 +342,12 @@ const Companies = () => {
                   cursor="pointer"
                   onClick={() => navigate(`/placement/company/${company.id}`)}
                 >
-                  <Box
-                    boxSize="80px"
-                    bg="white"
-                    borderRadius="full"
-                    overflow="hidden"
-                    boxShadow="sm"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    mb={2}
-                  >
-                    {company.logo || company.company_logo_link ? (
-                      <Image
-                        src={company.logo || company.company_logo_link}
-                        alt={company.company_name}
-                        objectFit="contain"
-                        maxH="60%"
-                        maxW="60%"
-                      />
-                    ) : (
-                      <Text fontWeight="bold" fontSize="2xl" color="gray.400" fontFamily="serif">
-                        {(company.company_name || '').substring(0, 2).toUpperCase()}
-                      </Text>
-                    )}
+                  <Box boxShadow="sm" mb={2}>
+                    <CompanyLogo
+                      src={company.logo || company.company_logo_link}
+                      name={company.company_name}
+                      boxSize="80px"
+                    />
                   </Box>
                   <Text fontWeight="bold" fontSize="md" color="gray.800" textAlign="center" noOfLines={2}>
                     {company.company_name}

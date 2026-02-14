@@ -235,7 +235,7 @@ function validateImportRows(rows, requiredKeys) {
 }
 
 // Placement Overview tab: table by school / program / year with batch strength and salary stats (exported for PlacementOverviewPage)
-export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selectedYear, onYearChange }) => {
+export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selectedYear, onYearChange, loading }) => {
   const headerRowBg = '#fbeec8';
   const border = '#c2b38a';
   const palette = ['#e8f5e9', '#e3f2fd', '#fff8e1', '#e0f7fa', '#f1f8e9', '#ede7f6', '#fff3e0'];
@@ -257,16 +257,17 @@ export const PlacementOverviewTab = ({ rows, salaryStats, academicYears, selecte
 
   return (
     <Box>
-      <Flex justify="flex-end" mb={4} align="center">
+      <Flex justify="flex-end" mb={4} align="center" gap={3}>
         <HStack>
           <Text fontSize="sm" fontWeight="bold" color="gray.600">Academic Year:</Text>
-          <Select size="sm" w="150px" value={selectedYear} onChange={(e) => onYearChange(e.target.value)} bg="white" borderColor="gray.300">
+          <Select size="sm" w="150px" value={selectedYear} onChange={(e) => onYearChange(e.target.value)} bg="white" borderColor="gray.300" isDisabled={loading}>
             <option value="">All Years</option>
             {(academicYears || []).map((year) => (
               <option key={year} value={year}>{year}</option>
             ))}
           </Select>
         </HStack>
+        {loading && <Spinner size="sm" color="blue.500" />}
       </Flex>
       <Box bg="white" shadow="sm" border="1px" borderColor={border} overflowX="auto">
         <Table size="sm" borderWidth="1px" borderColor={border}>

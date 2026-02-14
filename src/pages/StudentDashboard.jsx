@@ -315,7 +315,7 @@ export const StudentDashboard = ({ viewData = null, basePath = null, studentName
   }
 
   return (
-    <Box minH="100vh" w="100%" maxW="100%" overflowX="hidden" bg="gray.50" py={{ base: 4, md: 5 }} px={{ base: 3, sm: "4vw", md: "3vw", lg: "2.5vw", xl: "2vw" }}>
+    <Box minH="100vh" w="100%" maxW="100%" overflowX="hidden" bg="gray.50" py={{ base: 4, md: 5 }} px={{ base: 3, sm: 4, md: 5, lg: 6, xl: 6 }}>
       <Box w="100%" maxW="100%" minW={0}>
         {showNotification && (
           <Box

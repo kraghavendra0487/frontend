@@ -13,6 +13,7 @@ export default function PlacementOverviewPage() {
   const [placementSalaryStats, setPlacementSalaryStats] = useState({});
   const [availableAcademicYears, setAvailableAcademicYears] = useState([]);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
+  const [academicTabLoading, setAcademicTabLoading] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const tabFromQuery = (searchParams.get('tab') || '').toLowerCase();
@@ -32,19 +33,20 @@ export default function PlacementOverviewPage() {
 
   const fetchPlacementOverview = useCallback(async (opts = {}) => {
     const { silent = false } = opts;
+    if (!silent) setAcademicTabLoading(true);
     try {
       const data = await PlacementService.getPlacementOverview(selectedAcademicYear || undefined);
       setPlacementOverviewData(data.rows || []);
       setPlacementSalaryStats(data.schoolOverview || {});
-      if (data.academicYears && data.academicYears.length > 0) {
-        setAvailableAcademicYears(data.academicYears);
-      }
+      setAvailableAcademicYears(data.academicYears || []);
     } catch (e) {
       if (!silent) console.error('Placement overview:', e);
       if (!silent) {
         setPlacementOverviewData([]);
         setPlacementSalaryStats({});
       }
+    } finally {
+      if (!silent) setAcademicTabLoading(false);
     }
   }, [selectedAcademicYear]);
 
@@ -172,6 +174,7 @@ export default function PlacementOverviewPage() {
                       academicYears={availableAcademicYears}
                       selectedYear={selectedAcademicYear}
                       onYearChange={setSelectedAcademicYear}
+                      loading={academicTabLoading}
                     />
                   </Box>
                 </TabPanel>

@@ -10,11 +10,10 @@ import {
   Textarea,
   useToast,
   Select,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Wrap,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -28,7 +27,7 @@ import {
 import { Field } from "../../ui/field"
 import { StyledFileInput } from "../../ui/StyledFileInput"
 import { useState, useEffect, useRef } from "react"
-import { FaPlus, FaTrash, FaEdit, FaExternalLinkAlt } from "react-icons/fa"
+import { FaPlus, FaTrash, FaEdit, FaExternalLinkAlt, FaPlusCircle } from "react-icons/fa"
 import { useAuth } from "../../../context/AuthContext"
 import { StudentProfileService } from "../../../services/studentProfile.service"
 import { ProjectService } from "../../../services/project.service"
@@ -462,6 +461,88 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShar
   )
 }
 
+function TechnologiesTagInput({ index, technologies = [], onChange, fieldErrors }) {
+  const [inputValue, setInputValue] = useState("")
+
+  const addTag = (val) => {
+    const trimmed = String(val || "").trim()
+    if (!trimmed) return
+    const normalized = trimmed
+    if (technologies.includes(normalized)) return
+    onChange([...technologies, normalized])
+    setInputValue("")
+  }
+
+  const removeTag = (idx) => {
+    onChange(technologies.filter((_, i) => i !== idx))
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addTag(inputValue)
+    } else if (e.key === "Backspace" && !inputValue && technologies.length > 0) {
+      removeTag(technologies.length - 1)
+    }
+  }
+
+  return (
+    <Field label="TECHNOLOGIES" errorText={fieldErrors} helperText="Type and press Enter or click Add to add a tag">
+      <Box
+        className="projects-edit-tag-input-wrap"
+        borderWidth="1px"
+        borderColor={fieldErrors ? "red.400" : "gray.200"}
+        borderRadius="lg"
+        bg="gray.50"
+        p={2}
+        minH="48px"
+        _focusWithin={{
+          borderColor: "var(--palette-bright-green)",
+          boxShadow: "0 0 0 1px rgba(3, 192, 60, 0.25)",
+        }}
+      >
+        <Wrap spacing={2} align="center" mb={technologies.length > 0 ? 2 : 0}>
+          {technologies.map((tech, i) => (
+            <Tag
+              key={`${tech}-${i}`}
+              size="md"
+              borderRadius="full"
+              variant="solid"
+              colorScheme="green"
+              className="projects-edit-tag"
+            >
+              <TagLabel>{tech}</TagLabel>
+              <TagCloseButton onClick={() => removeTag(i)} aria-label={`Remove ${tech}`} />
+            </Tag>
+          ))}
+        </Wrap>
+        <HStack spacing={2}>
+          <Input
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. React, Node.js"
+            variant="unstyled"
+            size="sm"
+            flex={1}
+            className="projects-edit-tag-input"
+          />
+          <Button
+            size="sm"
+            leftIcon={<FaPlusCircle />}
+            onClick={() => addTag(inputValue)}
+            colorScheme="green"
+            variant="outline"
+            className="projects-edit-tag-add-btn"
+          >
+            Add
+          </Button>
+        </HStack>
+      </Box>
+    </Field>
+  )
+}
+
 function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onModalErrors, isEditing, fieldErrors = {} }) {
   const setModalErrors = onModalErrors || (() => {})
   return (
@@ -513,14 +594,12 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
         />
       </Field>
 
-      <Field label="TECHNOLOGIES (COMMA SEPARATED)" errorText={fieldErrors.technologies}>
-        <Input
-          value={Array.isArray(item.technologies) ? item.technologies.join(", ") : (typeof item.technologies === "string" ? item.technologies : "")}
-          onChange={(e) => onChange(index, "technologies", e.target.value.split(",").map((t) => t.trim()).filter(Boolean))}
-          placeholder="React, Node.js, Cheerio, Redis"
-          className="projects-edit-input"
-        />
-      </Field>
+      <TechnologiesTagInput
+        index={index}
+        technologies={Array.isArray(item.technologies) ? item.technologies : (typeof item.technologies === "string" && item.technologies ? item.technologies.split(",").map((t) => t.trim()).filter(Boolean) : [])}
+        onChange={(val) => onChange(index, "technologies", val)}
+        fieldErrors={fieldErrors.technologies}
+      />
 
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <Field label="MENTOR NAME" errorText={fieldErrors.mentor_name}>

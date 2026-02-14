@@ -23,6 +23,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useBackgroundRefresh } from "../../../hooks/useBackgroundRefresh"
 import { PlacementService } from "../../../services/placement.service"
 import { useAuth } from "../../../context/AuthContext"
+import { CompanyLogo } from "../../../components/CompanyLogo"
 import { FaBuilding, FaMapMarkerAlt, FaMoneyBillWave, FaClock, FaBriefcase, FaArrowLeft, FaCalendarAlt, FaUserTie, FaGlobe, FaLinkedin } from "react-icons/fa"
 
 const isRegistered = (app) => {
@@ -175,22 +176,11 @@ export const StudentDriveDetails = () => {
             <Card variant="outline" mb={6} borderColor="gray.200">
               <CardBody>
                 <HStack spacing={6} align="start" mb={6}>
-                  {(drive.company?.company_logo_link || drive.company?.logo) ? (
-                    <Image src={drive.company.company_logo_link || drive.company.logo} boxSize="80px" objectFit="contain" alt="" />
-                  ) : (
-                     <Box 
-                       boxSize="80px" 
-                       bg="gray.50" 
-                       display="flex" 
-                       alignItems="center" 
-                       justifyContent="center" 
-                       borderRadius="md"
-                       border="1px solid"
-                       borderColor="gray.200"
-                     >
-                        <Icon as={FaBuilding} boxSize={8} color="gray.400" />
-                     </Box>
-                  )}
+                  <CompanyLogo
+                    src={drive.company?.company_logo_link || drive.company?.logo}
+                    name={drive.company?.company_name ?? drive.company_name}
+                    boxSize="80px"
+                  />
                   <Box flex="1">
                     <HStack justify="space-between">
                       <Heading size="lg" color="#20343c">{drive.company?.company_name ?? drive.company_name ?? "Company"}</Heading>
