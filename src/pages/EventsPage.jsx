@@ -111,11 +111,11 @@ function EventCard({ event, isAdmin, onEdit, onDelete, onSendNotification, onGoT
                   <BellIcon />
                 </Button>
               </>
-            ) : (
+            ) : (event.status || 'scheduled') !== 'completed' ? (
               <Button size="sm" leftIcon={<BellIcon />} variant="outline" colorScheme="blue" onClick={() => onSendNotification(event)}>
                 Send Notification
               </Button>
-            )}
+            ) : null}
             <Button size="sm" leftIcon={<DeleteIcon />} colorScheme="red" variant="ghost" onClick={() => onDelete(event)}>
               Delete
             </Button>

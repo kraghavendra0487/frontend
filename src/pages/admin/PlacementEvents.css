@@ -131,27 +131,39 @@
 }
 
 .placement-events-tabs button {
-  padding-bottom: 0.75rem;
+  padding: 0.5rem 0.25rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   transition: all 0.2s ease-in-out;
   border: none;
-  background: none;
-  cursor: pointer;
-  color: #94a3b8;
   border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent !important;
+  cursor: pointer;
+  color: #64748b;
   margin-bottom: -1px;
+  outline: none;
+  box-shadow: none !important;
 }
 
 .placement-events-tabs button:hover {
-  color: #475569;
+  color: #334155;
+}
+
+.placement-events-tabs button:focus,
+.placement-events-tabs button:focus-visible,
+.placement-events-tabs button:active {
+  outline: none;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 .placement-events-tabs button.tab-active {
-  border-bottom-color: #3b82f6;
-  color: #3b82f6;
+  border-bottom-color: #166534;
+  color: #166534;
+  background: transparent !important;
 }
 
 /* Filters bar */

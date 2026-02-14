@@ -151,19 +151,24 @@ const Events = () => {
     return avg || min || max || '-';
   };
 
-  const formatEligibility = (eligibility) => {
-    if (!eligibility) return '-';
-    const parts = [];
-    if (eligibility.min_cgpa) parts.push(`Min CGPA: ${eligibility.min_cgpa}`);
-    if (eligibility.max_active_backlogs != null) parts.push(`Backlogs: ${eligibility.max_active_backlogs}`);
-    if (eligibility.allowed_school_ids?.length) parts.push(`Schools: ${eligibility.allowed_school_ids.length}`);
-    if (eligibility.allowed_program_ids?.length) parts.push(`Programs: ${eligibility.allowed_program_ids.length}`);
-    if (parts.length === 0) return '-';
-    return (
-      <Tooltip label={JSON.stringify(eligibility, null, 2)} hasArrow placement="top">
-        <Text cursor="help" borderBottom="1px dashed" borderColor="gray.400">{parts.join(', ')}</Text>
-      </Tooltip>
-    );
+  /** Resolve eligibility to school and program names for display */
+  const getEligibilityDisplay = (drive) => {
+    const elig = drive?.placement_drive_eligibility;
+    const schoolMap = (schoolList || []).reduce((acc, s) => { acc[s.id] = s.name || s.abbreviation || String(s.id); return acc; }, {});
+    const programMap = (programList || []).reduce((acc, p) => { acc[p.id] = p.name || String(p.id); return acc; }, {});
+    let schoolNames = [];
+    let programNames = [];
+    if (elig?.allowed_school_ids?.length) {
+      schoolNames = elig.allowed_school_ids.map((id) => schoolMap[id] || `ID ${id}`).filter(Boolean);
+    }
+    if (elig?.allowed_program_ids?.length) {
+      programNames = elig.allowed_program_ids.map((id) => programMap[id] || `ID ${id}`).filter(Boolean);
+    }
+    if (schoolNames.length === 0 && drive?.school) schoolNames = [drive.school];
+    if (programNames.length === 0 && drive?.program) programNames = [drive.program];
+    const schoolStr = schoolNames.length ? schoolNames.join(', ') : null;
+    const programStr = programNames.length ? programNames.join(', ') : null;
+    return { schoolStr, programStr, schoolNames, programNames };
   };
 
   // Edit State
@@ -202,6 +207,7 @@ const Events = () => {
   // Metadata Lists
   const [companyList, setCompanyList] = useState([]);
   const [schoolList, setSchoolList] = useState([]);
+  const [programList, setProgramList] = useState([]);
 
   // New Event Form State (Step 1 - no eligibility fields)
   const initialEventState = {
@@ -491,13 +497,25 @@ const Events = () => {
             </Flex>
           </Box>
         );
-      case 'eligibility':
+      case 'eligibility': {
+        const { schoolStr, programStr } = getEligibilityDisplay(drive);
+        const display = [schoolStr || 'General', programStr].filter(Boolean).join(' - ');
+        const tooltipParts = [];
+        if (schoolStr) tooltipParts.push(`Schools: ${schoolStr}`);
+        if (programStr) tooltipParts.push(`Programs: ${programStr}`);
+        const elig = drive?.placement_drive_eligibility;
+        if (elig?.min_cgpa) tooltipParts.push(`Min CGPA: ${elig.min_cgpa}`);
+        if (elig?.max_active_backlogs != null) tooltipParts.push(`Max Backlogs: ${elig.max_active_backlogs}`);
         return (
-          <Badge fontSize="10px" colorScheme="gray" variant="subtle" fontWeight="bold" textTransform="uppercase" letterSpacing="tighter" px={2} py={1} borderRadius="md">
-            {drive.school || 'General'}
-            {drive.program ? ` • ${drive.program}` : ''}
-          </Badge>
+          <Tooltip label={tooltipParts.length ? tooltipParts.join('\n') : display} hasArrow placement="top">
+            <Box as="span" cursor="help" maxW="220px" display="block">
+              <Badge fontSize="10px" colorScheme="gray" variant="subtle" fontWeight="bold" textTransform="uppercase" letterSpacing="tighter" px={2} py={1} borderRadius="md">
+                <Text as="span" noOfLines={2}>{display || '—'}</Text>
+              </Badge>
+            </Box>
+          </Tooltip>
         );
+      }
       case 'location_description':
         return (
           <Flex flexDirection="column" gap={1} maxW="350px">
@@ -553,13 +571,17 @@ const Events = () => {
           </Flex>
         );
       case 'actions':
+        const driveStatus = (drive.placement_status || 'Scheduled').toLowerCase();
+        const isCompleted = driveStatus === 'completed' || driveStatus === 'closed';
         return (
           <HStack spacing={1} justify="flex-end">
-            <Tooltip label="Send Notification">
-              <Button size="sm" variant="ghost" color="gray.400" _hover={{ color: 'orange.600' }} onClick={(e) => handleSendNotification(drive, e)} aria-label="Send Notification" isLoading={notifyingDriveId === drive.id}>
-                <BellIcon boxSize={4} />
-              </Button>
-            </Tooltip>
+            {!isCompleted && (
+              <Tooltip label="Send Notification">
+                <Button size="sm" variant="ghost" color="gray.400" _hover={{ color: 'orange.600' }} onClick={(e) => handleSendNotification(drive, e)} aria-label="Send Notification" isLoading={notifyingDriveId === drive.id}>
+                  <BellIcon boxSize={4} />
+                </Button>
+              </Tooltip>
+            )}
             <Tooltip label="Configure Eligibility">
               <Button size="sm" variant="ghost" color="gray.400" _hover={{ color: 'teal.600' }} onClick={(e) => { e.stopPropagation(); navigate(`/placement/events/${drive.id}/process?clicked_add_students=true`); }} aria-label="Eligibility">
                 <CheckCircleIcon boxSize={4} />
@@ -586,14 +608,33 @@ const Events = () => {
     fetchMetadata();
   }, []);
 
+  // Clear school filter when switching tabs if selected school has no drives in the new tab
+  useEffect(() => {
+    const tabDrives = drives.filter(d => {
+      const s = (d.placement_status || 'Scheduled').toLowerCase();
+      if (statusTab === 'upcoming') return s === 'scheduled' || s === 'open';
+      if (statusTab === 'ongoing') return s === 'ongoing';
+      if (statusTab === 'completed') return s === 'completed' || s === 'closed';
+      if (statusTab === 'failed') return s === 'cancelled' || s === 'failed';
+      if (statusTab === 'postponed') return s === 'postponed';
+      return true;
+    });
+    const tabSchools = new Set(tabDrives.map(d => d.school).filter(Boolean));
+    if (selectedSchool && !tabSchools.has(selectedSchool)) {
+      setSelectedSchool('');
+    }
+  }, [statusTab, drives, selectedSchool]);
+
   const fetchMetadata = async () => {
     try {
-      const [companies, schools] = await Promise.all([
+      const [companies, schools, programs] = await Promise.all([
         PlacementService.getAllCompanies(),
-        PlacementService.getSchools()
+        PlacementService.getSchools(),
+        PlacementService.getPrograms()
       ]);
       setCompanyList(companies ?? []);
       setSchoolList(schools ?? []);
+      setProgramList(programs ?? []);
     } catch (error) {
       const msg = error?.message || '';
       if (msg.includes('403') || msg.includes('Forbidden') || msg.includes('Session expired')) {
@@ -643,10 +684,13 @@ const Events = () => {
     return true;
   });
 
-  const academicYearList = [...new Set(drives.map(d => d.academic_year).filter(Boolean))].sort().reverse();
-  const schools = [...new Set(drives.map(d => d.school).filter(Boolean))];
+  const academicYearList = [...new Set(drives.map(d => d.academic_year || (d.year ? String(d.year) : null)).filter(Boolean))].sort().reverse();
+  // Schools: prefer tab-specific from drives; fallback to all schools from API when drives lack school (eligibility not configured)
+  const schoolsFromTab = [...new Set(drivesByStatus.map(d => d.school).filter(Boolean))];
+  const schoolsFromApi = (schoolList || []).map(s => (typeof s === 'object' ? s?.name : s)).filter(Boolean);
+  const schools = (schoolsFromTab.length > 0 ? schoolsFromTab : schoolsFromApi).sort();
   const jobProfiles = [...new Set(drives.map(d => d.job_type).filter(Boolean))];
-  const tpoList = [...new Set(drivesByStatus.map(d => d.tpo).filter(Boolean))].sort();
+  const tpoList = [...new Set(drives.map(d => d.tpo).filter(Boolean))].sort();
 
   const filteredDrives = drivesByStatus.filter(drive => {
     const query = searchQuery.toLowerCase().trim();
@@ -658,7 +702,8 @@ const Events = () => {
       (drive.tpo?.toLowerCase() || '').includes(query) ||
       (drive.job_location?.toLowerCase() || '').includes(query) ||
       (drive.company_remarks?.toLowerCase() || '').includes(query);
-    const matchesAcademicYear = !selectedAcademicYear || (drive.academic_year || '') === selectedAcademicYear;
+    const driveYear = drive.academic_year || (drive.year ? String(drive.year) : '');
+    const matchesAcademicYear = !selectedAcademicYear || driveYear === selectedAcademicYear;
     const matchesSchool = !selectedSchool || drive.school === selectedSchool;
     const matchesJobProfile = !selectedJobProfile || drive.job_type === selectedJobProfile;
     const matchesTpo = !selectedTpo || (drive.tpo || '') === selectedTpo;
@@ -676,8 +721,10 @@ const Events = () => {
     switch (colId) {
       case 'company_remarks_tpo':
         return [drive.company_name || '', drive.company_remarks || '', drive.tpo || ''].join(' | ');
-      case 'eligibility':
-        return [drive.school || '', drive.program || ''].filter(Boolean).join(' • ') || '—';
+      case 'eligibility': {
+        const { schoolStr, programStr } = getEligibilityDisplay(drive);
+        return [schoolStr || '', programStr].filter(Boolean).join(' - ') || '—';
+      }
       case 'location_description':
         return `${drive.job_location || '—'} (${drive.type_of_hiring || '—'})\n${drive.job_description || ''}`;
       case 'compensation': {
@@ -794,10 +841,12 @@ const Events = () => {
                 />
               </InputGroup>
             </Box>
-            <Select placeholder="All Year" value={selectedAcademicYear} onChange={(e) => setSelectedAcademicYear(e.target.value)} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
+            <Select placeholder="All Year" value={selectedAcademicYear || ''} onChange={(e) => setSelectedAcademicYear(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
+              <option value="">All Year</option>
               {academicYearList.map(ay => <option key={ay} value={ay}>{ay}</option>)}
             </Select>
-            <Select placeholder="All Schools" value={selectedSchool} onChange={(e) => setSelectedSchool(e.target.value)} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
+            <Select placeholder="All Schools" value={selectedSchool || ''} onChange={(e) => setSelectedSchool(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
+              <option value="">All Schools</option>
               {schools.map(s => <option key={s} value={s}>{s}</option>)}
             </Select>
             <Select placeholder="All Types" value={selectedJobProfile || ''} onChange={(e) => setSelectedJobProfile(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
@@ -806,7 +855,7 @@ const Events = () => {
               <option value="Full Time">Full Time</option>
               {jobProfiles.filter(j => j && j !== 'Internship' && j !== 'Full Time').map(j => <option key={j} value={j}>{j}</option>)}
             </Select>
-            <Select placeholder="All TPOs" value={selectedTpo} onChange={(e) => setSelectedTpo(e.target.value)} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
+            <Select placeholder="All TPOs" value={selectedTpo || ''} onChange={(e) => setSelectedTpo(e.target.value || '')} size="sm" maxW="160px" bg="#f8fafc" borderColor="#e2e8f0" borderRadius="lg" fontSize="sm">
               <option value="">All TPOs</option>
               {tpoList.map(t => <option key={t} value={t}>{t}</option>)}
             </Select>
@@ -882,7 +931,9 @@ const Events = () => {
                         </Box>
                         <Box>
                           <Heading size="md" color="gray.900">{drive.company_name}</Heading>
-                          <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="wider">{drive.school || '—'}</Text>
+                          <Text fontSize="xs" fontWeight="bold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+                            {(() => { const { schoolStr, programStr } = getEligibilityDisplay(drive); return [schoolStr, programStr].filter(Boolean).join(' - ') || '—'; })()}
+                          </Text>
                         </Box>
                       </Flex>
                       <Badge bg="gray.100" color="gray.600" fontSize="10px" fontWeight="bold" px={3} py={1} borderRadius="full" textTransform="uppercase">{drive.job_type || drive.job_profile || '—'}</Badge>
@@ -915,7 +966,9 @@ const Events = () => {
                         <Text color="gray.900" fontWeight="bold">{registeredCount(drive)} Registered / {drive.number_of_openings || '—'} Seats</Text>
                       </Box>
                       <HStack spacing={1}>
-                        <Tooltip label="Send Notification"><Button size="sm" bg="gray.50" color="gray.400" _hover={{ bg: 'orange.600', color: 'white' }} w={9} h={9} borderRadius="xl" onClick={(e) => handleSendNotification(drive, e)} aria-label="Send Notification" isLoading={notifyingDriveId === drive.id}><BellIcon boxSize={4} /></Button></Tooltip>
+                        {!['completed', 'closed'].includes((drive.placement_status || '').toLowerCase()) && (
+                          <Tooltip label="Send Notification"><Button size="sm" bg="gray.50" color="gray.400" _hover={{ bg: 'orange.600', color: 'white' }} w={9} h={9} borderRadius="xl" onClick={(e) => handleSendNotification(drive, e)} aria-label="Send Notification" isLoading={notifyingDriveId === drive.id}><BellIcon boxSize={4} /></Button></Tooltip>
+                        )}
                         <Tooltip label="Configure Eligibility"><Button size="sm" bg="gray.50" color="gray.400" _hover={{ bg: 'teal.600', color: 'white' }} w={9} h={9} borderRadius="xl" onClick={(e) => { e.stopPropagation(); navigate(`/placement/events/${drive.id}/process?clicked_add_students=true`); }} aria-label="Eligibility"><CheckCircleIcon boxSize={4} /></Button></Tooltip>
                         <Tooltip label="Edit"><Button size="sm" bg="gray.50" color="gray.400" _hover={{ bg: 'blue.600', color: 'white' }} w={9} h={9} borderRadius="xl" onClick={(e) => { e.stopPropagation(); handleEditClick(drive); }} aria-label="Edit"><SettingsIcon boxSize={4} /></Button></Tooltip>
                       </HStack>

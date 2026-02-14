@@ -82,7 +82,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Round tabs – placement_process.html style */
+/* Round tabs – simple, glitch-free plain buttons */
 .drive-process-page .round-tabs-container {
   overflow-x: auto;
   padding: 0.5rem;
@@ -92,18 +92,65 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .drive-process-page .round-tab {
-  transition: all 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
   border-radius: 8px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  transition: none;
+}
+.drive-process-page .round-tab:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 .drive-process-page .round-tab.active {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #86efac;
 }
-.drive-process-page .round-tab:hover:not(.active) {
-  background: #f1f5f9;
+.drive-process-page .round-tab.active.job-offers-tab {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: #86efac;
+}
+.drive-process-page .round-tab .round-tab-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  margin-right: 6px;
+  background: #e2e8f0;
+  color: #64748b;
+}
+.drive-process-page .round-tab.active .round-tab-num {
+  background: #166534;
+  color: white;
+}
+.drive-process-page .round-tab:focus,
+.drive-process-page .round-tab:focus-visible,
+.drive-process-page .round-tab:active {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Process table action buttons – no focus flash */
+.drive-process-page .process-table-wrap button:focus,
+.drive-process-page .process-table-wrap button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Filters bar */

@@ -7,12 +7,14 @@ import {
   HStack,
   FormControl,
   FormLabel,
+  FormErrorMessage,
   Input,
   Textarea,
   Button,
   useToast,
   Container,
   SimpleGrid,
+  Grid,
   InputGroup,
   InputLeftElement,
   Checkbox,
@@ -65,6 +67,10 @@ const OPPORTUNITY_TYPES = [
   'Other',
 ];
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COUNTRY_CODE_REGEX = /^\+\d{1,3}$/;
+const PHONE_NUMBER_LENGTH = 10;
+
 const ReferralForm = () => {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState('list');
@@ -75,12 +81,14 @@ const ReferralForm = () => {
     company_name: '',
     hr_name: '',
     hr_email: '',
-    hr_phone: '',
+    hr_phone_country_code: '',
+    hr_phone_number: '',
     hiring_role: '',
     opportunity_type: '',
     recommendation_note: '',
     consent_given: false,
   });
+  const [fieldErrors, setFieldErrors] = useState({ hr_email: '', hr_phone_country_code: '', hr_phone_number: '' });
 
   useEffect(() => {
     loadMyRecommendations();
@@ -100,11 +108,48 @@ const ReferralForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    let finalValue = type === 'checkbox' ? checked : value;
+    if (name === 'hr_phone_country_code') {
+      if (value === '+') {
+        finalValue = '+';
+      } else if (value.startsWith('+')) {
+        const digits = value.slice(1).replace(/\D/g, '').slice(0, 3);
+        finalValue = '+' + digits;
+      } else {
+        const digits = value.replace(/\D/g, '').slice(0, 3);
+        finalValue = digits ? '+' + digits : '';
+      }
+    }
+    if (name === 'hr_phone_number') {
+      finalValue = value.replace(/\D/g, '').slice(0, PHONE_NUMBER_LENGTH);
+    }
     setFormData((prev) => ({ 
       ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
+      [name]: type === 'checkbox' ? checked : finalValue 
     }));
+    if (name === 'hr_email' || name === 'hr_phone_country_code' || name === 'hr_phone_number') {
+      setFieldErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
+
+  const handleBlur = (e) => {
+    const { name } = e.target;
+    if (name === 'hr_email' && formData.hr_email && !EMAIL_REGEX.test(formData.hr_email.trim())) {
+      setFieldErrors((prev) => ({ ...prev, hr_email: 'Please enter a valid email address (e.g. name@company.com)' }));
+    }
+    if (name === 'hr_phone_country_code' && formData.hr_phone_number && formData.hr_phone_country_code) {
+      if (!COUNTRY_CODE_REGEX.test(formData.hr_phone_country_code)) {
+        setFieldErrors((prev) => ({ ...prev, hr_phone_country_code: 'Enter + followed by 1–3 digits (e.g. +91)' }));
+      }
+    }
+    if (name === 'hr_phone_number' && formData.hr_phone_number) {
+      if (formData.hr_phone_number.length !== PHONE_NUMBER_LENGTH) {
+        setFieldErrors((prev) => ({ ...prev, hr_phone_number: `Phone number must be exactly ${PHONE_NUMBER_LENGTH} digits` }));
+      }
+    }
+  };
+
+  const validateEmail = (email) => !email || EMAIL_REGEX.test(email.trim());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,6 +158,31 @@ const ReferralForm = () => {
       toast({ 
         title: 'Required fields missing', 
         description: 'Please fill in Company Name and HR Name.', 
+        status: 'warning', 
+        duration: 3000, 
+        isClosable: true 
+      });
+      return;
+    }
+
+    const errors = {};
+    if (formData.hr_email && !validateEmail(formData.hr_email)) {
+      errors.hr_email = 'Please enter a valid email address (e.g. name@company.com)';
+    }
+    const hasPhoneNumber = formData.hr_phone_number && formData.hr_phone_number.length > 0;
+    if (hasPhoneNumber) {
+      if (formData.hr_phone_country_code && !COUNTRY_CODE_REGEX.test(formData.hr_phone_country_code)) {
+        errors.hr_phone_country_code = 'Enter + followed by 1–3 digits (e.g. +91)';
+      }
+      if (formData.hr_phone_number.length !== PHONE_NUMBER_LENGTH) {
+        errors.hr_phone_number = `Phone number must be exactly ${PHONE_NUMBER_LENGTH} digits`;
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
+      toast({ 
+        title: 'Invalid input', 
+        description: 'Please correct the email and/or phone number.', 
         status: 'warning', 
         duration: 3000, 
         isClosable: true 
@@ -133,7 +203,14 @@ const ReferralForm = () => {
 
     setIsSubmitting(true);
     try {
-      await PlacementService.submitHrRecommendation(formData);
+      const payload = { ...formData };
+      if (formData.hr_phone_number) {
+        const countryCode = formData.hr_phone_country_code || '+91';
+        payload.hr_phone = `${countryCode} ${formData.hr_phone_number}`;
+      }
+      delete payload.hr_phone_country_code;
+      delete payload.hr_phone_number;
+      await PlacementService.submitHrRecommendation(payload);
       toast({ 
         title: 'Recommendation Submitted!', 
         description: 'Thank you! The placement team will follow up.', 
@@ -146,12 +223,14 @@ const ReferralForm = () => {
         company_name: '', 
         hr_name: '', 
         hr_email: '', 
-        hr_phone: '', 
+        hr_phone_country_code: '', 
+        hr_phone_number: '', 
         hiring_role: '', 
         opportunity_type: '', 
         recommendation_note: '',
         consent_given: false,
       });
+      setFieldErrors({ hr_email: '', hr_phone_country_code: '', hr_phone_number: '' });
       
       loadMyRecommendations();
       setActiveTab('list');
@@ -566,14 +645,21 @@ const ReferralForm = () => {
                     <Divider borderColor={colors.border} />
 
                     {/* HR Contact Section */}
-                    <Box>
+                    <Box 
+                      p={5} 
+                      borderRadius="xl" 
+                      bg={colors.accentLight}
+                      borderWidth="1px"
+                      borderColor={colors.border}
+                    >
                       <HStack spacing={3} mb={5}>
                         <Flex 
-                          w="40px" h="40px" 
-                          bg={colors.accentLight}
+                          w="44px" h="44px" 
+                          bg="white"
                           borderRadius="xl" 
                           align="center" 
                           justify="center"
+                          boxShadow="sm"
                         >
                           <Icon as={FaUserTie} color={colors.accent} boxSize={5} />
                         </Flex>
@@ -583,7 +669,11 @@ const ReferralForm = () => {
                         </Box>
                       </HStack>
 
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
+                      <Grid
+                        templateColumns={{ base: '1fr', md: 'minmax(0, 1fr) minmax(240px, 1.2fr) minmax(0, 1fr)' }}
+                        gap={5}
+                        alignItems="start"
+                      >
                         <FormControl isRequired>
                           <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Contact Name</FormLabel>
                           <Input 
@@ -592,52 +682,97 @@ const ReferralForm = () => {
                             onChange={handleChange} 
                             placeholder="Full name" 
                             size="lg"
-                            borderRadius="xl"
-                            borderWidth="2px"
+                            h="48px"
+                            borderRadius="lg"
+                            borderWidth="1px"
+                            borderColor={colors.border}
                             bg="white"
+                            _placeholder={{ color: 'gray.400' }}
                             _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                           />
                         </FormControl>
 
-                        <FormControl>
+                        <Box minW={0}>
+                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm" mb={2}>Phone Number</FormLabel>
+                          <HStack spacing={2} align="stretch" flexWrap="nowrap">
+                            <FormControl isInvalid={!!fieldErrors.hr_phone_country_code} w="88px" flexShrink={0}>
+                              <Input 
+                                name="hr_phone_country_code" 
+                                value={formData.hr_phone_country_code} 
+                                onChange={handleChange}
+                                onBlur={handleBlur}
+                                placeholder="+91" 
+                                maxLength={4}
+                                size="lg"
+                                h="48px"
+                                borderRadius="lg"
+                                borderWidth="1px"
+                                borderColor={colors.border}
+                                bg="white"
+                                _placeholder={{ color: 'gray.400' }}
+                                _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
+                                _invalid={{ borderColor: 'red.400' }}
+                              />
+                              <FormErrorMessage>{fieldErrors.hr_phone_country_code}</FormErrorMessage>
+                            </FormControl>
+                            <FormControl isInvalid={!!fieldErrors.hr_phone_number} flex={1} minW={0}>
+                              <InputGroup size="lg" h="48px">
+                                <InputLeftElement pointerEvents="none" h="48px" pl={3}>
+                                  <PhoneIcon color="gray.400" boxSize={4} />
+                                </InputLeftElement>
+                                <Input 
+                                  name="hr_phone_number" 
+                                  type="tel"
+                                  inputMode="numeric"
+                                  value={formData.hr_phone_number} 
+                                  onChange={handleChange}
+                                  onBlur={handleBlur}
+                                  placeholder="9876543210" 
+                                  maxLength={PHONE_NUMBER_LENGTH}
+                                  h="48px"
+                                  borderRadius="lg"
+                                  borderWidth="1px"
+                                  borderColor={colors.border}
+                                  bg="white"
+                                  pl="44px"
+                                  _placeholder={{ color: 'gray.400' }}
+                                  _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
+                                  _invalid={{ borderColor: 'red.400' }}
+                                />
+                              </InputGroup>
+                              <FormErrorMessage>{fieldErrors.hr_phone_number}</FormErrorMessage>
+                            </FormControl>
+                          </HStack>
+                        </Box>
+
+                        <FormControl isInvalid={!!fieldErrors.hr_email}>
                           <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Email Address</FormLabel>
-                          <InputGroup size="lg">
-                            <InputLeftElement pointerEvents="none" h="full">
-                              <EmailIcon color="gray.400" />
+                          <InputGroup size="lg" h="48px">
+                            <InputLeftElement pointerEvents="none" h="48px" pl={3}>
+                              <EmailIcon color="gray.400" boxSize={4} />
                             </InputLeftElement>
                             <Input 
                               name="hr_email" 
                               type="email" 
                               value={formData.hr_email} 
-                              onChange={handleChange} 
+                              onChange={handleChange}
+                              onBlur={handleBlur}
                               placeholder="hr@company.com" 
-                              borderRadius="xl"
-                              borderWidth="2px"
+                              maxLength={254}
+                              h="48px"
+                              borderRadius="lg"
+                              borderWidth="1px"
+                              borderColor={colors.border}
                               bg="white"
+                              pl="44px"
+                              _placeholder={{ color: 'gray.400' }}
                               _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
+                              _invalid={{ borderColor: 'red.400' }}
                             />
                           </InputGroup>
+                          <FormErrorMessage>{fieldErrors.hr_email}</FormErrorMessage>
                         </FormControl>
-
-                        <FormControl>
-                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Phone Number</FormLabel>
-                          <InputGroup size="lg">
-                            <InputLeftElement pointerEvents="none" h="full">
-                              <PhoneIcon color="gray.400" />
-                            </InputLeftElement>
-                            <Input 
-                              name="hr_phone" 
-                              value={formData.hr_phone} 
-                              onChange={handleChange} 
-                              placeholder="+91 9876543210" 
-                              borderRadius="xl"
-                              borderWidth="2px"
-                              bg="white"
-                              _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
-                            />
-                          </InputGroup>
-                        </FormControl>
-                      </SimpleGrid>
+                      </Grid>
                     </Box>
 
                     <Divider borderColor={colors.border} />

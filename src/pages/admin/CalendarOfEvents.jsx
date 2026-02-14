@@ -146,14 +146,13 @@ const CalendarOfEvents = () => {
     <AdminLayout compactTop fullWidth>
       <Box
         bg="#f0f0f0"
-        h="calc(100vh - 72px)"
-        overflow="hidden"
+        minH="calc(100vh - 72px)"
+        overflow="auto"
         display="flex"
         flexDirection="column"
-        py={0}
-        pt={0}
-        pb={0}
-        mt={0}
+        pt={{ base: 6, md: 8 }}
+        pb={{ base: 8, md: 12 }}
+        px={{ base: 4, sm: 6, lg: 8 }}
         alignItems="flex-start"
       >
         <Box
@@ -163,14 +162,10 @@ const CalendarOfEvents = () => {
           flexDirection="column"
           maxW="100%"
           mx="auto"
-          px={{ base: 4, sm: 6, lg: 10 }}
           w="100%"
-          py={0}
-          pt={0}
-          mt={0}
         >
-          <VStack spacing={2} align="stretch" flex={1} minH={0} pt={0} mt={0}>
-            <Heading size="lg" flexShrink={0} mt={0} mb={1} pt={0} lineHeight="shorter">Calendar of Events</Heading>
+          <VStack spacing={4} align="stretch" flex={1} minH={0}>
+            <Heading size="lg" flexShrink={0} mb={2} lineHeight="shorter">Calendar of Events</Heading>
 
             {loading ? (
               <Box bg="white" borderRadius="xl" p={8} boxShadow="lg" textAlign="center" flexShrink={0}>
@@ -182,9 +177,9 @@ const CalendarOfEvents = () => {
                 {error}
               </Alert>
             ) : (
-              <HStack align="stretch" spacing={4} flex={1} minH={0} overflow="hidden" flexDir={{ base: 'column', lg: 'row' }}>
-                <Box flex={1} minW={0} minH={0} bg="white" borderRadius="xl" boxShadow="lg" overflow="hidden" display="flex" flexDirection="column">
-                  <Box bg="green.700" px={4} py={2} color="white" flexShrink={0}>
+              <HStack align="stretch" spacing={{ base: 5, lg: 6 }} flex={1} minH={0} overflow="hidden" flexDir={{ base: 'column', lg: 'row' }} w="100%">
+                <Box flex={1} minW={0} minH={{ base: '400px', lg: '520px' }} bg="white" borderRadius="xl" boxShadow="lg" overflow="hidden" display="flex" flexDirection="column">
+                  <Box bg="green.700" px={5} py={3} color="white" flexShrink={0}>
                     <HStack justify="center" align="center" spacing={4}>
                       <IconButton aria-label="Previous month" size="sm" variant="ghost" colorScheme="whiteAlpha" icon={<FiChevronLeft />} onClick={() => setCurrent(new Date(current.getFullYear(), current.getMonth() - 1, 1))} />
                       <Heading as="h1" fontSize={{ base: 'md', sm: 'lg' }} fontWeight="bold" textTransform="uppercase">
@@ -196,7 +191,7 @@ const CalendarOfEvents = () => {
                   <VStack spacing={0} align="stretch" flex={1} minH={0}>
                     <Grid templateColumns="repeat(7, 1fr)" gap={0} flexShrink={0}>
                       {['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'].map((w) => (
-                        <Box key={w} bg="#fad373" py={2} px={2}>
+                        <Box key={w} bg="#fad373" py={3} px={2}>
                           <Text textAlign="center" fontSize="sm" fontWeight="bold" color="gray.900">{w}</Text>
                         </Box>
                       ))}
@@ -223,7 +218,7 @@ const CalendarOfEvents = () => {
                           <GridItem key={idx} cursor="pointer" onClick={() => handleDayClick(d)} borderRight="1px solid" borderBottom="1px solid" borderColor="gray.200">
                             <Box
                               position="relative"
-                              p={1}
+                              p={2}
                               bg={hasEvents ? `${colorName}.50` : 'white'}
                               opacity={inMonth ? 1 : 0.5}
                               _hover={{ bg: hasEvents ? `${colorName}.100` : 'gray.50' }}
@@ -267,7 +262,7 @@ const CalendarOfEvents = () => {
                   </VStack>
                 </Box>
 
-                <Box w={{ base: '100%', lg: '320px' }} flexShrink={0} bg="white" borderRadius="xl" p={4} boxShadow="lg" overflowY="auto">
+                <Box w={{ base: '100%', lg: '340px' }} flexShrink={0} bg="white" borderRadius="xl" p={5} boxShadow="lg" overflowY="auto" mb={{ base: 4, lg: 0 }}>
                   <Heading as="h2" fontSize="lg" fontWeight="bold" color="gray.700" mb={3}>
                     {formatDMY(selectedDate)}
                   </Heading>

@@ -839,104 +839,54 @@ const DriveProcess = () => {
                     overflowX="auto"
                     className="custom-scrollbar"
                   >
-                    <Button
+                    <button
+                      type="button"
                       className={`round-tab ${currentActiveRoundIndex === -2 ? 'active' : ''}`}
-                      size="sm"
-                      variant="ghost"
-                      fontWeight="semibold"
-                      color={currentActiveRoundIndex === -2 ? 'blue.700' : 'gray.500'}
-                      bg={currentActiveRoundIndex === -2 ? 'blue.50' : 'transparent'}
-                      borderWidth={currentActiveRoundIndex === -2 ? '1px' : 0}
-                      borderColor={currentActiveRoundIndex === -2 ? 'blue.200' : 'transparent'}
-                      _hover={{ bg: 'gray.100' }}
                       onClick={() => setCurrentActiveRoundIndex(-2)}
                     >
                       Registered
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                      type="button"
                       className={`round-tab ${currentActiveRoundIndex === -3 ? 'active' : ''}`}
-                      size="sm"
-                      variant="ghost"
-                      fontWeight="semibold"
-                      color={currentActiveRoundIndex === -3 ? 'blue.700' : 'gray.500'}
-                      bg={currentActiveRoundIndex === -3 ? 'blue.50' : 'transparent'}
-                      borderWidth={currentActiveRoundIndex === -3 ? '1px' : 0}
-                      borderColor={currentActiveRoundIndex === -3 ? 'blue.200' : 'transparent'}
-                      _hover={{ bg: 'gray.100' }}
                       onClick={() => setCurrentActiveRoundIndex(-3)}
                     >
                       Approved
-                    </Button>
+                    </button>
                     {processRounds.map((round, index) => (
-                      <Button
+                      <button
                         key={`${round}-${index}`}
+                        type="button"
                         className={`round-tab ${currentActiveRoundIndex === index ? 'active' : ''}`}
-                        size="sm"
-                        variant="ghost"
-                        fontWeight="semibold"
-                        color={currentActiveRoundIndex === index ? 'blue.700' : 'gray.500'}
-                        bg={currentActiveRoundIndex === index ? 'blue.50' : 'transparent'}
-                        borderWidth={currentActiveRoundIndex === index ? '1px' : 0}
-                        borderColor={currentActiveRoundIndex === index ? 'blue.200' : 'transparent'}
-                        _hover={{ bg: 'gray.100' }}
-                        leftIcon={
-                          <Box
-                            as="span"
-                            w={5}
-                            h={5}
-                            borderRadius="full"
-                            bg={currentActiveRoundIndex === index ? 'blue.600' : 'gray.200'}
-                            color={currentActiveRoundIndex === index ? 'white' : 'gray.600'}
-                            fontSize="10px"
-                            display="inline-flex"
-                            alignItems="center"
-                            justifyContent="center"
-                          >
-                            {index + 1}
-                          </Box>
-                        }
                         onClick={() => setCurrentActiveRoundIndex(index)}
                       >
+                        <span className="round-tab-num">{index + 1}</span>
                         {round}
-                      </Button>
+                      </button>
                     ))}
                     <Box w="1px" h={6} bg="gray.200" mx={1} />
-                    <Button
+                    <button
+                      type="button"
                       className={`round-tab ${currentActiveRoundIndex === -1 ? 'active' : ''}`}
-                      size="sm"
-                      variant="ghost"
-                      fontWeight="semibold"
-                      color={currentActiveRoundIndex === -1 ? 'blue.700' : 'gray.500'}
-                      bg={currentActiveRoundIndex === -1 ? 'blue.50' : 'transparent'}
-                      borderWidth={currentActiveRoundIndex === -1 ? '1px' : 0}
-                      borderColor={currentActiveRoundIndex === -1 ? 'blue.200' : 'transparent'}
-                      _hover={{ bg: 'gray.100' }}
                       onClick={() => setCurrentActiveRoundIndex(-1)}
                     >
                       All Rounds View
-                    </Button>
+                    </button>
                     {/* Job Offers tab - visible when drive is ongoing or completed */}
                     {(isOngoing || isCompleted) && (
                       <>
                         <Box w="1px" h={6} bg="gray.200" mx={1} />
-                        <Button
-                          className={`round-tab ${isJobOffersTab ? 'active' : ''}`}
-                          size="sm"
-                          variant="ghost"
-                          fontWeight="semibold"
-                          color={isJobOffersTab ? 'green.700' : 'gray.500'}
-                          bg={isJobOffersTab ? 'green.50' : 'transparent'}
-                          borderWidth={isJobOffersTab ? '1px' : 0}
-                          borderColor={isJobOffersTab ? 'green.200' : 'transparent'}
-                          _hover={{ bg: 'green.50' }}
+                        <button
+                          type="button"
+                          className={`round-tab job-offers-tab ${isJobOffersTab ? 'active' : ''}`}
                           onClick={() => {
                             setCurrentActiveRoundIndex(-4);
                             setSelectedForOffers([]);
                           }}
-                          leftIcon={<Icon as={MdCardGiftcard} />}
                         >
+                          <Icon as={MdCardGiftcard} boxSize={4} style={{ marginRight: 6, verticalAlign: 'middle' }} />
                           Job Offers
-                        </Button>
+                        </button>
                       </>
                     )}
                   </Flex>
