@@ -57,14 +57,6 @@ const StarRating = ({ rating }) => {
   );
 };
 
-// Compute average rating for a project. Prefer backend-provided `average_rating`, otherwise use admin_rating.
-const computeAverage = (p) => {
-  if (!p) return null;
-  if (p.average_rating != null) return Number(p.average_rating);
-  if (p.admin_rating != null) return Number(p.admin_rating);
-  return null;
-}
-
 export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) => {
   const [selectedProject, setSelectedProject] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -87,24 +79,10 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
   }, [selectedProject]);
 
   const handleShare = async () => {
-    console.log('[ProjectShowcase.handleShare] selectedProject:', {
-      id: selectedProject?.id,
-      visibility: selectedProject?.visibility,
-      title: selectedProject?.title,
-    });
     if (!selectedProject?.id) {
       toast({
         title: "Cannot share",
         description: "This project does not have an id yet. Please save it first.",
-        status: "warning",
-        isClosable: true,
-      });
-      return;
-    }
-    if (selectedProject?.visibility !== 'PUBLIC_LINK') {
-      toast({
-        title: "Cannot share",
-        description: "Share links require visibility 'PUBLIC + Shareable Link'. Update the project visibility first.",
         status: "warning",
         isClosable: true,
       });
@@ -222,10 +200,6 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
             {selectedProject && (
               <VStack align="stretch" spacing={5}>
                 <HStack spacing={0} py={4} align="flex-start" divider={<Divider orientation="vertical" h="36px" borderColor="#e2e8f0" />}>
-                  <Box px={4} py={2}>
-                    <Text fontSize="xs" color="#64748b" fontWeight="bold" mb={1}>RATING</Text>
-                    <StarRating rating={computeAverage(selectedProject)} />
-                  </Box>
                   <Box px={4} py={2}>
                     <HStack spacing={2}>
                       <Icon as={FaEye} color="#0f172a" boxSize={4} />
@@ -351,7 +325,7 @@ export const ProjectShowcase = ({ projects = [], contentAreaRef, studentName }) 
           </ModalBody>
           <ModalFooter bg="#f8fafc" borderBottomRadius="xl" borderTop="1px solid" borderColor="#e2e8f0">
             <HStack w="full" spacing={4} justify="flex-end">
-              {selectedProject?.id && selectedProject?.visibility === 'PUBLIC_LINK' && (
+              {selectedProject?.id && (
                 <Button
                   variant="outline"
                   onClick={handleShare}
@@ -404,7 +378,6 @@ const ShowcaseCard = ({ project, studentName, onView }) => {
   const technologies = getTechnologies(project);
   const category = (project.genre || "Project").toUpperCase().replace(/\s+/g, " ");
   const priority = project.priority ?? 1;
-  const rating = computeAverage(project);
   const [aspect, setAspect] = useState("laptop");
   const [votes, setVotes] = useState({ phone: 0, laptop: 0 });
 
@@ -440,10 +413,6 @@ const ShowcaseCard = ({ project, studentName, onView }) => {
               ))}
             </div>
           )}
-          <div className="showcase-self-assessment">
-            <span className="showcase-self-assessment-label">RATING</span>
-            <StarRating rating={rating} />
-          </div>
         </div>
 
         {/* Right column: category, title, tagline, description, links, gallery, mentor, priority */}

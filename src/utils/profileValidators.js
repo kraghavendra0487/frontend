@@ -18,7 +18,7 @@ const COUNTRY_CODE_REGEX = /^\+[0-9]{1,4}$/;
 
 const EDUCATION_LEVELS = ['10TH', '12TH', 'DIPLOMA', 'GRADUATION', 'POST_GRADUATION', 'OTHER', 'EDUCATION_GAP'];
 const RESULT_TYPES = ['PERCENTAGE', 'CGPA'];
-const VISIBILITY_VALUES = ['PRIVATE', 'PUBLIC', 'PUBLIC_LINK'];
+const VISIBILITY_VALUES = ['PRIVATE', 'PUBLIC'];
 
 const currentYear = new Date().getFullYear();
 

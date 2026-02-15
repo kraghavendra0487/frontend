@@ -27,10 +27,6 @@ export const ProjectStats = ({ projects = [] }) => {
   const totalViews = projects.reduce((acc, curr) => acc + (curr.views || 0), 0);
   const totalLikes = projects.reduce((acc, curr) => acc + (curr.likes || 0), 0);
   const totalDownloads = projects.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
-  const avgRating = projects.length > 0 
-    ? (projects.reduce((acc, curr) => acc + (Number(curr.average_rating ?? curr.admin_rating) || 0), 0) / projects.length).toFixed(1) 
-    : 0;
-
   // Skills distribution
   const skillsCount = {};
   projects.forEach(p => {
@@ -71,8 +67,8 @@ export const ProjectStats = ({ projects = [] }) => {
     },
   };
 
-  // Visibility Distribution (PUBLIC_LINK counts as "Public" for visibility)
-  const publicCount = projects.filter(p => p.visibility === 'PUBLIC' || p.visibility === 'PUBLIC_LINK').length;
+  // Visibility Distribution
+  const publicCount = projects.filter(p => p.visibility === 'PUBLIC').length;
   const privateCount = projects.filter(p => p.visibility === 'PRIVATE').length;
 
   const doughnutData = {
@@ -92,7 +88,6 @@ export const ProjectStats = ({ projects = [] }) => {
         <StatsCard icon={FaEye} title="Total Views" value={totalViews} color="blue.500" />
         <StatsCard icon={FaHeart} title="Total Likes" value={totalLikes} color="red.500" />
         <StatsCard icon={FaDownload} title="Installs/Clones" value={totalDownloads} color="green.500" />
-        <StatsCard icon={FaStar} title="Avg Self Rating" value={avgRating} color="orange.400" />
       </SimpleGrid>
 
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>

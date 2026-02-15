@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Container,
@@ -60,7 +60,7 @@ import {
 } from '@chakra-ui/react';
 import { ViewIcon, StarIcon, SearchIcon } from '@chakra-ui/icons';
 import { FaExternalLinkAlt, FaGithub, FaUser, FaChevronLeft, FaChevronDown, FaTrash, FaPlus, FaLink } from 'react-icons/fa';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
 import { getFileUrl } from '../../utils/fileUrl';
@@ -71,16 +71,20 @@ const STATUS_PILL = { px: 3, py: 0.5, borderRadius: 'full', fontSize: 'xs', font
 
 export default function AdminProjectDetail() {
   const { projectId } = useParams();
+  const location = useLocation();
   const toast = useToast();
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [adminRating, setAdminRating] = useState(0);
   const [isApproved, setIsApproved] = useState(false);
   const [archiveMode, setArchiveMode] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
+  const urlParams = new URLSearchParams(location.search || '');
+  const tabFromUrl = urlParams.get('tab');
+  const addReviewFromUrl = urlParams.get('addReview') === '1';
+  const initialTab = tabFromUrl === 'reviews' ? 2 : 0;
+  const [activeTab, setActiveTab] = useState(initialTab);
   const { isOpen: isAddAssetOpen, onOpen: onAddAssetOpen, onClose: onAddAssetClose } = useDisclosure();
   const { isOpen: isShareLinkOpen, onOpen: onShareLinkOpen, onClose: onShareLinkClose } = useDisclosure();
   const { isOpen: isAddReviewOpen, onOpen: onAddReviewOpen, onClose: onAddReviewClose } = useDisclosure();
@@ -92,6 +96,8 @@ export default function AdminProjectDetail() {
   const [deletingId, setDeletingId] = useState(null);
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useAlertDisclosure();
   const [deleteTarget, setDeleteTarget] = useState({ type: null, id: null, assetId: null, variantId: null });
+  const viewRecordedRef = useRef(false);
+  const addReviewOpenedRef = useRef(false);
 
   const fetchProject = useCallback(async () => {
     if (!projectId) return;
@@ -100,7 +106,6 @@ export default function AdminProjectDetail() {
     try {
       const data = await PlacementService.getProjectById(projectId);
       setProject(data);
-      setAdminRating(data.admin_rating != null ? Number(data.admin_rating) : 0);
       setIsApproved(data.project_status === 'approved');
       setArchiveMode(data.project_status === 'archived');
     } catch (err) {
@@ -115,23 +120,43 @@ export default function AdminProjectDetail() {
     fetchProject();
   }, [fetchProject]);
 
+  // When URL has tab=reviews, keep activeTab on Reviews (in case state was 0 on first render)
+  useEffect(() => {
+    if (tabFromUrl === 'reviews') setActiveTab(2);
+  }, [tabFromUrl]);
+
+  // When URL has addReview=1 and project is loaded, open the add-review modal once (e.g. from showcase "Add Review" button)
+  useEffect(() => {
+    if (!addReviewFromUrl || !project?.id || addReviewOpenedRef.current) return;
+    addReviewOpenedRef.current = true;
+    onAddReviewOpen();
+    const params = new URLSearchParams(location.search);
+    params.delete('addReview');
+    const newSearch = params.toString();
+    navigate({ pathname: location.pathname, search: newSearch ? `?${newSearch}` : '' }, { replace: true });
+  }, [addReviewFromUrl, project?.id, location.search, location.pathname, navigate, onAddReviewOpen]);
+
+  // Record a unique view when project detail is successfully loaded (counts as viewing the project)
+  useEffect(() => {
+    if (!projectId || !project?.id || viewRecordedRef.current) return;
+    viewRecordedRef.current = true;
+    PlacementService.incrementProjectView(projectId)
+      .then((data) => {
+        if (data?.views != null) {
+          setProject((p) => (p ? { ...p, views_count: data.views, metrics: { ...(p.metrics || {}), views: data.views } } : p));
+        }
+      })
+      .catch(() => {});
+  }, [projectId, project?.id]);
+
   const handleSaveStatus = async () => {
     if (!project?.id) return;
     setSaving(true);
     try {
       const status = archiveMode ? 'archived' : (isApproved ? 'approved' : 'rejected');
-      const payload = { is_approved: isApproved, project_status: status };
-      if (adminRating >= 1 && adminRating <= 5) {
-        payload.admin_rating = Math.round(adminRating);
-      }
-      await PlacementService.updateProject(project.id, payload);
+      await PlacementService.updateProject(project.id, { is_approved: isApproved, project_status: status });
       toast({ title: 'Project updated', status: 'success', isClosable: true });
-      setProject((p) => ({
-        ...p,
-        ...(adminRating >= 1 && adminRating <= 5 && { admin_rating: Math.round(adminRating) }),
-        project_status: status,
-        metrics: { ...p.metrics },
-      }));
+      setProject((p) => ({ ...p, project_status: status, metrics: { ...p.metrics } }));
     } catch (err) {
       toast({ title: err.message || 'Update failed', status: 'error', isClosable: true });
     } finally {
@@ -360,24 +385,8 @@ export default function AdminProjectDetail() {
                     <Text fontSize="xs" color="gray.700" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">Favorites</Text>
                     <Text fontSize="xl" fontWeight="bold" color="gray.900">{metrics.favorites ?? 0}</Text>
                   </Box>
-                  <Box px={4}>
-                    <Text fontSize="xs" color="gray.700" fontWeight="bold" textTransform="uppercase" letterSpacing="wider">Rating</Text>
-                    <Text fontSize="xl" fontWeight="bold" color="gray.900">
-                      {(metrics.rating_count ?? 0) > 0 ? Number(metrics.avg_rating ?? 0).toFixed(1) : '0'}
-                    </Text>
-                  </Box>
                 </HStack>
                 <HStack spacing={4} flexWrap="wrap" align="center">
-                  <HStack spacing={2}>
-                    <Text fontSize="xs" fontWeight="bold" color="gray.800" textTransform="uppercase">Admin Rating:</Text>
-                    <HStack spacing={0.5}>
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Box key={s} as="button" onClick={() => setAdminRating(s)} _hover={{ transform: 'scale(1.1)' }} cursor="pointer">
-                          <Icon as={StarIcon} boxSize={5} color={s <= Math.round(adminRating) ? 'yellow.400' : 'gray.300'} />
-                        </Box>
-                      ))}
-                    </HStack>
-                  </HStack>
                   <Select
                     size="sm"
                     maxW="130px"
@@ -653,7 +662,7 @@ export default function AdminProjectDetail() {
 
                     {shareLinks.length === 0 ? (
                       <Box p={12} textAlign="center">
-                        <Text color="gray.700">No share links. Create one for PUBLIC_LINK visibility.</Text>
+                        <Text color="gray.700">No share links yet. Create one to share this project.</Text>
                       </Box>
                     ) : (
                       <TableContainer overflowX="auto">
@@ -750,28 +759,47 @@ export default function AdminProjectDetail() {
         </ModalContent>
       </Modal>
 
-      {/* Add Review Modal */}
-      <Modal isOpen={isAddReviewOpen} onClose={() => { onAddReviewClose(); setNewReviewText(''); }}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Add Review</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <FormControl>
-              <FormLabel>Your review</FormLabel>
-              <Textarea
-                value={newReviewText}
-                onChange={(e) => setNewReviewText(e.target.value)}
-                placeholder="Write your feedback or review for this project..."
-                rows={4}
-                resize="vertical"
-              />
-            </FormControl>
+      {/* Add Review Modal - Play Store style */}
+      <Modal isOpen={isAddReviewOpen} onClose={() => { onAddReviewClose(); setNewReviewText(''); }} size="md" isCentered>
+        <ModalOverlay bg="blackAlpha.400" backdropFilter="blur(4px)" />
+        <ModalContent borderRadius="2xl" overflow="hidden" boxShadow="xl" maxW="420px">
+          <ModalHeader pb={2} pt={6} px={6} fontWeight="600" fontSize="lg">
+            Write a review
+          </ModalHeader>
+          <ModalCloseButton top={4} right={4} size="sm" />
+          <ModalBody px={6} py={0}>
+            <Text fontSize="sm" color="gray.500" mb={3}>
+              Your review will be visible to the project owner and admins.
+            </Text>
+            <Textarea
+              value={newReviewText}
+              onChange={(e) => setNewReviewText(e.target.value)}
+              placeholder="Share your thoughts on this project..."
+              rows={4}
+              resize="vertical"
+              borderRadius="xl"
+              borderColor="gray.200"
+              _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)' }}
+              _placeholder={{ color: 'gray.400' }}
+              maxLength={2000}
+            />
+            <Text fontSize="xs" color="gray.400" mt={2} textAlign="right">
+              {newReviewText.length}/2000
+            </Text>
           </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={() => { onAddReviewClose(); setNewReviewText(''); }}>Cancel</Button>
-            <Button colorScheme="green" onClick={handleAddReview} isDisabled={!newReviewText.trim()} isLoading={addingReview}>
-              Add Review
+          <ModalFooter pt={4} pb={6} px={6} gap={3} borderTopWidth="1px" borderColor="gray.100">
+            <Button variant="ghost" colorScheme="gray" onClick={() => { onAddReviewClose(); setNewReviewText(''); }}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              borderRadius="full"
+              px={6}
+              onClick={handleAddReview}
+              isDisabled={!newReviewText.trim()}
+              isLoading={addingReview}
+            >
+              Post review
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -51,7 +51,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import { ViewIcon, StarIcon, SearchIcon, CheckIcon, TimeIcon } from '@chakra-ui/icons';
-import { FaExternalLinkAlt, FaGithub, FaChevronLeft, FaChevronRight, FaUser, FaHeart, FaRegHeart, FaStar, FaRegStar, FaChevronDown, FaBookmark, FaRegBookmark } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaGithub, FaChevronLeft, FaChevronRight, FaUser, FaHeart, FaRegHeart, FaStar, FaRegStar, FaChevronDown, FaBookmark, FaRegBookmark, FaLink, FaComment } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
 import { PlacementService } from '../../services/placement.service';
@@ -62,35 +62,11 @@ const PLAY_GREEN_HOVER = '#01704f';
 const CARD_RADIUS = '16px';
 const CARD_SHADOW = '0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15)';
 
-function avgRating(p) {
-  if (p.average_rating != null) return p.average_rating;
-  return p.admin_rating != null ? Number(p.admin_rating) : null;
-}
-
 function formatCount(n) {
   if (n == null) return '0';
   const num = Number(n);
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return String(num);
-}
-
-function StarDisplay({ value, max = 5, stars = 5 }) {
-  const filled = (value != null && typeof value === 'number' && max > 0) ? (value / max) * stars : 0;
-  return (
-    <HStack spacing={0.5} align="center">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Icon
-          key={i}
-          as={StarIcon}
-          boxSize={3}
-          color={i <= Math.round(filled) ? 'yellow.400' : 'gray.200'}
-        />
-      ))}
-      <Text fontSize="sm" fontWeight="600" ml={0.5}>
-        {typeof value === 'number' ? value.toFixed(1) : '—'}
-      </Text>
-    </HStack>
-  );
 }
 
 const AdminProjects = ({ mode = 'showcase' }) => {
@@ -101,6 +77,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
   
   // Showcase Tab State
   const [search, setSearch] = useState('');
+  const [showcaseFilter, setShowcaseFilter] = useState('all'); // 'all' | 'favorites'
 
   // Manage Tab State - read project & tab from URL (?project=8&tab=approved)
   const urlParams = useMemo(() => {
@@ -125,7 +102,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
   const [editingProject, setEditingProject] = useState(null);
   const [selectedDetailProject, setSelectedDetailProject] = useState(null);
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
-  const [adminRating, setAdminRating] = useState(3);
   const [isApproved, setIsApproved] = useState(false);
   const [archiveMode, setArchiveMode] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -136,7 +112,29 @@ const AdminProjects = ({ mode = 'showcase' }) => {
   const [savingProjectId, setSavingProjectId] = useState(null);
   const [likingId, setLikingId] = useState(null);
   const [favoritingId, setFavoritingId] = useState(null);
+  const [shareLoadingId, setShareLoadingId] = useState(null);
   const heroCarouselRef = useRef(null);
+
+  const handleShareLink = async (projectId, e) => {
+    if (e) e.stopPropagation();
+    if (shareLoadingId) return;
+    setShareLoadingId(projectId);
+    try {
+      const data = await PlacementService.createProjectShareLink(projectId, 168);
+      const path = data?.url || `/projects/share/${data?.share_token}`;
+      const fullUrl = `${window.location.origin}${path}`;
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        toast({ title: 'Share link copied to clipboard', status: 'success', isClosable: true });
+      } catch {
+        toast({ title: 'Share link created', description: fullUrl, status: 'success', isClosable: true });
+      }
+    } catch (err) {
+      toast({ title: err.message || 'Failed to create share link', status: 'error', isClosable: true });
+    } finally {
+      setShareLoadingId(null);
+    }
+  };
 
   const handleFavorite = async (projectId, e) => {
     if (e) e.stopPropagation();
@@ -237,15 +235,32 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     });
   }, [projects, search]);
 
-  const featuredProjects = useMemo(
-    () => filteredProjects.slice(0, 6),
+  const favoriteProjects = useMemo(
+    () => filteredProjects.filter((p) => p.is_favorited),
     [filteredProjects]
   );
 
-  const topByLikes = useMemo(
-    () => [...filteredProjects].sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0)).slice(0, 6),
-    [filteredProjects]
+  const showcaseDisplayProjects = useMemo(
+    () => (showcaseFilter === 'favorites' ? favoriteProjects : filteredProjects),
+    [showcaseFilter, filteredProjects, favoriteProjects]
   );
+
+  const featuredProjects = useMemo(
+    () => showcaseDisplayProjects.slice(0, 6),
+    [showcaseDisplayProjects]
+  );
+
+  const topByLikes = useMemo(
+    () => [...showcaseDisplayProjects].sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0)).slice(0, 6),
+    [showcaseDisplayProjects]
+  );
+
+  const allRankedByLikes = useMemo(
+    () => [...showcaseDisplayProjects].sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0)),
+    [showcaseDisplayProjects]
+  );
+
+  const { isOpen: isRankingsOpen, onOpen: onRankingsOpen, onClose: onRankingsClose } = useDisclosure();
 
   // Manage Tab: filter by project_status client-side (treat draft/submitted as not_approved for backward compat)
   const manageFilteredProjects = useMemo(() => {
@@ -288,7 +303,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
 
   const openDetail = (project) => {
     setEditingProject(project);
-    setAdminRating(project.admin_rating != null ? Number(project.admin_rating) : 3);
     setIsApproved(project.project_status === 'approved' || project.is_approved === true);
     setArchiveMode(project.project_status === 'archived');
     onOpen();
@@ -303,6 +317,12 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     navigate(`/placement/gallery/manage?project=${project.id}&tab=${status}`);
   };
 
+  /** Open full project detail page (same as "Full details" in Manage) */
+  const goToProjectDetail = (project, e) => {
+    if (e) e.stopPropagation();
+    if (project?.id) navigate(`/placement/gallery/project/${project.id}`);
+  };
+
   const openProjectDetailModal = (project) => {
     setSelectedDetailProject(project);
     onDetailOpen();
@@ -314,21 +334,13 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     try {
       const status = archiveMode ? 'archived' : (isApproved ? 'approved' : 'rejected');
       await PlacementService.updateProject(editingProject.id, {
-        admin_rating: Math.round(adminRating),
         is_approved: isApproved,
         project_status: status,
       });
       toast({ title: 'Project updated', status: 'success', isClosable: true });
       setProjects((prev) =>
         prev.map((p) =>
-          p.id === editingProject.id
-            ? {
-                ...p,
-                admin_rating: Math.round(adminRating),
-                is_approved: isApproved,
-                average_rating: Math.round(adminRating),
-              }
-            : p
+          p.id === editingProject.id ? { ...p, is_approved: isApproved, project_status: status } : p
         )
       );
       onClose();
@@ -345,10 +357,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
       if (s === 'draft' || s === 'submitted') return 'not_approved';
       return s || (p.is_approved ? 'approved' : 'not_approved');
     };
-    const r = p.admin_rating;
-    const hasRating = r != null && r !== '' && Number(r) > 0;
     const def = {
-      adminRating: hasRating ? Number(r) : null,
       projectStatus: norm(p.project_status || (p.is_approved ? 'approved' : 'not_approved')),
     };
     return projectEdits[p.id] ? { ...def, ...projectEdits[p.id] } : def;
@@ -366,18 +375,14 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     setSavingProjectId(p.id);
     try {
       const status = edits.projectStatus;
-      const rating = edits.adminRating != null && edits.adminRating > 0 ? Math.round(edits.adminRating) : null;
       await PlacementService.updateProject(p.id, {
-        admin_rating: rating,
         is_approved: status === 'approved',
         project_status: status,
       });
       toast({ title: 'Project updated', status: 'success', isClosable: true });
       setProjects((prev) =>
         prev.map((proj) =>
-          proj.id === p.id
-            ? { ...proj, admin_rating: rating, is_approved: status === 'approved', project_status: status }
-            : proj
+          proj.id === p.id ? { ...proj, is_approved: status === 'approved', project_status: status } : proj
         )
       );
       setProjectEdits((prev) => {
@@ -463,19 +468,24 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                       _focus={{ borderColor: PLAY_GREEN, boxShadow: `0 0 0 1px ${PLAY_GREEN}` }}
                     />
                   </InputGroup>
-                  <HStack spacing={4} ml={{ md: 'auto' }} flexWrap="wrap">
-                    <Badge colorScheme="yellow" px={3} py={1} borderRadius="full">
-                      {notApprovedCount} not approved
-                    </Badge>
-                    <Badge colorScheme="green" px={3} py={1} borderRadius="full">
-                      {approvedCount} approved
-                    </Badge>
-                    <Badge colorScheme="red" px={3} py={1} borderRadius="full">
-                      {rejectedCount} rejected
-                    </Badge>
-                    <Badge colorScheme="gray" px={3} py={1} borderRadius="full">
-                      {archivedCount} archived
-                    </Badge>
+                  <HStack spacing={2} ml={{ md: 'auto' }}>
+                    <Button
+                      size="sm"
+                      variant={showcaseFilter === 'all' ? 'solid' : 'outline'}
+                      colorScheme={showcaseFilter === 'all' ? 'blue' : 'gray'}
+                      onClick={() => setShowcaseFilter('all')}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={showcaseFilter === 'favorites' ? 'solid' : 'outline'}
+                      colorScheme={showcaseFilter === 'favorites' ? 'orange' : 'gray'}
+                      leftIcon={<Icon as={FaBookmark} boxSize={3} />}
+                      onClick={() => setShowcaseFilter('favorites')}
+                    >
+                      My Favorites
+                    </Button>
                   </HStack>
                 </Flex>
 
@@ -531,7 +541,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                             borderRadius="2xl"
                             overflow="hidden"
                             cursor="pointer"
-                            onClick={() => openDetail(p)}
+                            onClick={() => goToProjectDetail(p)}
                           >
                             {heroImg ? (
                               <Image
@@ -582,6 +592,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                               position="absolute"
                               bottom={6}
                               left={6}
+                              right={6}
                               color="white"
                               maxW="md"
                             >
@@ -610,9 +621,20 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                   </Text>
                                 </Box>
                               </HStack>
-                              <Text fontSize="sm" noOfLines={2} opacity={0.8} display={{ base: 'none', md: 'block' }}>
+                              <Text fontSize="sm" noOfLines={2} opacity={0.8} display={{ base: 'none', md: 'block' }} mb={2}>
                                 {desc}
                               </Text>
+                              <Button
+                                size="sm"
+                                colorScheme="whiteAlpha"
+                                bg="whiteAlpha.900"
+                                color="gray.800"
+                                _hover={{ bg: 'white' }}
+                                leftIcon={<ViewIcon />}
+                                onClick={(e) => goToProjectDetail(p, e)}
+                              >
+                                View full details
+                              </Button>
                             </Box>
                           </Box>
                         );
@@ -624,22 +646,37 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                 {/* Section 2: Top Charts */}
                 {topByLikes.length > 0 && (
                   <Box mb={10}>
-                    <Flex justify="space-between" align="center" mb={4}>
-                      <Heading size="md" fontWeight="bold">
-                        Top Charts
-                      </Heading>
-                      <Text color={PLAY_GREEN} fontWeight="medium" fontSize="sm" cursor="pointer">
-                        View all
-                      </Text>
-                    </Flex>
                     <Box
-                      display="grid"
-                      gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}
-                      gap={{ base: 2, md: 8 }}
+                      bg="white"
+                      borderRadius="2xl"
+                      p={{ base: 4, md: 6 }}
+                      shadow="sm"
+                      borderWidth="1px"
+                      borderColor="gray.100"
+                      overflow="hidden"
                     >
+                      <Flex justify="space-between" align="center" mb={4}>
+                        <Heading size="md" fontWeight="bold">
+                          Top Charts
+                        </Heading>
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          bg={PLAY_GREEN}
+                          _hover={{ bg: PLAY_GREEN_HOVER }}
+                          onClick={onRankingsOpen}
+                        >
+                          View more
+                        </Button>
+                      </Flex>
+                      <Box
+                        display="grid"
+                        gridTemplateColumns={{ base: '1fr', md: 'repeat(3, 1fr)' }}
+                        gap={{ base: 2, md: 6 }}
+                        minW={0}
+                      >
                       {topByLikes.map((p, i) => {
                         const icon = (p.project_snaps || [])[0];
-                        const avg = avgRating(p);
                         return (
                           <Flex
                             key={p.id}
@@ -651,7 +688,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                             cursor="pointer"
                             _hover={{ bg: 'gray.50' }}
                             transition="background 0.2s"
-                            onClick={() => openDetail(p)}
+                            onClick={() => goToProjectDetail(p)}
                           >
                             <Text fontWeight="bold" fontSize="lg" color="gray.400" w={4}>
                               {i + 1}
@@ -676,23 +713,33 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                             ) : (
                               <Box boxSize="64px" flexShrink={0} borderRadius="xl" bg="gray.100" />
                             )}
-                            <Box flex={1} minW={0}>
-                              <Text fontWeight="medium" color="gray.900" noOfLines={1}>
-                                {p.title}
-                              </Text>
-                              <Text fontSize="xs" color="gray.500">
+                            <Box flex={1} minW={0} overflow="hidden">
+                              <Tooltip label={p.title || 'Untitled'} placement="top" hasArrow>
+                                <Text fontWeight="medium" color="gray.900" noOfLines={1} title={p.title || 'Untitled'}>
+                                  {p.title || 'Untitled'}
+                                </Text>
+                              </Tooltip>
+                              <Text fontSize="xs" color="gray.500" noOfLines={1}>
                                 {p.genre || '—'}
                               </Text>
                               <HStack mt={1} spacing={2}>
-                                <Text fontSize="10px" fontWeight="medium" color="gray.600">
-                                  {avg != null ? avg.toFixed(1) : '—'} <Icon as={StarIcon} boxSize={2} color={PLAY_GREEN} />
-                                </Text>
                                 <Text fontSize="10px" color="gray.400">
-                                  | {formatCount(p.likes_count)} likes
+                                  {formatCount(p.likes_count)} likes
                                 </Text>
                               </HStack>
                             </Box>
-                            <HStack ml="auto" spacing={1}>
+                            <HStack ml="auto" spacing={1} flexShrink={0}>
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                leftIcon={<ViewIcon />}
+                                borderColor="blue.200"
+                                color="blue.600"
+                                _hover={{ bg: 'blue.50' }}
+                                onClick={(e) => goToProjectDetail(p, e)}
+                              >
+                                Full details
+                              </Button>
                               <Tooltip label={p.is_liked ? 'Unlike' : 'Like'}>
                                 <IconButton
                                   icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
@@ -721,19 +768,79 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                           </Flex>
                         );
                       })}
+                      </Box>
                     </Box>
                   </Box>
                 )}
+
+                {/* Rankings modal: all projects by likes */}
+                <Modal isOpen={isRankingsOpen} onClose={onRankingsClose} size="2xl" scrollBehavior="inside">
+                  <ModalOverlay />
+                  <ModalContent maxH="85vh">
+                    <ModalHeader>Top Charts – Full Rankings</ModalHeader>
+                    <ModalCloseButton />
+                    <ModalBody pb={6} overflowY="auto">
+                      <VStack align="stretch" spacing={2}>
+                        {allRankedByLikes.map((p, i) => {
+                          const icon = (p.project_snaps || [])[0];
+                          return (
+                            <Flex
+                              key={p.id}
+                              align="center"
+                              gap={4}
+                              py={2}
+                              px={3}
+                              borderRadius="xl"
+                              cursor="pointer"
+                              _hover={{ bg: 'gray.50' }}
+                              transition="background 0.2s"
+                              onClick={() => { onRankingsClose(); goToProjectDetail(p); }}
+                            >
+                              <Text fontWeight="bold" fontSize="lg" color="gray.400" w={6} flexShrink={0}>
+                                {i + 1}
+                              </Text>
+                              {icon ? (
+                                <Box boxSize="48px" flexShrink={0} borderRadius="lg" overflow="hidden" border="1px solid" borderColor="gray.100">
+                                  <Image src={getFileUrl(icon)} w="100%" h="100%" objectFit="cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                                </Box>
+                              ) : (
+                                <Box boxSize="48px" flexShrink={0} borderRadius="lg" bg="gray.100" />
+                              )}
+                              <Box flex={1} minW={0} overflow="hidden">
+                                <Tooltip label={p.title || 'Untitled'} placement="top" hasArrow>
+                                  <Text fontWeight="medium" color="gray.900" noOfLines={1}>{p.title || 'Untitled'}</Text>
+                                </Tooltip>
+                                <Text fontSize="xs" color="gray.500" noOfLines={1}>{p.genre || '—'}</Text>
+                                <Text fontSize="10px" color="gray.400">{formatCount(p.likes_count)} likes</Text>
+                              </Box>
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                leftIcon={<ViewIcon />}
+                                borderColor="blue.200"
+                                color="blue.600"
+                                _hover={{ bg: 'blue.50' }}
+                                onClick={(e) => { e.stopPropagation(); onRankingsClose(); goToProjectDetail(p, e); }}
+                              >
+                                Full details
+                              </Button>
+                            </Flex>
+                          );
+                        })}
+                      </VStack>
+                    </ModalBody>
+                  </ModalContent>
+                </Modal>
 
                 {/* Section 3: Main feed */}
                 <Box>
                   <Flex justify="space-between" align="center" mb={6}>
                     <Heading size="md" fontWeight="bold">
-                      All Projects
+                      {showcaseFilter === 'favorites' ? 'My Favorites' : 'All Projects'}
                     </Heading>
                   </Flex>
 
-                  {filteredProjects.length === 0 ? (
+                  {showcaseDisplayProjects.length === 0 ? (
                     <Box
                       bg="white"
                       borderRadius={CARD_RADIUS}
@@ -742,17 +849,18 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                       shadow={CARD_SHADOW}
                     >
                       <Text color="gray.500" fontSize="lg">
-                        {projects.length === 0
-                          ? 'No projects found.'
-                          : 'No projects match your search. Try different keywords.'}
+                        {showcaseFilter === 'favorites'
+                          ? 'No favorited projects yet. Click the bookmark icon on any project to add it to your favorites.'
+                          : projects.length === 0
+                            ? 'No projects found.'
+                            : 'No projects match your search. Try different keywords.'}
                       </Text>
                     </Box>
                   ) : (
                     <VStack spacing={12} align="stretch">
-                      {filteredProjects.map((p) => {
+                      {showcaseDisplayProjects.map((p) => {
                         const icon = (p.project_snaps || [])[0];
                         const screenshots = p.project_snaps || [];
-                        const avg = avgRating(p);
                         const desc = p.full_description || p.one_line_description || 'No description.';
                         return (
                           <Box
@@ -799,11 +907,11 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                     {p.usn}
                                   </Text>
                                   <Text color="gray.500" fontSize="xs">
-                                    {p.genre || '—'} • {p.is_approved ? 'Approved' : 'Pending'}
+                                    {p.genre || '—'}
                                   </Text>
                                 </Box>
                               </HStack>
-                              <HStack spacing={2}>
+                              <HStack spacing={2} flexWrap="wrap">
                                 <Tooltip label={p.is_liked ? 'Unlike' : 'Like'}>
                                   <IconButton
                                     icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
@@ -828,6 +936,53 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                     aria-label={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
                                   />
                                 </Tooltip>
+                                <Tooltip label="Copy share link">
+                                  <IconButton
+                                    icon={<Icon as={FaLink} />}
+                                    size="sm"
+                                    variant="outline"
+                                    color="gray.500"
+                                    _hover={{ color: 'blue.500' }}
+                                    onClick={(e) => handleShareLink(p.id, e)}
+                                    isLoading={shareLoadingId === p.id}
+                                    aria-label="Share"
+                                  />
+                                </Tooltip>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  leftIcon={<Icon as={FaUser} />}
+                                  color="gray.600"
+                                  borderColor="gray.300"
+                                  _hover={{ bg: 'gray.50' }}
+                                  onClick={(e) => { e.stopPropagation(); navigate(`/placement/students/${encodeURIComponent(p.usn || '')}`); }}
+                                >
+                                  View Student
+                                </Button>
+                                <Tooltip label="Insights" placement="top">
+                                  <IconButton
+                                    icon={<Icon as={FaComment} />}
+                                    size="sm"
+                                    variant="outline"
+                                    color="gray.600"
+                                    borderColor="gray.300"
+                                    _hover={{ bg: 'gray.50' }}
+                                    onClick={(e) => { e.stopPropagation(); navigate(`/placement/gallery/project/${p.id}?tab=reviews`); }}
+                                    aria-label="Insights"
+                                  />
+                                </Tooltip>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  leftIcon={<ViewIcon />}
+                                  borderColor="blue.200"
+                                  bg="blue.50"
+                                  color="blue.600"
+                                  _hover={{ bg: 'blue.100', borderColor: 'blue.300' }}
+                                  onClick={(e) => goToProjectDetail(p, e)}
+                                >
+                                  Full details
+                                </Button>
                                 <Button
                                   bg={PLAY_GREEN}
                                   color="white"
@@ -838,9 +993,9 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                   fontSize="sm"
                                   _hover={{ bg: PLAY_GREEN_HOVER }}
                                   leftIcon={<StarIcon />}
-                                  onClick={() => goToManageProject(p)}
+                                  onClick={(e) => { e.stopPropagation(); goToManageProject(p); }}
                                 >
-                                  {(p.project_status === 'approved' || p.is_approved) ? 'Manage' : 'Rate & approve'}
+                                  {(p.project_status === 'approved' || p.is_approved) ? 'Manage' : 'Approve'}
                                 </Button>
                               </HStack>
                             </Flex>
@@ -851,19 +1006,21 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                               overflowX="auto"
                               sx={{ '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}
                             >
-                              <Box textAlign="center" minW={14}>
-                                <HStack justify="center" spacing={0.5}>
-                                  <Text fontWeight="bold" fontSize="sm">
-                                    {avg != null ? avg.toFixed(1) : '—'}
-                                  </Text>
-                                  <Icon as={StarIcon} boxSize={3} />
-                                </HStack>
-                                <Text fontSize="10px" color="gray.500" textTransform="uppercase">
-                                  Rating
-                                </Text>
-                              </Box>
-                              <Box borderLeft="1px" borderColor="gray.200" />
-                              <Box textAlign="center" minW={14}>
+                              <Box
+                                as="button"
+                                type="button"
+                                textAlign="center"
+                                minW={14}
+                                cursor="pointer"
+                                border="none"
+                                bg="transparent"
+                                p={0}
+                                _hover={{ color: 'blue.600' }}
+                                _focus={{ outline: 'none', boxShadow: 'none' }}
+                                _active={{ outline: 'none' }}
+                                onClick={(e) => { e.stopPropagation(); goToProjectDetail(p, e); }}
+                                title="View project"
+                              >
                                 <Text fontWeight="bold" fontSize="sm">
                                   <Icon as={ViewIcon} boxSize={3} mr={0.5} />
                                   {formatCount(p.views_count)}
@@ -873,7 +1030,22 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                 </Text>
                               </Box>
                               <Box borderLeft="1px" borderColor="gray.200" />
-                              <Box textAlign="center" minW={14}>
+                              <Box
+                                as="button"
+                                type="button"
+                                textAlign="center"
+                                minW={14}
+                                cursor="pointer"
+                                border="none"
+                                bg="transparent"
+                                p={0}
+                                _hover={{ color: 'red.500' }}
+                                _focus={{ outline: 'none', boxShadow: 'none' }}
+                                _active={{ outline: 'none' }}
+                                onClick={(e) => { e.stopPropagation(); handleLike(p.id, e); }}
+                                title={p.is_liked ? 'Unlike' : 'Like'}
+                                disabled={likingId === p.id}
+                              >
                                 <Text fontWeight="bold" fontSize="sm">
                                   ♥ {formatCount(p.likes_count)}
                                 </Text>
@@ -882,25 +1054,27 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                 </Text>
                               </Box>
                               <Box borderLeft="1px" borderColor="gray.200" />
-                              <Box textAlign="center" minW={14}>
+                              <Box
+                                as="button"
+                                type="button"
+                                textAlign="center"
+                                minW={14}
+                                cursor="pointer"
+                                border="none"
+                                bg="transparent"
+                                p={0}
+                                _hover={{ color: 'orange.500' }}
+                                _focus={{ outline: 'none', boxShadow: 'none' }}
+                                _active={{ outline: 'none' }}
+                                onClick={(e) => { e.stopPropagation(); handleFavorite(p.id, e); }}
+                                title={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
+                                disabled={favoritingId === p.id}
+                              >
                                 <Text fontWeight="bold" fontSize="sm">
                                   <Icon as={FaBookmark} boxSize={3} color={p.is_favorited ? 'orange.500' : 'gray.400'} /> {formatCount(p.favorites_count ?? 0)}
                                 </Text>
                                 <Text fontSize="10px" color="gray.500" textTransform="uppercase">
                                   Favorites
-                                </Text>
-                              </Box>
-                              <Box borderLeft="1px" borderColor="gray.200" />
-                              <Box textAlign="center" minW={14}>
-                                <Badge
-                                  colorScheme={p.is_approved ? 'green' : 'yellow'}
-                                  borderRadius="md"
-                                  fontSize="10px"
-                                >
-                                  {p.is_approved ? 'Approved' : 'Pending'}
-                                </Badge>
-                                <Text fontSize="10px" color="gray.500" textTransform="uppercase" mt={0.5}>
-                                  Status
                                 </Text>
                               </Box>
                             </Flex>
@@ -930,8 +1104,9 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                       display="flex"
                                       alignItems="center"
                                       justifyContent="center"
-                                      cursor="pointer"
-                                      onClick={() => openDetail(p)}
+                                      cursor={snap ? 'pointer' : 'default'}
+                                      onClick={snap ? (e) => { e.stopPropagation(); goToProjectDetail(p, e); } : undefined}
+                                      _hover={snap ? { opacity: 0.9 } : {}}
                                     >
                                       {snap ? (
                                         <Image
@@ -1005,7 +1180,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                 const icon = (p.project_snaps || [])[0];
                                 const screenshots = p.project_snaps || [];
                                 const edits = getProjectEdits(p);
-                                const avg = avgRating(p);
                                 const isHighlighted = highlightedProjectId && Number(p.id) === Number(highlightedProjectId);
                                 const statusLabel = (s) => {
                                   if (s === 'approved') return 'Approved';
@@ -1041,31 +1215,9 @@ const AdminProjects = ({ mode = 'showcase' }) => {
 
                                       {/* Content */}
                                       <Box flex={1} minW={0}>
-                                        {/* Title + Stars */}
+                                        {/* Title */}
                                         <Flex justify="space-between" align="flex-start" mb={1}>
                                           <Text fontSize="lg" fontWeight="600" color="gray.900">{p.title}</Text>
-                                          <HStack spacing={0.5} role="group">
-                                            {[1, 2, 3, 4, 5].map((star) => {
-                                              const filled = edits.adminRating != null && edits.adminRating > 0 && star <= Math.round(edits.adminRating);
-                                              return (
-                                                <Box
-                                                  key={star}
-                                                  as="button"
-                                                  type="button"
-                                                  onClick={() => setProjectEdit(p.id, 'adminRating', star)}
-                                                  _hover={{ transform: 'scale(1.1)' }}
-                                                  cursor="pointer"
-                                                  aria-label={`Rate ${star} stars`}
-                                                  outline="none"
-                                                  border="none"
-                                                  bg="transparent"
-                                                  p={0}
-                                                >
-                                                  <Icon as={filled ? FaStar : FaRegStar} boxSize={4} color={filled ? 'yellow.400' : 'gray.300'} />
-                                                </Box>
-                                              );
-                                            })}
-                                          </HStack>
                                         </Flex>
 
                                         {/* USN • Genre tags */}
@@ -1141,12 +1293,25 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                                               Code
                                             </Button>
                                           )}
+                                          <Tooltip label="Copy share link">
+                                            <Button
+                                              size="xs"
+                                              variant="outline"
+                                              leftIcon={<Icon as={FaLink} />}
+                                              color="gray.600"
+                                              borderColor="gray.300"
+                                              _hover={{ bg: 'gray.50' }}
+                                              onClick={(e) => { e.stopPropagation(); handleShareLink(p.id, e); }}
+                                              isLoading={shareLoadingId === p.id}
+                                            >
+                                              Share
+                                            </Button>
+                                          </Tooltip>
                                         </HStack>
 
-                                        {/* Rating, Views, Likes, Status | Dropdown + Save */}
+                                        {/* Views, Likes, Status | Dropdown + Save */}
                                         <Flex pt={4} borderTop="1px" borderColor="gray.100" flexWrap="wrap" justify="space-between" align="center" gap={4}>
                                           <HStack spacing={4} flexWrap="wrap">
-                                            <Text fontSize="xs" color="gray.500">Rating: <Text as="span" fontWeight="600" color="gray.700">{avg != null ? avg.toFixed(1) : '—'}</Text></Text>
                                             <Text fontSize="xs" color="gray.500">Views: <Text as="span" fontWeight="600" color="gray.700">{formatCount(p.views_count)}</Text></Text>
                                             <Text fontSize="xs" color="gray.500">Likes: <Text as="span" fontWeight="600" color="gray.700">{formatCount(p.likes_count)}</Text></Text>
                                             <Badge
@@ -1326,25 +1491,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
 
                     <Box bg="gray.50" p={4} borderRadius="xl">
                       <VStack spacing={4} align="stretch">
-                        <FormControl>
-                          <FormLabel fontSize="sm">Admin rating (1–5)</FormLabel>
-                          <Slider
-                            value={adminRating}
-                            min={1}
-                            max={5}
-                            step={1}
-                            onChange={setAdminRating}
-                            colorScheme="green"
-                          >
-                            <SliderTrack>
-                              <SliderFilledTrack bg={PLAY_GREEN} />
-                            </SliderTrack>
-                            <SliderThumb />
-                          </Slider>
-                          <Text fontSize="sm" color="gray.500" mt={1}>
-                            {Math.round(adminRating)}
-                          </Text>
-                        </FormControl>
                         <FormControl display="flex" alignItems="center">
                           <FormLabel mb={0} fontSize="sm">
                             Archived
@@ -1372,9 +1518,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                             isDisabled={archiveMode}
                           />
                         </FormControl>
-                        <Text fontSize="sm" color="gray.600">
-                          Admin rating: {Math.round(adminRating)}
-                        </Text>
                       </VStack>
                     </Box>
                   </VStack>
@@ -1425,7 +1568,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                   isLoading={saving}
                   leftIcon={<StarIcon />}
                 >
-                  Save rating & approval
+                  Save approval
                 </Button>
               </ModalFooter>
             </ModalContent>
@@ -1511,10 +1654,6 @@ const AdminProjects = ({ mode = 'showcase' }) => {
 
                     {/* Stats */}
                     <Flex gap={6} flexWrap="wrap">
-                      <Box>
-                        <Text fontSize="xs" color="gray.500" fontWeight="600">Rating</Text>
-                        <StarDisplay value={avgRating(selectedDetailProject)} />
-                      </Box>
                       <Box>
                         <Text fontSize="xs" color="gray.500" fontWeight="600">Views</Text>
                         <Text fontWeight="600" color="gray.800">{formatCount(selectedDetailProject.views_count)}</Text>

@@ -52,35 +52,11 @@ const colors = {
 const CARD_RADIUS = '16px';
 const CARD_SHADOW = '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)';
 
-function avgRating(p) {
-  if (p.average_rating != null) return p.average_rating;
-  return p.admin_rating != null ? Number(p.admin_rating) : null;
-}
-
 function formatCount(n) {
   if (n == null) return '0';
   const num = Number(n);
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return String(num);
-}
-
-function StarDisplay({ value, max = 10, stars = 5 }) {
-  const filled = max > 0 ? (value / max) * stars : 0;
-  return (
-    <HStack spacing={0.5} align="center">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Icon
-          key={i}
-          as={StarIcon}
-          boxSize={3}
-          color={i <= Math.round(filled) ? 'yellow.400' : 'gray.300'}
-        />
-      ))}
-      <Text fontSize="sm" fontWeight="600" ml={1} color={colors.dark}>
-        {typeof value === 'number' ? value.toFixed(1) : '—'}
-      </Text>
-    </HStack>
-  );
 }
 
 const AlumniProjects = () => {
@@ -402,7 +378,6 @@ const AlumniProjects = () => {
               >
                 {topByLikes.map((p, i) => {
                   const icon = (p.project_snaps || [])[0];
-                  const avg = avgRating(p);
                   return (
                     <Flex
                       key={p.id}
@@ -449,10 +424,6 @@ const AlumniProjects = () => {
                           <HStack spacing={1}>
                             <Icon as={FaHeart} boxSize={2.5} color={p.is_liked ? 'red.500' : colors.secondary} />
                             <Text fontSize="xs" color={colors.secondary}>{formatCount(p.likes_count)}</Text>
-                          </HStack>
-                          <HStack spacing={1}>
-                            <StarIcon boxSize={2.5} color={colors.accent} />
-                            <Text fontSize="xs" color={colors.secondary}>{avg.toFixed(1)}</Text>
                           </HStack>
                         </HStack>
                       </Box>
@@ -504,7 +475,6 @@ const AlumniProjects = () => {
                 {filteredProjects.map((p) => {
                   const icon = (p.project_snaps || [])[0];
                   const screenshots = p.project_snaps || [];
-                  const avg = avgRating(p);
                   const desc = p.one_line_description || p.full_description || 'No description.';
                   return (
                     <Box
@@ -603,11 +573,6 @@ const AlumniProjects = () => {
 
                       {/* Stats */}
                       <Flex gap={6} py={2} flexWrap="wrap">
-                        <HStack spacing={1}>
-                          <StarIcon boxSize={3} color={colors.accent} />
-                          <Text fontWeight="600" fontSize="sm" color={colors.dark}>{avg.toFixed(1)}</Text>
-                          <Text fontSize="xs" color={colors.secondary}>rating</Text>
-                        </HStack>
                         <HStack spacing={1}>
                           <ViewIcon boxSize={3} color={colors.secondary} />
                           <Text fontWeight="600" fontSize="sm" color={colors.dark}>{formatCount(p.views_count)}</Text>
@@ -772,7 +737,6 @@ const AlumniProjects = () => {
                 <Flex gap={6} flexWrap="wrap">
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600">Rating</Text>
-                    <StarDisplay value={avgRating(selectedProject)} />
                   </Box>
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600">Views</Text>

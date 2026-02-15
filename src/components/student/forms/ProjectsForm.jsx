@@ -35,6 +35,7 @@ import { getFileUrl } from "../../../utils/fileUrl"
 import { validateUrl } from "../../../utils/profileValidators"
 
 const MAX_PROJECT_IMAGES = 4
+const MAX_GALLERY_IMAGES = 3 // gallery only; cover is separate (1 cover + 3 gallery = 4 total)
 
 /** Priority: must be sequential (1 to total number of projects) */
 function parsePriority(value) {
@@ -54,6 +55,12 @@ function getNextPriority(items) {
 /** Get max allowed priority (equals total number of projects) */
 function getMaxPriority(items) {
   return Array.isArray(items) ? items.length : 0
+}
+
+/** Normalize visibility to PRIVATE or PUBLIC for API */
+function normalizeVisibility(value) {
+  const v = (value ?? "PRIVATE").toString().toUpperCase().trim()
+  return v === "PUBLIC" ? "PUBLIC" : "PRIVATE"
 }
 
 /** Validate URL for GitHub and hosted links */
@@ -126,6 +133,7 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
 
   const [editingIndex, setEditingIndex] = useState(null)
   const [modalErrors, setModalErrors] = useState({})
+  const [uploadingCount, setUploadingCount] = useState(0) // number of uploads in progress
   const openedForErrorsRef = useRef(null) // track which API error set we already auto-opened for
   const { isOpen: isModalOpen, onOpen: onModalOpen, onClose: onModalClose } = useDisclosure()
   const errorsForEditingIndex = editingIndex != null && apiFieldErrors && apiFieldErrors[editingIndex] ? apiFieldErrors[editingIndex] : {}
@@ -231,41 +239,105 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
     closeEditModal()
   }
 
-  const handleUpload = async (index, file) => {
-    if (!file || !usn) return
-    const currentSnaps = items[index]?.project_snaps || []
-    if (currentSnaps.length >= MAX_PROJECT_IMAGES) {
-      toast({
-        status: "warning",
-        description: `Maximum ${MAX_PROJECT_IMAGES} images per project.`,
-        duration: 4000,
-        isClosable: true,
-      })
+  /** Upload one file as cover image (replaces first slot). */
+  const handleUploadCover = async (index, file) => {
+    if (!usn || !file || !(file instanceof File)) return
+    if (file.size === 0) {
+      toast({ status: "warning", description: "Please select a non-empty image.", isClosable: true })
       return
     }
+    setUploadingCount((c) => c + 1)
     try {
       const result = await StudentProfileService.uploadFile(usn, file, { folder: "projects" })
       const url = result?.url || result?.path
       if (url) {
         const newItems = [...items]
         const snaps = newItems[index].project_snaps || []
+        const rest = snaps.slice(1)
         newItems[index] = {
           ...newItems[index],
-          project_snaps: [...snaps, url],
+          project_snaps: [url, ...rest],
         }
         onUpdate(newItems)
-        toast({
-          status: "success",
-          description: "Project image uploaded",
-          duration: 3000,
-          isClosable: true,
-        })
+        toast({ status: "success", description: "Cover image uploaded", duration: 3000, isClosable: true })
       }
     } catch (e) {
       toast({
         status: "error",
-        description: "File upload failed",
+        title: "Cover upload failed",
+        description: e?.message || "File upload failed",
+        duration: 5000,
+        isClosable: true,
+      })
+    } finally {
+      setUploadingCount((c) => Math.max(0, c - 1))
+    }
+  }
+
+  /** Upload one or more files as gallery images (appended after cover; max 3 gallery). */
+  const handleUploadGallery = async (index, fileOrFiles) => {
+    if (!usn) return
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : fileOrFiles ? [fileOrFiles] : []
+    if (files.length === 0) return
+
+    const currentSnaps = items[index]?.project_snaps || []
+    const galleryCount = Math.max(0, currentSnaps.length - 1)
+    const remaining = Math.max(0, MAX_GALLERY_IMAGES - galleryCount)
+    if (remaining === 0) {
+      toast({
+        status: "warning",
+        description: `Maximum ${MAX_GALLERY_IMAGES} gallery images.`,
         duration: 4000,
+        isClosable: true,
+      })
+      return
+    }
+
+    const toUpload = files.slice(0, remaining)
+    let successCount = 0
+    setUploadingCount((c) => c + toUpload.length)
+
+    for (const file of toUpload) {
+      if (!file || !(file instanceof File)) {
+        setUploadingCount((c) => Math.max(0, c - 1))
+        continue
+      }
+      if (file.size === 0) {
+        toast({ status: "warning", description: "Skipped empty file", isClosable: true })
+        setUploadingCount((c) => Math.max(0, c - 1))
+        continue
+      }
+      try {
+        const result = await StudentProfileService.uploadFile(usn, file, { folder: "projects" })
+        const url = result?.url || result?.path
+        if (url) {
+          const newItems = [...items]
+          const snaps = newItems[index].project_snaps || []
+          newItems[index] = {
+            ...newItems[index],
+            project_snaps: [...snaps, url],
+          }
+          onUpdate(newItems)
+          successCount += 1
+        }
+      } catch (e) {
+        toast({
+          status: "error",
+          title: "Upload failed",
+          description: e?.message || "File upload failed",
+          duration: 5000,
+          isClosable: true,
+        })
+      } finally {
+        setUploadingCount((c) => Math.max(0, c - 1))
+      }
+    }
+
+    if (successCount > 0) {
+      toast({
+        status: "success",
+        description: successCount === 1 ? "Gallery image uploaded" : `${successCount} gallery images uploaded`,
+        duration: 3000,
         isClosable: true,
       })
     }
@@ -368,7 +440,9 @@ export const ProjectsForm = ({ data = {}, onUpdate, isEditing = false, onFileSel
                 item={currentItem}
                 maxPriority={getMaxPriority(items)}
                 onChange={handleChange}
-                onUpload={handleUpload}
+                onUploadCover={handleUploadCover}
+                onUploadGallery={handleUploadGallery}
+                uploadingCount={uploadingCount}
                 onModalErrors={setModalErrors}
                 isEditing={true}
                 fieldErrors={mergedFieldErrors}
@@ -398,7 +472,7 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShar
   const coverImg = snaps.length > 0 ? snaps[0] : null
   const visibility = (item.visibility || "PRIVATE").toUpperCase()
   const isPublic = visibility === "PUBLIC"
-  const visibilityLabel = visibility === "PUBLIC" ? "PUBLIC" : visibility === "PUBLIC_LINK" ? "PUBLIC + LINK" : "PRIVATE"
+  const visibilityLabel = visibility === "PUBLIC" ? "PUBLIC" : "PRIVATE"
   const priorityVal = item.priority
   const priorityDisplay = priorityVal !== undefined && priorityVal !== null && String(priorityVal).trim() !== ""
     ? String(priorityVal).trim()
@@ -446,7 +520,7 @@ function ProjectInventoryCard({ index, item, isEditing, onEdit, onDelete, onShar
             colorScheme="red"
             onClick={onDelete}
           />
-          {typeof onShare === "function" && item.id && item.visibility === "PUBLIC_LINK" && (
+          {typeof onShare === "function" && item.id && (
             <IconButton
               aria-label="Share project"
               icon={<FaExternalLinkAlt />}
@@ -543,8 +617,12 @@ function TechnologiesTagInput({ index, technologies = [], onChange, fieldErrors 
   )
 }
 
-function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onModalErrors, isEditing, fieldErrors = {} }) {
+function EditProjectForm({ index, item, maxPriority = 0, onChange, onUploadCover, onUploadGallery, uploadingCount = 0, onModalErrors, isEditing, fieldErrors = {} }) {
   const setModalErrors = onModalErrors || (() => {})
+  const snaps = item.project_snaps || []
+  const coverUrl = snaps[0] || null
+  const galleryUrls = snaps.slice(1)
+  const isUploading = uploadingCount > 0
   return (
     <VStack spacing={4} align="stretch">
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
@@ -653,13 +731,12 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
         <Field label="VISIBILITY" errorText={fieldErrors.visibility}>
           <Select
-            value={item.visibility || "PRIVATE"}
-            onChange={(e) => onChange(index, "visibility", e.target.value)}
+            value={normalizeVisibility(item.visibility)}
+            onChange={(e) => onChange(index, "visibility", normalizeVisibility(e.target.value))}
             className="projects-edit-select"
           >
             <option value="PRIVATE">PRIVATE</option>
             <option value="PUBLIC">PUBLIC</option>
-            <option value="PUBLIC_LINK">PUBLIC + SHAREABLE LINK</option>
           </Select>
         </Field>
       </SimpleGrid>
@@ -721,36 +798,18 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
 
       {isEditing && (
         <Box>
-          <Text mb={2} fontWeight="600" fontSize="sm" color="#334155">
-            Project Images (up to {MAX_PROJECT_IMAGES})
+          <Text mb={3} fontWeight="600" fontSize="sm" color="#334155">
+            Project Images
           </Text>
-          <StyledFileInput
-            accept="image/*"
-            disabled={(item.project_snaps || []).length >= MAX_PROJECT_IMAGES}
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) onUpload(index, f)
-              e.target.value = ""
-            }}
-            acceptLabel="Images"
-            mb={2}
-          />
-          <Text fontSize="xs" color="#64748b">
-            {(item.project_snaps || []).length}/{MAX_PROJECT_IMAGES} images. Upload one by one.
-          </Text>
-        </Box>
-      )}
 
-      {item.project_snaps && item.project_snaps.length > 0 && (
-        <HStack spacing={2} overflowX="auto" py={2} flexWrap="wrap">
-          {item.project_snaps.map((snap, i) => (
-            <Box key={i} boxSize="80px" borderRadius="md" overflow="hidden" position="relative">
-              <img
-                src={getFileUrl(snap)}
-                alt={`Snap ${i}`}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-              {isEditing && (
+          {/* Cover image: 1 separate upload */}
+          <Text fontSize="xs" fontWeight="500" color="#64748b" mb={1}>Cover image (main image)</Text>
+          <HStack spacing={3} align="flex-start" mb={4}>
+            {coverUrl ? (
+              <Box position="relative">
+                <Box boxSize="100px" borderRadius="md" overflow="hidden" borderWidth="1px" borderColor="gray.200">
+                  <img src={getFileUrl(coverUrl)} alt="Cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </Box>
                 <IconButton
                   icon={<FaTrash />}
                   size="xs"
@@ -758,12 +817,84 @@ function EditProjectForm({ index, item, maxPriority = 0, onChange, onUpload, onM
                   position="absolute"
                   top={0}
                   right={0}
+                  aria-label="Remove cover"
                   onClick={() => {
-                    const newSnaps = item.project_snaps.filter((_, idx) => idx !== i)
+                    const newSnaps = (item.project_snaps || []).filter((_, idx) => idx !== 0)
                     onChange(index, "project_snaps", newSnaps)
                   }}
                 />
-              )}
+                <Text fontSize="xs" color="gray.500" mt={1}>Cover</Text>
+              </Box>
+            ) : null}
+            <Box flex="1" minW="0">
+              <StyledFileInput
+                accept="image/*"
+                disabled={isUploading}
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) onUploadCover(index, f)
+                  e.target.value = ""
+                }}
+                acceptLabel={coverUrl ? "Replace cover" : "Cover image"}
+              />
+              <Text fontSize="xs" color="#64748b" mt={1}>{coverUrl ? "Upload a new image to replace cover." : "1 image. Upload separately."}</Text>
+            </Box>
+          </HStack>
+
+          {/* Gallery images: up to 3, multiple uploads allowed */}
+          <Text fontSize="xs" fontWeight="500" color="#64748b" mb={1}>Gallery images (optional, up to {MAX_GALLERY_IMAGES})</Text>
+          <HStack spacing={2} align="flex-start" flexWrap="wrap" mb={2}>
+            {galleryUrls.map((url, i) => (
+              <Box key={i} position="relative">
+                <Box boxSize="80px" borderRadius="md" overflow="hidden" borderWidth="1px" borderColor="gray.200">
+                  <img src={getFileUrl(url)} alt={`Gallery ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </Box>
+                <IconButton
+                  icon={<FaTrash />}
+                  size="xs"
+                  colorScheme="red"
+                  position="absolute"
+                  top={0}
+                  right={0}
+                  aria-label={`Remove gallery image ${i + 1}`}
+                  onClick={() => {
+                    const snaps = item.project_snaps || []
+                    const newSnaps = snaps.filter((_, idx) => idx !== i + 1)
+                    onChange(index, "project_snaps", newSnaps)
+                  }}
+                />
+              </Box>
+            ))}
+            {galleryUrls.length < MAX_GALLERY_IMAGES && (
+              <StyledFileInput
+                accept="image/*"
+                multiple
+                disabled={isUploading}
+                onChange={(e) => {
+                  const fileList = e.target.files
+                  if (fileList?.length) onUploadGallery(index, Array.from(fileList))
+                  e.target.value = ""
+                }}
+                acceptLabel="Gallery"
+              />
+            )}
+          </HStack>
+          <Text fontSize="xs" color="#64748b">
+            {galleryUrls.length}/{MAX_GALLERY_IMAGES} gallery images. You can select multiple at once.
+            {isUploading && " Uploading…"}
+          </Text>
+        </Box>
+      )}
+
+      {!isEditing && item.project_snaps && item.project_snaps.length > 0 && (
+        <HStack spacing={2} overflowX="auto" py={2} flexWrap="wrap">
+          {item.project_snaps.map((snap, i) => (
+            <Box key={i} boxSize="80px" borderRadius="md" overflow="hidden" position="relative">
+              <img
+                src={getFileUrl(snap)}
+                alt={i === 0 ? "Cover" : `Gallery ${i}`}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
             </Box>
           ))}
         </HStack>

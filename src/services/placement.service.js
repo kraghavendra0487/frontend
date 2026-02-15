@@ -738,12 +738,11 @@ export const PlacementService = {
     return response.data;
   },
 
-  /** Admin: update project (project_status: approved|rejected|archived, admin_rating 1-5) */
+  /** Admin: update project (project_status: approved|rejected|archived) */
   updateProject: async (id, data) => {
     const payload = {};
     if (data.project_status) payload.project_status = data.project_status;
     else if (data.is_approved !== undefined) payload.project_status = data.is_approved ? 'approved' : 'rejected';
-    if (data.admin_rating != null) payload.admin_rating = Math.min(5, Math.max(1, Math.round(Number(data.admin_rating))));
     const response = await apiFetch(`/admin/projects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
@@ -850,7 +849,6 @@ export const PlacementService = {
       technologies: r.tech_stack || [],
       views_count: r.views ?? 0,
       likes_count: r.likes ?? 0,
-      average_rating: r.avg_rating ?? 0,
     })) : [];
   },
 

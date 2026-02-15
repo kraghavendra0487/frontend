@@ -226,16 +226,14 @@ function MyProjectsPageInner() {
                 <Button size="sm" variant="outline" as="a" href={`/student/profile/projects`} title="Edit from Profile → Projects">
                   Edit
                 </Button>
-                {p.visibility === 'PUBLIC_LINK' && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleShare(p.id)}
-                    isLoading={shareLoadingId === p.id}
-                  >
-                    Share
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleShare(p.id)}
+                  isLoading={shareLoadingId === p.id}
+                >
+                  Share
+                </Button>
                 <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleDelete(p.id)}>
                   Delete
                 </Button>

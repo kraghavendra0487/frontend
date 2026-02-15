@@ -20,7 +20,7 @@ function getAcceptLabel(accept) {
 }
 
 export const StyledFileInput = React.forwardRef(function StyledFileInput(
-  { accept, onChange, acceptLabel, disabled, ...rest },
+  { accept, onChange, acceptLabel, disabled, multiple, ...rest },
   ref
 ) {
   const label = acceptLabel ?? getAcceptLabel(accept)
@@ -60,6 +60,7 @@ export const StyledFileInput = React.forwardRef(function StyledFileInput(
         onChange={onChange}
         display="none"
         disabled={disabled}
+        multiple={multiple}
       />
       <Box as="span" color="#d4a960" fontSize="xl" flexShrink={0} display="inline-flex">
         <FaCloudUploadAlt />

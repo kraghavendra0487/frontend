@@ -43,10 +43,6 @@ const ProjectDetailModal = ({ project, isOpen, onClose, onLike, onFavorite, liki
   else if (Array.isArray(project.skills)) skills = project.skills;
   else if (Array.isArray(project.technologies)) skills = project.technologies;
 
-  const rating = project.average_rating != null
-    ? Number(project.average_rating).toFixed(1)
-    : (project.admin_rating != null ? Number(project.admin_rating).toFixed(1) : '—');
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside" isCentered>
       <ModalOverlay backdropFilter="blur(4px)" bg="blackAlpha.600" />
@@ -134,13 +130,6 @@ const ProjectDetailModal = ({ project, isOpen, onClose, onLike, onFavorite, liki
                 <Text fontSize="xs" color="gray.500" fontWeight="bold">GENRE</Text>
                 <Text fontWeight="bold">{project.genre || '—'}</Text>
               </Box>
-              <Box>
-                <Text fontSize="xs" color="gray.500" fontWeight="bold">RATING</Text>
-                <HStack>
-                  <Icon as={FaStar} color="orange.400" />
-                  <Text fontWeight="bold">{rating}</Text>
-                </HStack>
-              </Box>
             </SimpleGrid>
             {skills.length > 0 && (
               <Box>
@@ -210,7 +199,6 @@ const ProjectDetailModal = ({ project, isOpen, onClose, onLike, onFavorite, liki
 const ProjectCard = ({ project, onView, onLike, onFavorite, likingId, favoritingId, isAuthenticated }) => {
   const snaps = project.project_snaps || project.snaps || [];
   const icon = snaps.length > 0 ? snaps[0] : null;
-  const avg = project.average_rating ?? (project.admin_rating != null ? Number(project.admin_rating) : null);
   const isLiked = project.is_liked ?? false;
   const isFavorited = project.is_favorited ?? false;
 
@@ -239,11 +227,6 @@ const ProjectCard = ({ project, onView, onLike, onFavorite, likingId, favoriting
             <Heading size="sm" noOfLines={1}>{project.title}</Heading>
             <Text fontSize="xs" color="gray.500" noOfLines={1}>{project.genre || '—'}</Text>
             <HStack spacing={2}>
-              <HStack spacing={1}>
-                <Icon as={FaStar} color="orange.400" boxSize={3} />
-                <Text fontSize="xs">{avg != null ? avg.toFixed(1) : '—'}</Text>
-              </HStack>
-              <Text fontSize="xs" color="gray.500">·</Text>
               <HStack spacing={1}>
                 <Icon as={FaEye} boxSize={3} color="gray.400" />
                 <Text fontSize="xs" color="gray.600">{project.views_count ?? 0} views</Text>

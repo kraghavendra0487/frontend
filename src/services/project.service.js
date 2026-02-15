@@ -171,12 +171,4 @@ export const ProjectService = {
     return response.data ?? response;
   },
 
-  /** Rate project (1-5). PUT /api/projects/:id/rate */
-  rate: async (projectId, rating) => {
-    const response = await apiFetch(`${BASE}/${projectId}/rate`, {
-      method: 'PUT',
-      body: JSON.stringify({ rating }),
-    });
-    return response.data ?? response;
-  },
 };

@@ -68,35 +68,11 @@ const colors = {
 const CARD_RADIUS = '20px';
 const CARD_SHADOW = '0 4px 20px rgba(0,0,0,0.08)';
 
-function avgRating(p) {
-  if (p.average_rating != null) return p.average_rating;
-  return p.admin_rating != null ? Number(p.admin_rating) : null;
-}
-
 function formatCount(n) {
   if (n == null) return '0';
   const num = Number(n);
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return String(num);
-}
-
-function StarDisplay({ value, max = 10, stars = 5 }) {
-  const filled = max > 0 ? (value / max) * stars : 0;
-  return (
-    <HStack spacing={0.5} align="center">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Icon
-          key={i}
-          as={StarIcon}
-          boxSize={3}
-          color={i <= Math.round(filled) ? 'yellow.400' : 'gray.300'}
-        />
-      ))}
-      <Text fontSize="sm" fontWeight="600" ml={1} color={colors.dark}>
-        {typeof value === 'number' ? value.toFixed(1) : '—'}
-      </Text>
-    </HStack>
-  );
 }
 
 // Get icon for social link
@@ -615,7 +591,6 @@ const AlumniViewStudent = () => {
                 {projects.map((p) => {
                   const icon = (p.project_snaps || [])[0];
                   const screenshots = p.project_snaps || [];
-                  const avg = avgRating(p);
                   const desc = p.one_line_description || p.full_description || 'No description.';
                   return (
                     <Box
@@ -718,8 +693,6 @@ const AlumniViewStudent = () => {
                       <Flex gap={8} py={3} flexWrap="wrap" borderBottomWidth="1px" borderColor={colors.border} mb={4}>
                         <HStack spacing={2}>
                           <StarIcon boxSize={4} color={colors.accent} />
-                          <Text fontWeight="700" fontSize="md" color={colors.dark}>{avg.toFixed(1)}</Text>
-                          <Text fontSize="sm" color={colors.secondary}>rating</Text>
                         </HStack>
                         <HStack spacing={2}>
                           <ViewIcon boxSize={4} color={colors.secondary} />
@@ -896,7 +869,6 @@ const AlumniViewStudent = () => {
                 <Flex gap={8} flexWrap="wrap" bg={colors.pageBg} p={4} borderRadius="xl">
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>Rating</Text>
-                    <StarDisplay value={avgRating(selectedProject)} />
                   </Box>
                   <Box>
                     <Text fontSize="xs" color={colors.secondary} fontWeight="600" mb={1}>Views</Text>
