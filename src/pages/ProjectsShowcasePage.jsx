@@ -54,7 +54,7 @@ function formatCount(n) {
  * Universal Projects Showcase page – same UI for admin (placement/gallery/showcase) and alumni (placement/alumni-projects).
  * Pass LayoutComponent (AdminLayout or AlumniLayout), variant ('admin' | 'alumni'), and fetchProjects (async () => projects[]).
  */
-export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin', fetchProjects: fetchProjectsFn }) {
+export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin', fetchProjects: fetchProjectsFn, projectBasePath, hideViewStudent = false }) {
   const toast = useToast();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
@@ -175,14 +175,11 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
     }
   };
 
+  const projectsBase = projectBasePath ?? (variant === 'admin' ? '/placement/gallery' : '/placement/alumni-projects');
   const goToProjectDetail = (project, e) => {
     if (e) e.stopPropagation();
     if (project?.id) {
-      if (variant === 'admin') {
-        navigate(`/placement/gallery/project/${project.id}`);
-      } else {
-        navigate(`/placement/alumni-projects/project/${project.id}`);
-      }
+      navigate(`${projectsBase}/project/${project.id}`);
     }
   };
 
@@ -634,17 +631,19 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
                               aria-label="Share"
                             />
                           </Tooltip>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            leftIcon={<Icon as={FaUser} />}
-                            color="gray.600"
-                            borderColor="gray.300"
-                            _hover={{ bg: 'gray.50' }}
-                            onClick={(e) => { e.stopPropagation(); navigate(studentLink(p.usn)); }}
-                          >
-                            View Student
-                          </Button>
+                          {!hideViewStudent && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              leftIcon={<Icon as={FaUser} />}
+                              color="gray.600"
+                              borderColor="gray.300"
+                              _hover={{ bg: 'gray.50' }}
+                              onClick={(e) => { e.stopPropagation(); navigate(studentLink(p.usn)); }}
+                            >
+                              View Student
+                            </Button>
+                          )}
                           {isAdmin && (
                             <Tooltip label="Insights" placement="top">
                               <IconButton

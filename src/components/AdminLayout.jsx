@@ -121,8 +121,8 @@ const AdminLayout = ({ children, fullWidth = false, compactTop = false }) => {
     </HStack>
   );
 
-  // VC can only be on dashboard or companies (view) - redirect if they hit another path
-  const vcAllowedPaths = ['/placement/dashboard', '/placement/companies', '/placement/company/'];
+  // VC allowed paths: dashboard, companies, vc-projects, vc-events, vc-notifications
+  const vcAllowedPaths = ['/placement/dashboard', '/placement/companies', '/placement/company/', '/placement/vc-projects', '/placement/vc-events', '/placement/vc-notifications'];
   const isVcAllowedPath = vcAllowedPaths.some(p => p === location.pathname || (p.endsWith('/') && location.pathname.startsWith(p)));
   useEffect(() => {
     if (isVc && !isVcAllowedPath) {

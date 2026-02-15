@@ -752,6 +752,13 @@ export const PlacementService = {
     }
   },
 
+  /** VC: all events from events table */
+  getVcEvents: async () => {
+    const response = await apiFetch('/placement/vc/events');
+    const data = response?.data ?? response;
+    return Array.isArray(data) ? data : [];
+  },
+
   /** Alumni: update notification node (mark read, archive, star) */
   updateAlumniNotificationNode: async (nodeId, payload) => {
     const response = await apiFetch(`/placement/alumni/notifications/${nodeId}`, {

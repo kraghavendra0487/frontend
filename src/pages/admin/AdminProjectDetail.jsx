@@ -69,7 +69,7 @@ const BLUE_ACCENT = '#1a73e8';
 const CARD_RADIUS = '16px';
 const STATUS_PILL = { px: 3, py: 0.5, borderRadius: 'full', fontSize: 'xs', fontWeight: 500 };
 
-export default function AdminProjectDetail({ variant = 'admin', LayoutComponent = AdminLayout }) {
+export default function AdminProjectDetail({ variant = 'admin', LayoutComponent = AdminLayout, backPath: backPathProp }) {
   const { projectId } = useParams();
   const location = useLocation();
   const toast = useToast();
@@ -276,8 +276,8 @@ export default function AdminProjectDetail({ variant = 'admin', LayoutComponent 
     }
   };
 
-  const backPath = isAlumni ? '/placement/alumni-projects' : '/placement/gallery/manage';
-  const backLabel = isAlumni ? 'Back to Student Projects' : 'Back to Manage Projects';
+  const backPath = backPathProp ?? (isAlumni ? '/placement/alumni-projects' : '/placement/gallery/manage');
+  const backLabel = backPathProp ? 'Back to Student Projects' : (isAlumni ? 'Back to Student Projects' : 'Back to Manage Projects');
 
   if (loading && !project) {
     return (

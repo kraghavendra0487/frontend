@@ -38,6 +38,7 @@ import {
 import { SearchIcon, AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
+import VcLayout from '../../components/VcLayout';
 import { CompanyLogo } from '../../components/CompanyLogo';
 import { StyledFileInput } from '../../components/ui/StyledFileInput';
 import { PlacementService } from '../../services/placement.service';
@@ -245,8 +246,9 @@ const Companies = () => {
     (c.company_name || '').toLowerCase().includes((searchQuery || '').toLowerCase())
   );
 
+  const Layout = isVc ? VcLayout : AdminLayout;
   return (
-    <AdminLayout>
+    <Layout>
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <Flex mb={6} justify="space-between" align="center" wrap="wrap" gap={4}>
@@ -657,7 +659,7 @@ const Companies = () => {
           </Modal>
         </Container>
       </Box>
-    </AdminLayout>
+    </Layout>
   );
 };
 

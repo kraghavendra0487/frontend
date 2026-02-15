@@ -77,11 +77,13 @@ import AlumniDirectory from './pages/alumni/AlumniDirectory';
 import AlumniProfile from './pages/alumni/AlumniProfile';
 import ProjectsShowcasePage from './pages/ProjectsShowcasePage';
 import AlumniLayout from './components/AlumniLayout';
+import VcLayout from './components/VcLayout';
 import { PlacementService } from './services/placement.service';
 import AlumniViewStudent from './pages/alumni/AlumniViewStudent';
 import AlumniViewAlumni from './pages/alumni/AlumniViewAlumni';
 import AlumniEvents from './pages/alumni/AlumniEvents';
 import AlumniNotificationsPage from './pages/alumni/AlumniNotificationsPage';
+import VcNotificationsPage from './pages/vc/VcNotificationsPage';
 import ReferralForm from './pages/alumni/ReferralForm';
 // Company pages
 import CompanyDashboard from './pages/company/CompanyDashboard';
@@ -246,6 +248,48 @@ const router = createBrowserRouter([
         element: (
           <PlacementProtectedRoute requiredRole={['admin', 'vc']}>
             <CompanyDetails />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/vc-projects",
+        element: (
+          <PlacementProtectedRoute requiredRole="vc">
+            <ProjectsShowcasePage
+              LayoutComponent={VcLayout}
+              variant="alumni"
+              fetchProjects={async () => {
+                const data = await PlacementService.getAlumniProjects();
+                return Array.isArray(data) ? data : [];
+              }}
+              projectBasePath="/placement/vc-projects"
+              hideViewStudent
+            />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/vc-projects/project/:projectId",
+        element: (
+          <PlacementProtectedRoute requiredRole="vc">
+            <AdminProjectDetail variant="alumni" LayoutComponent={VcLayout} backPath="/placement/vc-projects" />
+          </PlacementProtectedRoute>
+        ),
+        errorElement: <ProjectDetailErrorBoundary />
+      },
+      {
+        path: "/placement/vc-events",
+        element: (
+          <PlacementProtectedRoute requiredRole="vc">
+            <AlumniEvents LayoutComponent={VcLayout} fetchEvents={PlacementService.getVcEvents} />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/vc-notifications",
+        element: (
+          <PlacementProtectedRoute requiredRole="vc">
+            <VcNotificationsPage />
           </PlacementProtectedRoute>
         )
       },

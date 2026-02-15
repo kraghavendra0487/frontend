@@ -106,17 +106,19 @@ function EventCardImage({ ev }) {
   );
 }
 
-const AlumniEvents = () => {
+const AlumniEvents = ({ LayoutComponent = AlumniLayout, fetchEvents }) => {
+  const Layout = LayoutComponent;
   const toast = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fetchFn = fetchEvents || (() => PlacementService.getAlumniEvents());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const data = await PlacementService.getAlumniEvents();
+        const data = await fetchFn();
         if (!cancelled) setEvents(Array.isArray(data) ? data : []);
       } catch (e) {
         if (!cancelled) {
@@ -128,13 +130,13 @@ const AlumniEvents = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [toast]);
+  }, [toast, fetchFn]);
 
   const upcoming = events.filter((e) => isUpcoming(e.event_datetime));
   const past = events.filter((e) => !isUpcoming(e.event_datetime));
 
   return (
-    <AlumniLayout>
+    <Layout>
       <Box bg={colors.pageBg} minH="100vh" py={{ base: 6, md: 10 }} px={{ base: 4, md: 6 }}>
         <Heading size="lg" color={colors.dark} mb={2} fontWeight="800" letterSpacing="-0.02em">
           Events for Alumni
@@ -241,7 +243,7 @@ const AlumniEvents = () => {
           </VStack>
         )}
       </Box>
-    </AlumniLayout>
+    </Layout>
   );
 };
 

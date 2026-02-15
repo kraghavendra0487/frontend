@@ -40,6 +40,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon, ExternalLinkIcon, EditIcon, DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/AdminLayout';
+import VcLayout from '../../components/VcLayout';
 import { CompanyLogo } from '../../components/CompanyLogo';
 import { PlacementService } from '../../services/placement.service';
 import { useAuth } from '../../context/AuthContext';
@@ -168,20 +169,21 @@ const CompanyDetails = () => {
     }
   };
 
+  const Layout = isVc ? VcLayout : AdminLayout;
   if (loading) {
     return (
-      <AdminLayout>
+      <Layout>
         <Flex justify="center" align="center" minH="80vh">
           <Spinner size="xl" color="blue.500" />
         </Flex>
-      </AdminLayout>
+      </Layout>
     );
   }
 
   if (!company) return null;
 
   return (
-    <AdminLayout>
+    <Layout>
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <Flex mb={6} justify="space-between" align="center">
@@ -544,7 +546,7 @@ const CompanyDetails = () => {
           </Modal>
         </Container>
       </Box>
-    </AdminLayout>
+    </Layout>
   );
 };
 

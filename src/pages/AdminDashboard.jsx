@@ -52,6 +52,7 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
+import VcLayout from '../components/VcLayout';
 import { PlacementService } from '../services/placement.service';
 import {
   Chart as ChartJS,
@@ -538,8 +539,9 @@ const AdminDashboard = () => {
   // Calculate marquee duration based on number of partners to ensure consistent speed
   const marqueeDuration = Math.max(30, partners.length * 4);
 
+  const Layout = isVc ? VcLayout : AdminLayout;
   return (
-    <AdminLayout>
+    <Layout>
       <Box bg="#f0f0f0" minH="100vh" pb={10}>
         <Container maxW="7xl" px={{ base: 4, sm: 6, lg: 8 }} pt={8}>
           <VStack spacing={8} align="stretch">
@@ -932,7 +934,7 @@ const AdminDashboard = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </AdminLayout>
+    </Layout>
   );
 };
 
