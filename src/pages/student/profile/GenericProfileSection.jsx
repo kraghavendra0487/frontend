@@ -70,10 +70,20 @@ export const GenericProfileSection = ({ sectionKey, FormComponent }) => {
   const [shakeTrigger, setShakeTrigger] = useState(0)
 
   const initialDataRef = useRef(null)
+  const hasAutoEnteredEditRef = useRef(false)
   const loadInProgressRef = useRef(false)
   const userHasEditedRef = useRef(false)
   /** Ref holding latest section data so handleSave always sends current edits (avoids stale closure). */
   const latestDataRef = useRef(null)
+
+  // When admin views a student profile, default to edit mode so all fields (e.g. Organisation Details) are editable without clicking Add/Edit
+  useEffect(() => {
+    if (hasAutoEnteredEditRef.current) return
+    if (profileView?.isAdminView && canEdit && !isLocked) {
+      hasAutoEnteredEditRef.current = true
+      setIsEditing(true)
+    }
+  }, [profileView?.isAdminView, canEdit, isLocked])
 
   const hasPendingFiles = useMemo(() => {
     if (!FILE_UPLOAD_SECTIONS.includes(sectionKey) || !pendingFiles) return false

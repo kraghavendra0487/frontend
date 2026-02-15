@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -106,12 +106,17 @@ function EventCardImage({ ev }) {
   );
 }
 
+const defaultFetchAlumniEvents = () => PlacementService.getAlumniEvents();
+
 const AlumniEvents = ({ LayoutComponent = AlumniLayout, fetchEvents }) => {
   const Layout = LayoutComponent;
   const toast = useToast();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const fetchFn = fetchEvents || (() => PlacementService.getAlumniEvents());
+  const fetchFn = useMemo(
+    () => fetchEvents ?? defaultFetchAlumniEvents,
+    [fetchEvents]
+  );
 
   useEffect(() => {
     let cancelled = false;
