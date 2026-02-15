@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -82,6 +82,14 @@ const BulkEmail = () => {
   const [selected, setSelected] = useState(new Set());
 
   const isMobile = useBreakpointValue({ base: true, md: false });
+
+  // When school is selected, show only programs under that school (filters work together)
+  const programsForSchool = useMemo(() => {
+    if (!schoolId) return programs;
+    const sid = parseInt(schoolId, 10);
+    if (Number.isNaN(sid)) return programs;
+    return programs.filter((p) => p.school_id === sid);
+  }, [programs, schoolId]);
 
   const loadMetadata = useCallback(async () => {
     try {
@@ -221,7 +229,22 @@ const BulkEmail = () => {
       return (
         <Wrap spacing={3}>
           <WrapItem>
-            <Select placeholder="School" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} bg="white" w={{ base: 'full', sm: '160px' }} size="sm">
+            <Select
+              placeholder="School"
+              value={schoolId}
+              onChange={(e) => {
+                const newSchoolId = e.target.value;
+                setSchoolId(newSchoolId);
+                if (newSchoolId && programId) {
+                  const sid = parseInt(newSchoolId, 10);
+                  const belongs = programs.some((p) => p.id === parseInt(programId, 10) && p.school_id === sid);
+                  if (!belongs) setProgramId('');
+                }
+              }}
+              bg="white"
+              w={{ base: 'full', sm: '160px' }}
+              size="sm"
+            >
               {schools.map((s) => (
                 <option key={s.id} value={s.id}>{s.name || s.abbreviation}</option>
               ))}
@@ -229,7 +252,7 @@ const BulkEmail = () => {
           </WrapItem>
           <WrapItem>
             <Select placeholder="Program" value={programId} onChange={(e) => setProgramId(e.target.value)} bg="white" w={{ base: 'full', sm: '160px' }} size="sm">
-              {programs.map((p) => (
+              {programsForSchool.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </Select>
@@ -308,7 +331,22 @@ const BulkEmail = () => {
             </Select>
           </WrapItem>
           <WrapItem>
-            <Select placeholder="Student school" value={schoolId} onChange={(e) => setSchoolId(e.target.value)} bg="white" w="180px" size="sm">
+            <Select
+              placeholder="Student school"
+              value={schoolId}
+              onChange={(e) => {
+                const newSchoolId = e.target.value;
+                setSchoolId(newSchoolId);
+                if (newSchoolId && programId) {
+                  const sid = parseInt(newSchoolId, 10);
+                  const belongs = programs.some((p) => p.id === parseInt(programId, 10) && p.school_id === sid);
+                  if (!belongs) setProgramId('');
+                }
+              }}
+              bg="white"
+              w="180px"
+              size="sm"
+            >
               {schools.map((s) => (
                 <option key={s.id} value={s.id}>{s.name || s.abbreviation}</option>
               ))}
@@ -316,7 +354,7 @@ const BulkEmail = () => {
           </WrapItem>
           <WrapItem>
             <Select placeholder="Student program" value={programId} onChange={(e) => setProgramId(e.target.value)} bg="white" w="180px" size="sm">
-              {programs.map((p) => (
+              {programsForSchool.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </Select>

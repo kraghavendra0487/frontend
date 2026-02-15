@@ -345,6 +345,26 @@
   margin-top: 6px;
 }
 
+/* Eligibility column: contain long text, no overflow (company drives + admin) */
+.placement-events-table-wrap tbody td.col-eligibility {
+  max-width: 220px;
+  min-width: 0;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+.placement-events-table-wrap tbody td.col-eligibility .chakra-badge {
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
 /* Card view grid */
 .placement-events-card-grid {
   display: grid;

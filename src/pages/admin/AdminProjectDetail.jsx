@@ -69,12 +69,13 @@ const BLUE_ACCENT = '#1a73e8';
 const CARD_RADIUS = '16px';
 const STATUS_PILL = { px: 3, py: 0.5, borderRadius: 'full', fontSize: 'xs', fontWeight: 500 };
 
-export default function AdminProjectDetail({ variant = 'admin', LayoutComponent = AdminLayout, backPath: backPathProp }) {
+export default function AdminProjectDetail({ variant = 'admin', LayoutComponent = AdminLayout, backPath: backPathProp, fetchProjectById: fetchProjectByIdProp }) {
   const { projectId } = useParams();
   const location = useLocation();
   const toast = useToast();
   const navigate = useNavigate();
   const isAlumni = variant === 'alumni';
+  const isCompany = variant === 'company';
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -106,19 +107,24 @@ export default function AdminProjectDetail({ variant = 'admin', LayoutComponent 
     setLoading(true);
     setLoadError(null);
     try {
-      const data = isAlumni
-        ? await PlacementService.getAlumniProjectById(projectId)
-        : await PlacementService.getProjectById(projectId);
+      let data;
+      if (fetchProjectByIdProp) {
+        data = await fetchProjectByIdProp(projectId);
+      } else if (isAlumni) {
+        data = await PlacementService.getAlumniProjectById(projectId);
+      } else {
+        data = await PlacementService.getProjectById(projectId);
+      }
       setProject(data);
-      setIsApproved(data.project_status === 'approved');
-      setArchiveMode(data.project_status === 'archived');
+      setIsApproved(data?.project_status === 'approved');
+      setArchiveMode(data?.project_status === 'archived');
     } catch (err) {
       setLoadError(err);
       toast({ title: err?.response?.status === 404 ? 'Project not found' : 'Failed to load project', status: 'error', isClosable: true });
     } finally {
       setLoading(false);
     }
-  }, [projectId, toast, isAlumni]);
+  }, [projectId, toast, isAlumni, fetchProjectByIdProp]);
 
   useEffect(() => {
     fetchProject();
@@ -276,8 +282,8 @@ export default function AdminProjectDetail({ variant = 'admin', LayoutComponent 
     }
   };
 
-  const backPath = backPathProp ?? (isAlumni ? '/placement/alumni-projects' : '/placement/gallery/manage');
-  const backLabel = backPathProp ? 'Back to Student Projects' : (isAlumni ? 'Back to Student Projects' : 'Back to Manage Projects');
+  const backPath = backPathProp ?? (isCompany ? '/company/projects' : isAlumni ? '/placement/alumni-projects' : '/placement/gallery/manage');
+  const backLabel = backPathProp ? 'Back to Student Projects' : (isCompany || isAlumni ? 'Back to Student Projects' : 'Back to Manage Projects');
 
   if (loading && !project) {
     return (
@@ -498,7 +504,7 @@ export default function AdminProjectDetail({ variant = 'admin', LayoutComponent 
                             size="xs"
                             variant="outline"
                             leftIcon={<Icon as={FaUser} />}
-                            onClick={() => navigate(isAlumni ? `/placement/alumni-student/${encodeURIComponent(project.owner_usn)}` : `/placement/students/${project.owner_usn}`)}
+                            onClick={() => navigate(isCompany ? `/company/student/${encodeURIComponent(project.owner_usn)}` : isAlumni ? `/placement/alumni-student/${encodeURIComponent(project.owner_usn)}` : `/placement/students/${project.owner_usn}`)}
                           >
                             View Student
                           </Button>

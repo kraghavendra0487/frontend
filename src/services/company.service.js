@@ -57,13 +57,14 @@ export const CompanyService = {
   /** Get all placement drives for my company */
   getDrives: async () => {
     const response = await apiFetch('/company/drives');
-    return response.data?.data ?? [];
+    const raw = response?.data?.data ?? response?.data;
+    return Array.isArray(raw) ? raw : [];
   },
 
   /** Get single drive details */
   getDriveById: async (id) => {
     const response = await apiFetch(`/company/drives/${id}`);
-    return response.data?.data;
+    return response?.data?.data ?? response?.data ?? null;
   },
 
   /** Get drive eligibility criteria */
@@ -72,14 +73,15 @@ export const CompanyService = {
     return response.data?.data;
   },
 
-  /** Get candidates for a drive (pipeline) */
+  /** Get candidates for a drive (pipeline / process table) */
   getDriveCandidates: async (driveId, params = {}) => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.set('status', params.status);
     if (params.search) searchParams.set('search', params.search);
     const qs = searchParams.toString();
     const response = await apiFetch(`/company/drives/${driveId}/candidates${qs ? `?${qs}` : ''}`);
-    return response.data?.data ?? [];
+    const raw = response?.data?.data ?? response?.data;
+    return Array.isArray(raw) ? raw : [];
   },
 
   /** Update candidate status in pipeline */
@@ -110,17 +112,52 @@ export const CompanyService = {
   // ============== NOTIFICATIONS ==============
   
   /** Get company notifications */
-  getNotifications: async () => {
-    const response = await apiFetch('/company/notifications');
-    return response.data?.data ?? [];
+  getNotifications: async (params = {}) => {
+    const sp = new URLSearchParams();
+    if (params.tab) sp.set('tab', params.tab);
+    if (params.page != null) sp.set('page', params.page);
+    if (params.limit != null) sp.set('limit', params.limit);
+    const qs = sp.toString();
+    const response = await apiFetch(`/company/notifications${qs ? `?${qs}` : ''}`);
+    const list = response.data?.data ?? [];
+    return { notifications: list, total: list.length };
+  },
+
+  /** Get unread notifications count for badge */
+  getNotificationsUnreadCount: async () => {
+    const response = await apiFetch('/company/notifications/unread-count');
+    return response.data?.data?.unreadCount ?? 0;
+  },
+
+  /** Update notification node (mark read, archive, star) */
+  updateNotificationNode: async (nodeId, payload) => {
+    const response = await apiFetch(`/company/notifications/${nodeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return response.data?.data;
   },
 
   // ============== EVENTS ==============
   
-  /** Get company-relevant events */
+  /** Get events sent to companies via notifications (same logic as alumni events) */
   getEvents: async () => {
     const response = await apiFetch('/company/events');
     return response.data?.data ?? [];
+  },
+
+  // ============== STUDENT PROJECTS (only students who registered to company's drives) ==============
+
+  /** Get approved projects from students who registered to any of our placement drives */
+  getProjects: async () => {
+    const response = await apiFetch('/company/projects');
+    return Array.isArray(response.data) ? response.data : [];
+  },
+
+  /** Get single project by id (only if owner registered to one of our drives) */
+  getProjectById: async (projectId) => {
+    const response = await apiFetch(`/company/projects/${projectId}`);
+    return response.data;
   },
 
   // ============== DASHBOARD ==============

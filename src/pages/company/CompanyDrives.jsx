@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
+  Container,
   Heading,
   Text,
   HStack,
@@ -156,7 +157,8 @@ const CompanyDrives = () => {
             </Flex>
           </Box>
         );
-      case 'eligibility':
+      case 'eligibility': {
+        const eligText = getEligibilityDisplay(drive);
         return (
           <Badge
             fontSize="10px"
@@ -168,10 +170,12 @@ const CompanyDrives = () => {
             px={2}
             py={1}
             borderRadius="md"
+            title={eligText || undefined}
           >
-            {getEligibilityDisplay(drive)}
+            {eligText}
           </Badge>
         );
+      }
       case 'location_description':
         return (
           <Flex flexDirection="column" gap={1} maxW="350px">
@@ -298,18 +302,19 @@ const CompanyDrives = () => {
 
   return (
     <CompanyLayout>
-      <Box className="placement-events-page" minH="calc(100vh - 72px)" h="100%" pt={0} pb={0} px={0}>
-        <Box as="header" className="placement-events-header">
-          <Box>
-            <Heading as="h1" size="md" display="flex" alignItems="center" gap={2}>
-              <Box as={FaRocket} className="header-icon" boxSize={5} />
-              Placement Drives
-            </Heading>
-            <Text className="header-subtitle">View your current drives and drive history</Text>
+      <Box className="placement-events-page" minH="calc(100vh - 72px)" w="100%">
+        <Container maxW="container.xl" p={0} w="100%">
+          <Box as="header" className="placement-events-header">
+            <Box>
+              <Heading as="h1" size="md" display="flex" alignItems="center" gap={2}>
+                <Box as={FaRocket} className="header-icon" boxSize={5} />
+                Placement Drives
+              </Heading>
+              <Text className="header-subtitle">View your current drives and drive history. Click a row to open the process table.</Text>
+            </Box>
           </Box>
-        </Box>
 
-        <Box as="main" className="placement-events-main">
+          <Box as="main" className="placement-events-main">
           {loadError && (
             <Alert status="warning" borderRadius="md" mb={4} flexWrap="wrap" gap={2}>
               <AlertIcon />
@@ -366,7 +371,9 @@ const CompanyDrives = () => {
                   <Tr>
                     <Td colSpan={TABLE_COLUMNS.length} textAlign="center" py={8} color="gray.500">
                       {statusTab === 'current'
-                        ? 'No current drives'
+                        ? (drives.length > 0
+                            ? 'No current drives. Switch to the "Drive History" tab above to see your drives.'
+                            : 'No current drives')
                         : 'No drives in history'}
                     </Td>
                   </Tr>
@@ -383,7 +390,8 @@ const CompanyDrives = () => {
                         <Td
                           key={col.id}
                           textAlign={col.id === 'actions' ? 'right' : 'left'}
-                          maxW={col.id === 'location_description' ? '350px' : undefined}
+                          maxW={col.id === 'location_description' ? '350px' : col.id === 'eligibility' ? '220px' : undefined}
+                          className={col.id === 'eligibility' ? 'col-eligibility' : undefined}
                         >
                           {renderTableCell(drive, col.id)}
                         </Td>
@@ -394,7 +402,8 @@ const CompanyDrives = () => {
               </Tbody>
             </Table>
           </Box>
-        </Box>
+          </Box>
+        </Container>
       </Box>
     </CompanyLayout>
   );

@@ -547,9 +547,9 @@ const Events = () => {
         if (elig?.max_active_backlogs != null) tooltipParts.push(`Max Backlogs: ${elig.max_active_backlogs}`);
         return (
           <Tooltip label={tooltipParts.length ? tooltipParts.join('\n') : display} hasArrow placement="top">
-            <Box as="span" cursor="help" maxW="220px" display="block">
-              <Badge fontSize="10px" colorScheme="gray" variant="subtle" fontWeight="bold" textTransform="uppercase" letterSpacing="tighter" px={2} py={1} borderRadius="md">
-                <Text as="span" noOfLines={2}>{display || '—'}</Text>
+            <Box cursor="help" maxW="100%" minW={0} overflow="hidden" display="block">
+              <Badge fontSize="10px" colorScheme="gray" variant="subtle" fontWeight="bold" textTransform="uppercase" letterSpacing="tighter" px={2} py={1} borderRadius="md" whiteSpace="normal" maxW="100%" display="inline-block">
+                <Text as="span" noOfLines={2} wordBreak="break-word" overflowWrap="break-word">{display || '—'}</Text>
               </Badge>
             </Box>
           </Tooltip>
@@ -989,7 +989,7 @@ const Events = () => {
                           onClick={() => navigate(`/placement/events/${drive.id}/process`)}
                         >
                           {visibleTableColumns.map((col) => (
-                            <Td key={col.id} textAlign={col.id === 'actions' ? 'right' : 'left'} maxW={col.id === 'location_description' ? '350px' : undefined}>
+                            <Td key={col.id} textAlign={col.id === 'actions' ? 'right' : 'left'} maxW={col.id === 'location_description' ? '350px' : col.id === 'eligibility' ? '220px' : undefined} className={col.id === 'eligibility' ? 'col-eligibility' : undefined}>
                               {renderTableCell(drive, col.id)}
                             </Td>
                           ))}

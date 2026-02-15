@@ -138,7 +138,7 @@ const CompanyEvents = () => {
               Events
             </Heading>
             <Text color={colors.secondary} fontSize="md">
-              Pre-placement talks, interview days, and other placement events
+              Events shared with your company. When the placement team sends a notification about an event to companies, it appears here.
             </Text>
           </Box>
 
@@ -158,7 +158,7 @@ const CompanyEvents = () => {
                   </Flex>
                   <Heading size="md" color={colors.dark}>No events yet</Heading>
                   <Text color={colors.secondary} textAlign="center" maxW="400px">
-                    You'll see pre-placement talks, interview schedules, and other placement-related events here.
+                    When the placement team sends notifications about events to companies, they will appear here.
                   </Text>
                 </VStack>
               </CardBody>

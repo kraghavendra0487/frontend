@@ -268,20 +268,8 @@ const CompanyContacts = () => {
                   </Flex>
                   <Heading size="md" color={colors.dark}>No contacts yet</Heading>
                   <Text color={colors.secondary} textAlign="center" maxW="400px">
-                    Add your company's contact persons so the placement team can reach out to the right people.
+                    Use the &quot;Add Contact&quot; button above to add your company&apos;s contact persons.
                   </Text>
-                  <Button
-                    leftIcon={<AddIcon />}
-                    bg={colors.accent}
-                    color="white"
-                    _hover={{ bg: colors.accentHover }}
-                    onClick={openAddForm}
-                    size="lg"
-                    borderRadius="xl"
-                    mt={4}
-                  >
-                    Add Your First Contact
-                  </Button>
                 </VStack>
               </CardBody>
             </Card>

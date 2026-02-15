@@ -607,19 +607,8 @@ const CompanyProfile = () => {
                     <Icon as={FaUserTie} boxSize={8} color={colors.accent} opacity={0.6} />
                   </Flex>
                   <Text color={colors.secondary} textAlign="center">
-                    No contacts yet. Add contact persons for the placement team.
+                    No contacts yet. Use the &quot;Add Contact&quot; button above to add contact persons for the placement team.
                   </Text>
-                  <Button
-                    leftIcon={<AddIcon />}
-                    bg={colors.dark}
-                    color="white"
-                    _hover={{ bg: colors.darkBlue }}
-                    onClick={openAddContact}
-                    size="md"
-                    borderRadius="lg"
-                  >
-                    Add First Contact
-                  </Button>
                 </VStack>
               ) : (
                 <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={5}>

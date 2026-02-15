@@ -92,6 +92,10 @@ import CompanyDrives from './pages/company/CompanyDrives';
 import CompanyDriveDetail from './pages/company/CompanyDriveDetail';
 import CompanyStudentView from './pages/company/CompanyStudentView';
 import CompanyOffers from './pages/company/CompanyOffers';
+import CompanyEvents from './pages/company/CompanyEvents';
+import CompanyContacts from './pages/company/CompanyContacts';
+import CompanyNotificationsPage from './pages/company/CompanyNotificationsPage';
+import { CompanyService } from './services/company.service';
 import { UniversalProjectShowcase } from './pages/UniversalProjectShowcase';
 import ProjectsShowcase from './pages/ProjectsShowcase';
 import ProjectSharePage from './pages/ProjectSharePage';
@@ -540,11 +544,54 @@ const router = createBrowserRouter([
         path: "/company/notifications",
         element: (
           <PlacementProtectedRoute requiredRole="company">
-            <CompanyLayout>
-              <NotificationsComingSoon />
-            </CompanyLayout>
+            <CompanyNotificationsPage />
           </PlacementProtectedRoute>
         )
+      },
+      {
+        path: "/company/events",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyEvents />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/contacts",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <CompanyContacts />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/projects",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <ProjectsShowcasePage
+              LayoutComponent={CompanyLayout}
+              variant="company"
+              fetchProjects={async () => {
+                const data = await CompanyService.getProjects();
+                return Array.isArray(data) ? data : [];
+              }}
+              projectBasePath="/company/projects"
+            />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/company/projects/project/:projectId",
+        element: (
+          <PlacementProtectedRoute requiredRole="company">
+            <AdminProjectDetail
+              variant="company"
+              LayoutComponent={CompanyLayout}
+              fetchProjectById={CompanyService.getProjectById}
+            />
+          </PlacementProtectedRoute>
+        ),
+        errorElement: <ProjectDetailErrorBoundary />
       },
       {
         path: "/placement/overview",

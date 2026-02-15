@@ -62,6 +62,9 @@ function isRoundPassed(process, field) {
   return process[field] === true;
 }
 
+/** Company has view-only access to the process table; no editing status, remarks, or creating offers from here. */
+const COMPANY_VIEW_ONLY = true;
+
 const CompanyDriveDetail = () => {
   const { id: driveId } = useParams();
   const navigate = useNavigate();
@@ -326,7 +329,7 @@ const CompanyDriveDetail = () => {
   const placementStatus = String(drive?.placement_status || '').toLowerCase();
   const isCompleted = placementStatus === 'completed' || placementStatus === 'closed';
   const isOngoing = placementStatus === 'ongoing';
-  const canSetSelectionStatus = isOngoing;
+  const canSetSelectionStatus = !COMPANY_VIEW_ONLY && isOngoing;
   const displayCount = isRegisteredTab
     ? filteredProcesses.filter(isRegistered).length
     : filteredProcesses.length;
@@ -358,7 +361,7 @@ const CompanyDriveDetail = () => {
 
   return (
     <CompanyLayout>
-      <Box className="drive-process-page" bg="#f1f5f9" color="gray.800" minH="100vh" py={0}>
+      <Box className="drive-process-page" bg="#f0f0f0" color="gray.800" minH="100vh" py={0}>
         <Container maxW="100%" py={4} px={6}>
           <VStack align="stretch" spacing={4}>
             <Flex align="center" justify="space-between" flexWrap="wrap" gap={3}>
@@ -621,7 +624,7 @@ const CompanyDriveDetail = () => {
                 <Text fontSize="xs" color="gray.500">
                   {displayCount} of {processes.length} students
                 </Text>
-                {isJobOffersTab ? (
+                {!COMPANY_VIEW_ONLY && (isJobOffersTab ? (
                   <Button
                     colorScheme="green"
                     leftIcon={<Icon as={MdCardGiftcard} />}
@@ -655,6 +658,9 @@ const CompanyDriveDetail = () => {
                   >
                     Save Changes
                   </Button>
+                ))}
+                {COMPANY_VIEW_ONLY && (
+                  <Badge colorScheme="gray" fontSize="xs" px={2} py={1}>View only</Badge>
                 )}
               </HStack>
             </Flex>
@@ -672,17 +678,19 @@ const CompanyDriveDetail = () => {
                       <Tr>
                         {isJobOffersTab ? (
                           <>
-                            <Th className="table-header" px={2} py={3} w="40px">
-                              <Checkbox
-                                isChecked={selectedForOffers.length === filteredProcesses.length && filteredProcesses.length > 0}
-                                isIndeterminate={selectedForOffers.length > 0 && selectedForOffers.length < filteredProcesses.length}
-                                onChange={(e) => {
-                                  if (e.target.checked) setSelectedForOffers(filteredProcesses.map((p) => p.usn));
-                                  else setSelectedForOffers([]);
-                                }}
-                                colorScheme="green"
-                              />
-                            </Th>
+                            {!COMPANY_VIEW_ONLY && (
+                              <Th className="table-header" px={2} py={3} w="40px">
+                                <Checkbox
+                                  isChecked={selectedForOffers.length === filteredProcesses.length && filteredProcesses.length > 0}
+                                  isIndeterminate={selectedForOffers.length > 0 && selectedForOffers.length < filteredProcesses.length}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedForOffers(filteredProcesses.map((p) => p.usn));
+                                    else setSelectedForOffers([]);
+                                  }}
+                                  colorScheme="green"
+                                />
+                              </Th>
+                            )}
                             <Th className="table-header" px={4} py={3} minW="180px">USN / Name</Th>
                             <Th className="table-header" px={3} py={3} minW="120px">School</Th>
                             <Th className="table-header" px={3} py={3} textAlign="center" minW="100px">Final Status</Th>
@@ -720,7 +728,7 @@ const CompanyDriveDetail = () => {
                       {filteredProcesses.length === 0 ? (
                         <Tr>
                           <Td
-                            colSpan={isJobOffersTab ? 5 : isAllRoundsView ? processRounds.length + 5 : 4}
+                            colSpan={isJobOffersTab ? (COMPANY_VIEW_ONLY ? 4 : 5) : isAllRoundsView ? processRounds.length + 5 : 4}
                             textAlign="center"
                             py={10}
                             color="gray.500"
@@ -749,16 +757,18 @@ const CompanyDriveDetail = () => {
                           >
                             {isJobOffersTab ? (
                               <>
-                                <Td px={2} py={3}>
-                                  <Checkbox
-                                    isChecked={selectedForOffers.includes(process.usn)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) setSelectedForOffers((prev) => [...prev, process.usn]);
-                                      else setSelectedForOffers((prev) => prev.filter((u) => u !== process.usn));
-                                    }}
-                                    colorScheme="green"
-                                  />
-                                </Td>
+                                {!COMPANY_VIEW_ONLY && (
+                                  <Td px={2} py={3}>
+                                    <Checkbox
+                                      isChecked={selectedForOffers.includes(process.usn)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) setSelectedForOffers((prev) => [...prev, process.usn]);
+                                        else setSelectedForOffers((prev) => prev.filter((u) => u !== process.usn));
+                                      }}
+                                      colorScheme="green"
+                                    />
+                                  </Td>
+                                )}
                                 <Td px={4} py={3} whiteSpace="nowrap" cursor="pointer" _hover={{ textDecoration: 'underline' }} onClick={() => process.usn && navigate(`/company/student/${process.usn}`)}>
                                   <Box fontSize="sm" fontWeight="bold" color="blue.600">{process.usn}</Box>
                                   <Box fontSize="xs" color="gray.500">{process.student_name || '-'}</Box>
@@ -785,25 +795,35 @@ const CompanyDriveDetail = () => {
                                   </Td>
                                 ))}
                                 <Td px={3} py={3} textAlign="center">
-                                  <Checkbox
-                                    isChecked={process.malpractice === true}
-                                    onChange={(e) => handleProcessFieldChange(process.id, 'malpractice', e.target.checked)}
-                                    colorScheme="red"
-                                    size="lg"
-                                  />
+                                  {COMPANY_VIEW_ONLY ? (
+                                    <span className={`status-pill ${process.malpractice ? 'status-fail' : 'status-pass'}`}>
+                                      {process.malpractice ? 'YES' : 'NO'}
+                                    </span>
+                                  ) : (
+                                    <Checkbox
+                                      isChecked={process.malpractice === true}
+                                      onChange={(e) => handleProcessFieldChange(process.id, 'malpractice', e.target.checked)}
+                                      colorScheme="red"
+                                      size="lg"
+                                    />
+                                  )}
                                 </Td>
                                 <Td px={4} py={3}>
-                                  <Input
-                                    size="sm"
-                                    bg="gray.50"
-                                    borderRadius="md"
-                                    borderWidth="1px"
-                                    borderColor="gray.200"
-                                    _focus={{ borderColor: 'blue.300', boxShadow: '0 0 0 1px var(--chakra-colors-blue-300)' }}
-                                    placeholder="Remarks..."
-                                    value={process.remarks || ''}
-                                    onChange={(e) => handleProcessFieldChange(process.id, 'remarks', e.target.value)}
-                                  />
+                                  {COMPANY_VIEW_ONLY ? (
+                                    <Text fontSize="sm" color="gray.600" noOfLines={2}>{process.remarks || '—'}</Text>
+                                  ) : (
+                                    <Input
+                                      size="sm"
+                                      bg="gray.50"
+                                      borderRadius="md"
+                                      borderWidth="1px"
+                                      borderColor="gray.200"
+                                      _focus={{ borderColor: 'blue.300', boxShadow: '0 0 0 1px var(--chakra-colors-blue-300)' }}
+                                      placeholder="Remarks..."
+                                      value={process.remarks || ''}
+                                      onChange={(e) => handleProcessFieldChange(process.id, 'remarks', e.target.value)}
+                                    />
+                                  )}
                                 </Td>
                               </>
                             ) : (
@@ -856,18 +876,22 @@ const CompanyDriveDetail = () => {
                                   </Flex>
                                 </Td>
                                 <Td px={4} py={3}>
-                                  <Input
-                                    size="sm"
-                                    bg="gray.50"
-                                    p={2}
-                                    borderRadius="md"
-                                    borderWidth="1px"
-                                    borderColor="gray.200"
-                                    _focus={{ borderColor: 'blue.300', boxShadow: '0 0 0 1px var(--chakra-colors-blue-300)' }}
-                                    placeholder="Add note..."
-                                    value={process.remarks || ''}
-                                    onChange={(e) => handleProcessFieldChange(process.id, 'remarks', e.target.value)}
-                                  />
+                                  {COMPANY_VIEW_ONLY ? (
+                                    <Text fontSize="sm" color="gray.600" noOfLines={2}>{process.remarks || '—'}</Text>
+                                  ) : (
+                                    <Input
+                                      size="sm"
+                                      bg="gray.50"
+                                      p={2}
+                                      borderRadius="md"
+                                      borderWidth="1px"
+                                      borderColor="gray.200"
+                                      _focus={{ borderColor: 'blue.300', boxShadow: '0 0 0 1px var(--chakra-colors-blue-300)' }}
+                                      placeholder="Add note..."
+                                      value={process.remarks || ''}
+                                      onChange={(e) => handleProcessFieldChange(process.id, 'remarks', e.target.value)}
+                                    />
+                                  )}
                                 </Td>
                               </>
                             )}

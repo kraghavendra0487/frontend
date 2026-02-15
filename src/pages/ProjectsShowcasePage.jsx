@@ -175,7 +175,7 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
     }
   };
 
-  const projectsBase = projectBasePath ?? (variant === 'admin' ? '/placement/gallery' : '/placement/alumni-projects');
+  const projectsBase = projectBasePath ?? (variant === 'admin' ? '/placement/gallery' : variant === 'company' ? '/company/projects' : '/placement/alumni-projects');
   const goToProjectDetail = (project, e) => {
     if (e) e.stopPropagation();
     if (project?.id) {
@@ -192,8 +192,11 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
     navigate(`/placement/gallery/manage?project=${project.id}&tab=${status}`);
   };
 
-  const studentLink = (usn) =>
-    variant === 'admin' ? `/placement/students/${encodeURIComponent(usn || '')}` : `/placement/alumni-student/${encodeURIComponent(usn || '')}`;
+  const studentLink = (usn) => {
+    if (variant === 'admin') return `/placement/students/${encodeURIComponent(usn || '')}`;
+    if (variant === 'company') return `/company/student/${encodeURIComponent(usn || '')}`;
+    return `/placement/alumni-student/${encodeURIComponent(usn || '')}`;
+  };
 
   const isAdmin = variant === 'admin';
 
@@ -211,9 +214,14 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
     <LayoutComponent>
       <Box bg="#f0f0f0" minH="100vh" py={6} color="gray.800">
         <Container maxW="6xl">
-          <Heading size="lg" mb={6} color="gray.800" fontFamily="inherit">
-            Showcase Projects
+          <Heading size="lg" mb={variant === 'company' ? 1 : 6} color="gray.800" fontFamily="inherit">
+            {variant === 'company' ? 'Student Projects' : 'Showcase Projects'}
           </Heading>
+          {variant === 'company' && (
+            <Text mb={6} color="gray.600" fontSize="sm">
+              Projects from students who have registered to your placement drives.
+            </Text>
+          )}
 
           <Flex
             direction={{ base: 'column', md: 'row' }}
@@ -561,7 +569,9 @@ export default function ProjectsShowcasePage({ LayoutComponent, variant = 'admin
                   {showcaseFilter === 'favorites'
                     ? 'No favorited projects yet. Click the bookmark icon on any project to add it to your favorites.'
                     : projects.length === 0
-                      ? 'No projects found.'
+                      ? (variant === 'company'
+                        ? 'No student projects yet. Projects from students who register to your placement drives will appear here.'
+                        : 'No projects found.')
                       : 'No projects match your search. Try different keywords.'}
                 </Text>
               </Box>
