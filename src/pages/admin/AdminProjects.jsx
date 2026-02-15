@@ -109,13 +109,13 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     const tab = params.get('tab');
     return {
       projectId: project ? parseInt(project, 10) : null,
-      tab: tab && ['not_approved', 'approved', 'rejected', 'archived'].includes(tab) ? tab : null,
+      tab: tab && ['all', 'not_approved', 'approved', 'rejected', 'archived'].includes(tab) ? tab : null,
     };
   }, [location.search]);
   const projectIdFromUrl = urlParams.projectId;
   const tabFromUrl = urlParams.tab;
   const [manageSearch, setManageSearch] = useState('');
-  const [manageFilter, setManageFilter] = useState(tabFromUrl || 'not_approved');
+  const [manageFilter, setManageFilter] = useState(tabFromUrl || 'all');
   const highlightedProjectId = projectIdFromUrl;
   const highlightedProjectRef = useRef(null);
 
@@ -212,6 +212,8 @@ const AdminProjects = ({ mode = 'showcase' }) => {
     }
   }, [mode, tabFromUrl]);
 
+  const manageTabIds = ['all', 'not_approved', 'approved', 'rejected', 'archived'];
+
   // Showcase Tab Filtered Projects (approved only)
   const filteredProjects = useMemo(() => {
     const isApproved = (p) => {
@@ -252,7 +254,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
       if (s === 'draft' || s === 'submitted') return 'not_approved';
       return s;
     };
-    let res = projects.filter((p) => norm(p) === manageFilter);
+    let res = manageFilter === 'all' ? projects : projects.filter((p) => norm(p) === manageFilter);
     if (manageSearch.trim()) {
       const q = manageSearch.trim().toLowerCase();
       res = res.filter((p) => {
@@ -418,6 +420,7 @@ const AdminProjects = ({ mode = 'showcase' }) => {
   const approvedCount = projects.filter((p) => (p.project_status || (p.is_approved ? 'approved' : '')) === 'approved').length;
   const rejectedCount = projects.filter((p) => (p.project_status || '') === 'rejected').length;
   const archivedCount = projects.filter((p) => (p.project_status || '') === 'archived').length;
+  const allCount = projects.length;
 
   if (loading && projects.length === 0) {
     return (
@@ -971,15 +974,26 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                     </InputGroup>
                   </Flex>
 
-                  <Tabs variant="soft-rounded" colorScheme="green" index={['not_approved', 'approved', 'rejected', 'archived'].indexOf(manageFilter)} onChange={(i) => setManageFilter(['not_approved', 'approved', 'rejected', 'archived'][i])}>
-                    <TabList mb={4} bg="gray.50" p={1} borderRadius="xl" display="flex" flexWrap="wrap">
-                      <Tab _selected={{ color: 'white', bg: PLAY_GREEN }}>Not Approved ({notApprovedCount})</Tab>
-                      <Tab _selected={{ color: 'white', bg: PLAY_GREEN }}>Approved ({approvedCount})</Tab>
-                      <Tab _selected={{ color: 'white', bg: PLAY_GREEN }}>Rejected ({rejectedCount})</Tab>
-                      <Tab _selected={{ color: 'white', bg: PLAY_GREEN }}>Archived ({archivedCount})</Tab>
+                  <Tabs variant="line" colorScheme="blue" index={manageTabIds.indexOf(manageFilter)} onChange={(i) => setManageFilter(manageTabIds[i])}>
+                    <TabList mb={4} borderBottom="2px" borderColor="gray.200" display="flex" flexWrap="wrap" gap={0}>
+                      <Tab _selected={{ color: 'blue.600', borderColor: 'blue.600', fontWeight: '600' }} borderBottom="3px" borderColor="transparent" mb="-2px" mr={6}>
+                        All ({allCount})
+                      </Tab>
+                      <Tab _selected={{ color: 'blue.600', borderColor: 'blue.600', fontWeight: '600' }} borderBottom="3px" borderColor="transparent" mb="-2px" mr={6}>
+                        Not Approved ({notApprovedCount})
+                      </Tab>
+                      <Tab _selected={{ color: 'blue.600', borderColor: 'blue.600', fontWeight: '600' }} borderBottom="3px" borderColor="transparent" mb="-2px" mr={6}>
+                        Approved ({approvedCount})
+                      </Tab>
+                      <Tab _selected={{ color: 'blue.600', borderColor: 'blue.600', fontWeight: '600' }} borderBottom="3px" borderColor="transparent" mb="-2px" mr={6}>
+                        Rejected ({rejectedCount})
+                      </Tab>
+                      <Tab _selected={{ color: 'blue.600', borderColor: 'blue.600', fontWeight: '600' }} borderBottom="3px" borderColor="transparent" mb="-2px" mr={6}>
+                        Archived ({archivedCount})
+                      </Tab>
                     </TabList>
                     <TabPanels>
-                      {['not_approved', 'approved', 'rejected', 'archived'].map((status) => (
+                      {manageTabIds.map((status) => (
                         <TabPanel key={status} p={0}>
                           {manageFilteredProjects.length === 0 ? (
                             <Text textAlign="center" color="gray.500" mt={8}>
@@ -990,232 +1004,221 @@ const AdminProjects = ({ mode = 'showcase' }) => {
                               {manageFilteredProjects.map((p) => {
                                 const icon = (p.project_snaps || [])[0];
                                 const screenshots = p.project_snaps || [];
-                                const desc = p.full_description || p.one_line_description || 'No description.';
                                 const edits = getProjectEdits(p);
                                 const avg = avgRating(p);
                                 const isHighlighted = highlightedProjectId && Number(p.id) === Number(highlightedProjectId);
+                                const statusLabel = (s) => {
+                                  if (s === 'approved') return 'Approved';
+                                  if (s === 'not_approved') return 'Not Approved';
+                                  if (s === 'rejected') return 'Rejected';
+                                  if (s === 'archived') return 'Archived';
+                                  return s || 'Not Approved';
+                                };
+                                const displayStatus = statusLabel(edits.projectStatus);
                                 return (
                                   <Box
                                     key={p.id}
                                     ref={isHighlighted ? highlightedProjectRef : null}
-                                    p={5}
-                                    borderRadius={CARD_RADIUS}
+                                    p={{ base: 4, md: 6 }}
+                                    borderRadius="xl"
                                     shadow={CARD_SHADOW}
                                     bg="white"
                                     borderWidth={isHighlighted ? '3px' : 0}
-                                    borderColor={PLAY_GREEN}
+                                    borderColor="blue.500"
                                     borderStyle="solid"
-                                    boxShadow={isHighlighted ? `0 0 0 3px ${PLAY_GREEN}40, ${CARD_SHADOW}` : CARD_SHADOW}
+                                    boxShadow={isHighlighted ? '0 0 0 3px rgba(49, 130, 206, 0.3), 0 1px 2px 0 rgba(60,64,67,.3)' : CARD_SHADOW}
                                     transition="all 0.3s ease"
                                   >
-                                    <Flex
-                                      direction={{ base: 'column', md: 'row' }}
-                                      justify="space-between"
-                                      align={{ base: 'stretch', md: 'flex-start' }}
-                                      gap={4}
-                                      flexWrap="wrap"
-                                      mb={2}
-                                    >
-                                      <HStack align="center" spacing={4} flex={1} minW={0}>
+                                    <Flex direction={{ base: 'column', md: 'row' }} gap={6}>
+                                      {/* Thumbnail */}
+                                      <Box w={{ base: '100%', md: '128px' }} h="128px" flexShrink={0} borderRadius="2xl" overflow="hidden" bg="gray.100" border="1px solid" borderColor="gray.100">
                                         {icon ? (
-                                          <Box boxSize="64px" flexShrink={0} borderRadius="lg" overflow="hidden" border="1px solid" borderColor="gray.100">
-                                            <Image src={getFileUrl(icon)} w="100%" h="100%" objectFit="cover" onError={(e) => { e.target.style.display = 'none'; }} />
-                                          </Box>
+                                          <Image src={getFileUrl(icon)} w="100%" h="100%" objectFit="cover" onError={(e) => { e.target.style.display = 'none'; }} />
                                         ) : (
-                                          <Box boxSize="64px" flexShrink={0} borderRadius="lg" bg="gray.100" />
+                                          <Box w="100%" h="100%" bg="gray.200" />
                                         )}
-                                        <Box minW={0}>
-                                          <Text fontSize="lg" fontWeight="bold" color="gray.900">{p.title}</Text>
-                                          <Text color={PLAY_GREEN} fontSize="sm" fontWeight="medium">{p.usn}</Text>
-                                          <Text color="gray.500" fontSize="xs">
-                                            {p.genre || '—'} • {p.project_status || (p.is_approved ? 'approved' : 'not approved')}
-                                          </Text>
-                                        </Box>
-                                      </HStack>
-                                      <VStack align={{ base: 'stretch', md: 'flex-end' }} spacing={3} minW={{ md: '280px' }}>
-                                        <HStack spacing={4} flexWrap="wrap" align="center">
-                                          <HStack spacing={2} align="center">
-                                            <Text fontSize="xs" fontWeight="500" whiteSpace="nowrap">Rating</Text>
-                                            <HStack spacing={0.5} role="group">
-                                              {[1, 2, 3, 4, 5].map((star) => {
-                                                const filled = edits.adminRating != null && edits.adminRating > 0 && star <= Math.round(edits.adminRating);
-                                                return (
-                                                  <Box
-                                                    key={star}
-                                                    as="button"
-                                                    type="button"
-                                                    onClick={() => setProjectEdit(p.id, 'adminRating', star)}
-                                                    _hover={{ transform: 'scale(1.15)' }}
-                                                    _active={{ transform: 'scale(0.95)' }}
-                                                    transition="transform 0.15s ease"
-                                                    cursor="pointer"
-                                                    aria-label={`Rate ${star} stars`}
-                                                    outline="none"
-                                                    border="none"
-                                                    bg="transparent"
-                                                    p={0}
-                                                    minW="auto"
-                                                    _focus={{ outline: 'none', boxShadow: 'none' }}
-                                                  >
-                                                    <Icon
-                                                      as={filled ? FaStar : FaRegStar}
-                                                      boxSize={5}
-                                                      color={filled ? 'yellow.400' : 'gray.300'}
-                                                      transition="color 0.15s ease"
-                                                    />
-                                                  </Box>
-                                                );
-                                              })}
-                                            </HStack>
+                                      </Box>
+
+                                      {/* Content */}
+                                      <Box flex={1} minW={0}>
+                                        {/* Title + Stars */}
+                                        <Flex justify="space-between" align="flex-start" mb={1}>
+                                          <Text fontSize="lg" fontWeight="600" color="gray.900">{p.title}</Text>
+                                          <HStack spacing={0.5} role="group">
+                                            {[1, 2, 3, 4, 5].map((star) => {
+                                              const filled = edits.adminRating != null && edits.adminRating > 0 && star <= Math.round(edits.adminRating);
+                                              return (
+                                                <Box
+                                                  key={star}
+                                                  as="button"
+                                                  type="button"
+                                                  onClick={() => setProjectEdit(p.id, 'adminRating', star)}
+                                                  _hover={{ transform: 'scale(1.1)' }}
+                                                  cursor="pointer"
+                                                  aria-label={`Rate ${star} stars`}
+                                                  outline="none"
+                                                  border="none"
+                                                  bg="transparent"
+                                                  p={0}
+                                                >
+                                                  <Icon as={filled ? FaStar : FaRegStar} boxSize={4} color={filled ? 'yellow.400' : 'gray.300'} />
+                                                </Box>
+                                              );
+                                            })}
                                           </HStack>
-                                          <Menu>
-                                            <MenuButton
-                                              as={Button}
-                                              size="sm"
-                                              variant="outline"
-                                              rightIcon={<Icon as={FaChevronDown} boxSize={3} />}
-                                              minW="140px"
-                                            >
-                                              <Badge
-                                                colorScheme={edits.projectStatus === 'approved' ? 'green' : edits.projectStatus === 'not_approved' ? 'yellow' : edits.projectStatus === 'rejected' ? 'red' : 'gray'}
-                                                variant="subtle"
-                                                textTransform="capitalize"
-                                              >
-                                                {edits.projectStatus.replace('_', ' ')}
-                                              </Badge>
-                                            </MenuButton>
-                                            <MenuList>
-                                              <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'not_approved')}>
-                                                <Badge colorScheme="yellow" mr={2}>Not approved</Badge>
-                                              </MenuItem>
-                                              <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'approved')}>
-                                                <Badge colorScheme="green" mr={2}>Approved</Badge>
-                                              </MenuItem>
-                                              <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'rejected')}>
-                                                <Badge colorScheme="red" mr={2}>Rejected</Badge>
-                                              </MenuItem>
-                                              <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'archived')}>
-                                                <Badge colorScheme="gray" mr={2}>Archived</Badge>
-                                              </MenuItem>
-                                            </MenuList>
-                                          </Menu>
+                                        </Flex>
+
+                                        {/* USN • Genre tags */}
+                                        <HStack spacing={2} mb={4} flexWrap="wrap">
+                                          <Box px={3} py={1} borderRadius="lg" bg="gray.100" border="1px solid" borderColor="gray.200">
+                                            <Text fontSize="sm" fontWeight="500" color="gray.600">{p.usn}</Text>
+                                          </Box>
+                                          <Box px={3} py={1} borderRadius="lg" bg="gray.100" border="1px solid" borderColor="gray.200">
+                                            <Text fontSize="sm" fontWeight="500" color="gray.600">{p.genre || '—'}</Text>
+                                          </Box>
                                         </HStack>
-                                        <HStack spacing={2} flexWrap="wrap">
+
+                                        {/* Action buttons: Like, Favorite, Full details, View Profile, Demo */}
+                                        <HStack spacing={2} mb={4} flexWrap="wrap">
                                           <Tooltip label={p.is_liked ? 'Unlike' : 'Like'}>
-                                            <IconButton
-                                              icon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
-                                              size="sm"
+                                            <Button
+                                              size="xs"
                                               variant="outline"
-                                              color={p.is_liked ? 'red.500' : 'gray.500'}
-                                              _hover={{ color: 'red.500' }}
+                                              leftIcon={<Icon as={p.is_liked ? FaHeart : FaRegHeart} />}
+                                              color={p.is_liked ? 'red.500' : 'gray.600'}
+                                              borderColor="gray.300"
+                                              _hover={{ bg: 'gray.50' }}
                                               onClick={(e) => { e.stopPropagation(); handleLike(p.id, e); }}
                                               isLoading={likingId === p.id}
-                                              aria-label={p.is_liked ? 'Unlike' : 'Like'}
-                                            />
+                                            >
+                                              Like
+                                            </Button>
                                           </Tooltip>
                                           <Tooltip label={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}>
-                                            <IconButton
-                                              icon={<Icon as={p.is_favorited ? FaBookmark : FaRegBookmark} />}
-                                              size="sm"
+                                            <Button
+                                              size="xs"
                                               variant="outline"
-                                              color={p.is_favorited ? 'orange.500' : 'gray.500'}
-                                              _hover={{ color: 'orange.500' }}
+                                              leftIcon={<Icon as={p.is_favorited ? FaBookmark : FaRegBookmark} />}
+                                              color={p.is_favorited ? 'orange.500' : 'gray.600'}
+                                              borderColor="gray.300"
+                                              _hover={{ bg: 'gray.50' }}
                                               onClick={(e) => { e.stopPropagation(); handleFavorite(p.id, e); }}
                                               isLoading={favoritingId === p.id}
-                                              aria-label={p.is_favorited ? 'Remove from favorites' : 'Add to favorites'}
-                                            />
+                                            >
+                                              Favorite
+                                            </Button>
                                           </Tooltip>
                                           <Button
-                                            size="sm"
-                                            bg={PLAY_GREEN}
-                                            color="white"
-                                            _hover={{ bg: PLAY_GREEN_HOVER }}
-                                            leftIcon={<StarIcon />}
-                                            onClick={() => handleSaveForProject(p)}
-                                            isLoading={savingProjectId === p.id}
+                                            size="xs"
+                                            variant="outline"
+                                            leftIcon={<ViewIcon />}
+                                            borderColor="blue.200"
+                                            bg="blue.50"
+                                            color="blue.600"
+                                            _hover={{ bg: 'blue.100', borderColor: 'blue.300' }}
+                                            onClick={() => navigate(`/placement/gallery/project/${p.id}`)}
                                           >
-                                            Save
+                                            Full details
                                           </Button>
                                           <Button
-                                            size="sm"
+                                            size="xs"
                                             variant="outline"
                                             leftIcon={<Icon as={FaUser} />}
-                                            onClick={() => navigate(`/placement/students/${p.usn}`)}
+                                            color="gray.600"
+                                            borderColor="gray.300"
+                                            _hover={{ bg: 'gray.50' }}
+                                            onClick={() => navigate(`/placement/students/${encodeURIComponent(p.usn || '')}`)}
                                           >
                                             View Profile
                                           </Button>
                                           {p.hosted_link && (
-                                            <Button as={Link} href={p.hosted_link} isExternal size="sm" variant="outline" leftIcon={<Icon as={FaExternalLinkAlt} />}>
+                                            <Button as={Link} href={p.hosted_link} isExternal size="xs" variant="outline" leftIcon={<Icon as={FaExternalLinkAlt} />} color="gray.600" borderColor="gray.300" _hover={{ bg: 'gray.50' }}>
                                               Demo
                                             </Button>
                                           )}
                                           {p.github_repo && (
-                                            <Button as={Link} href={p.github_repo} isExternal size="sm" variant="outline" leftIcon={<Icon as={FaGithub} />}>
+                                            <Button as={Link} href={p.github_repo} isExternal size="xs" variant="outline" leftIcon={<Icon as={FaGithub} />} color="gray.600" borderColor="gray.300" _hover={{ bg: 'gray.50' }}>
                                               Code
                                             </Button>
                                           )}
                                         </HStack>
-                                      </VStack>
-                                    </Flex>
 
-                                    <Flex gap={8} py={3} overflowX="auto" sx={{ '&::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
-                                      <Box textAlign="center" minW={14}>
-                                        <HStack justify="center" spacing={0.5}>
-                                          <Text fontWeight="bold" fontSize="sm">{avg != null ? avg.toFixed(1) : '—'}</Text>
-                                          <Icon as={StarIcon} boxSize={3} />
-                                        </HStack>
-                                        <Text fontSize="10px" color="gray.500" textTransform="uppercase">Rating</Text>
-                                      </Box>
-                                      <Box borderLeft="1px" borderColor="gray.200" />
-                                      <Box textAlign="center" minW={14}>
-                                        <Text fontWeight="bold" fontSize="sm"><Icon as={ViewIcon} boxSize={3} mr={0.5} />{formatCount(p.views_count)}</Text>
-                                        <Text fontSize="10px" color="gray.500" textTransform="uppercase">Views</Text>
-                                      </Box>
-                                      <Box borderLeft="1px" borderColor="gray.200" />
-                                      <Box textAlign="center" minW={14}>
-                                        <Text fontWeight="bold" fontSize="sm">♥ {formatCount(p.likes_count)}</Text>
-                                        <Text fontSize="10px" color="gray.500" textTransform="uppercase">Likes</Text>
-                                      </Box>
-                                      <Box borderLeft="1px" borderColor="gray.200" />
-                                      <Box textAlign="center" minW={14}>
-                                        <Badge colorScheme={p.project_status === 'approved' ? 'green' : p.project_status === 'not_approved' ? 'yellow' : p.project_status === 'rejected' ? 'red' : 'gray'} borderRadius="md" fontSize="10px">
-                                          {p.project_status || (p.is_approved ? 'approved' : 'not approved')}
-                                        </Badge>
-                                        <Text fontSize="10px" color="gray.500" textTransform="uppercase" mt={0.5}>Status</Text>
-                                      </Box>
-                                    </Flex>
-
-                                    <Text color="gray.600" fontSize="sm" lineHeight="relaxed" noOfLines={{ base: 2, md: 3 }} mb={3}>
-                                      {desc}
-                                    </Text>
-
-                                    {screenshots.length > 0 && (
-                                      <SimpleGrid columns={4} spacing={3}>
-                                        {[0, 1, 2, 3].map((i) => {
-                                          const snap = screenshots[i] || null;
-                                          return (
-                                            <Box
-                                              key={i}
-                                              aspectRatio="16/9"
-                                              borderRadius="xl"
-                                              overflow="hidden"
-                                              border="1px solid"
-                                              borderColor={snap ? 'gray.200' : 'transparent'}
-                                              bg={snap ? '#000' : 'transparent'}
-                                              display="flex"
-                                              alignItems="center"
-                                              justifyContent="center"
+                                        {/* Rating, Views, Likes, Status | Dropdown + Save */}
+                                        <Flex pt={4} borderTop="1px" borderColor="gray.100" flexWrap="wrap" justify="space-between" align="center" gap={4}>
+                                          <HStack spacing={4} flexWrap="wrap">
+                                            <Text fontSize="xs" color="gray.500">Rating: <Text as="span" fontWeight="600" color="gray.700">{avg != null ? avg.toFixed(1) : '—'}</Text></Text>
+                                            <Text fontSize="xs" color="gray.500">Views: <Text as="span" fontWeight="600" color="gray.700">{formatCount(p.views_count)}</Text></Text>
+                                            <Text fontSize="xs" color="gray.500">Likes: <Text as="span" fontWeight="600" color="gray.700">{formatCount(p.likes_count)}</Text></Text>
+                                            <Badge
+                                              px={3}
+                                              py={0.5}
+                                              borderRadius="full"
+                                              fontSize="xs"
+                                              colorScheme={edits.projectStatus === 'approved' ? 'green' : edits.projectStatus === 'not_approved' ? 'orange' : edits.projectStatus === 'rejected' ? 'red' : 'gray'}
+                                              variant="subtle"
                                             >
-                                              {snap ? (
-                                                <Image src={getFileUrl(snap)} w="100%" h="100%" objectFit="contain" onError={(e) => { e.target.style.display = 'none'; }} />
-                                              ) : (
-                                                <Box w="100%" h="100%" />
-                                              )}
-                                            </Box>
-                                          );
-                                        })}
-                                      </SimpleGrid>
-                                    )}
+                                              {displayStatus}
+                                            </Badge>
+                                          </HStack>
+                                          <HStack spacing={2}>
+                                            <Menu>
+                                              <MenuButton
+                                                as={Button}
+                                                size="sm"
+                                                variant="outline"
+                                                rightIcon={<Icon as={FaChevronDown} boxSize={3} />}
+                                                minW="140px"
+                                                borderColor="gray.300"
+                                              >
+                                                {displayStatus}
+                                              </MenuButton>
+                                              <MenuList>
+                                                <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'not_approved')}>Not Approved</MenuItem>
+                                                <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'approved')}>Approved</MenuItem>
+                                                <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'rejected')}>Rejected</MenuItem>
+                                                <MenuItem onClick={() => setProjectEdit(p.id, 'projectStatus', 'archived')}>Archived</MenuItem>
+                                              </MenuList>
+                                            </Menu>
+                                            <Button
+                                              size="sm"
+                                              bg="blue.600"
+                                              color="white"
+                                              _hover={{ bg: 'blue.700' }}
+                                              onClick={() => handleSaveForProject(p)}
+                                              isLoading={savingProjectId === p.id}
+                                            >
+                                              Save
+                                            </Button>
+                                          </HStack>
+                                        </Flex>
+
+                                        {/* Screenshots */}
+                                        {screenshots.length > 0 && (
+                                          <SimpleGrid columns={4} spacing={2} mt={4}>
+                                            {[0, 1, 2, 3].map((i) => {
+                                              const snap = screenshots[i] || null;
+                                              return (
+                                                <Box
+                                                  key={i}
+                                                  aspectRatio="16/9"
+                                                  borderRadius="lg"
+                                                  overflow="hidden"
+                                                  bg="gray.200"
+                                                  cursor={snap ? 'pointer' : 'default'}
+                                                  onClick={snap ? () => navigate(`/placement/gallery/project/${p.id}`, { replace: false }) : undefined}
+                                                  _hover={snap ? { opacity: 0.9 } : {}}
+                                                  transition="opacity 0.2s"
+                                                >
+                                                  {snap ? (
+                                                    <Image src={getFileUrl(snap)} w="100%" h="100%" objectFit="cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                                                  ) : null}
+                                                </Box>
+                                              );
+                                            })}
+                                          </SimpleGrid>
+                                        )}
+                                      </Box>
+                                    </Flex>
                                   </Box>
                                 );
                               })}

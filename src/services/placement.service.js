@@ -732,6 +732,12 @@ export const PlacementService = {
     return response.data;
   },
 
+  /** Admin: get full project by id (assets, variants, reviews, share links, metrics) */
+  getProjectById: async (id) => {
+    const response = await apiFetch(`/admin/projects/${id}`);
+    return response.data;
+  },
+
   /** Admin: update project (project_status: approved|rejected|archived, admin_rating 1-5) */
   updateProject: async (id, data) => {
     const payload = {};
@@ -743,6 +749,85 @@ export const PlacementService = {
       body: JSON.stringify(payload),
     });
     return response.data;
+  },
+
+  /** Admin: delete project and all sub-tables */
+  deleteProject: async (id) => {
+    await apiFetch(`/admin/projects/${id}`, { method: 'DELETE' });
+  },
+
+  /** Admin: add asset to project */
+  addProjectAsset: async (projectId, data) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/assets`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  /** Admin: delete project asset */
+  deleteProjectAsset: async (projectId, assetId) => {
+    await apiFetch(`/admin/projects/${projectId}/assets/${assetId}`, { method: 'DELETE' });
+  },
+
+  /** Admin: update project asset (position, asset_role) */
+  updateProjectAsset: async (projectId, assetId, data) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/assets/${assetId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return response.data;
+  },
+
+  /** Admin: list asset variants */
+  getProjectAssetVariants: async (projectId, assetId) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/assets/${assetId}/variants`);
+    return response.data ?? [];
+  },
+
+  /** Admin: delete asset variant */
+  deleteProjectAssetVariant: async (projectId, assetId, variantId) => {
+    await apiFetch(`/admin/projects/${projectId}/assets/${assetId}/variants/${variantId}`, { method: 'DELETE' });
+  },
+
+  /** Admin: list project reviews */
+  getProjectReviews: async (projectId) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/reviews`);
+    return response.data ?? [];
+  },
+
+  /** Admin: add project review */
+  addProjectReview: async (projectId, reviewText) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ review_text: reviewText }),
+    });
+    return response.data;
+  },
+
+  /** Admin: delete project review */
+  deleteProjectReview: async (projectId, reviewId) => {
+    await apiFetch(`/admin/projects/${projectId}/reviews/${reviewId}`, { method: 'DELETE' });
+  },
+
+  /** Admin: list project share links */
+  getProjectShareLinks: async (projectId) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/share-links`);
+    return response.data ?? [];
+  },
+
+  /** Admin: create project share link */
+  createProjectShareLink: async (projectId, expiresInHours = 168) => {
+    const response = await apiFetch(`/admin/projects/${projectId}/share-links`, {
+      method: 'POST',
+      body: JSON.stringify({ expires_in_hours: expiresInHours }),
+    });
+    return response.data;
+  },
+
+  /** Admin: delete project share link */
+  deleteProjectShareLink: async (projectId, linkId) => {
+    await apiFetch(`/admin/projects/${projectId}/share-links/${linkId}`, { method: 'DELETE' });
   },
 
   /** Public: get approved PUBLIC projects for showcase (uses /api/projects/feed) */

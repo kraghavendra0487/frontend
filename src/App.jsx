@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { createBrowserRouter, RouterProvider, Outlet, useLocation, Navigate, useParams } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Outlet, useLocation, Navigate, useParams, Link } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -42,6 +42,7 @@ import CompanyLayout from './components/CompanyLayout';
 import BulkEmail from './pages/admin/BulkEmail';
 import UserLoginManagement from './pages/admin/UserLoginManagement';
 import AdminProjects from './pages/admin/AdminProjects';
+import AdminProjectDetail from './pages/admin/AdminProjectDetail';
 import AdminHrRecommendations from './pages/admin/AdminHrRecommendations';
 import Violations from './pages/admin/Violations';
 import JobOffers from './pages/admin/JobOffers';
@@ -89,11 +90,12 @@ import ProjectsShowcase from './pages/ProjectsShowcase';
 import ProjectSharePage from './pages/ProjectSharePage';
 import EventsPage from './pages/EventsPage';
 import './App.css';
-import { Flex, Box } from '@chakra-ui/react';
+import { Flex, Box, Heading, Text, Button } from '@chakra-ui/react';
 import { AuthProvider } from './context/AuthContext';
 import { PlacementTrackPolicyProvider } from './context/PlacementTrackPolicyProvider';
 import { StudentDataCacheProvider } from './context/StudentDataCacheContext';
 import PlacementProtectedRoute from './components/PlacementProtectedRoute';
+import ProjectDetailErrorBoundary from './components/ProjectDetailErrorBoundary';
 import { StudentProfileLayout } from './components/student/StudentProfileLayout';
 
 /** Redirects /placement/events/:driveId to /placement/events/:driveId/process */
@@ -148,6 +150,13 @@ const Layout = () => {
 const router = createBrowserRouter([
   {
     element: <Layout />,
+    errorElement: (
+      <Box p={8} textAlign="center" minH="50vh">
+        <Heading size="lg" mb={4}>Something went wrong</Heading>
+        <Text color="gray.600" mb={4}>An unexpected error occurred. Please try again or go back.</Text>
+        <Button as={Link} to="/" colorScheme="blue">Go to Home</Button>
+      </Box>
+    ),
     children: [
       { path: "/", element: <Home /> },
       { path: "/about", element: <About /> },
@@ -299,6 +308,15 @@ const router = createBrowserRouter([
             <AdminProjects mode="manage" />
           </PlacementProtectedRoute>
         )
+      },
+      {
+        path: "/placement/gallery/project/:projectId",
+        element: (
+          <PlacementProtectedRoute requiredRole="admin">
+            <AdminProjectDetail />
+          </PlacementProtectedRoute>
+        ),
+        errorElement: <ProjectDetailErrorBoundary />
       },
       {
         path: "/placement/violations",
