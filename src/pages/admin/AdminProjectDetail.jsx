@@ -69,11 +69,12 @@ const BLUE_ACCENT = '#1a73e8';
 const CARD_RADIUS = '16px';
 const STATUS_PILL = { px: 3, py: 0.5, borderRadius: 'full', fontSize: 'xs', fontWeight: 500 };
 
-export default function AdminProjectDetail() {
+export default function AdminProjectDetail({ variant = 'admin', LayoutComponent = AdminLayout }) {
   const { projectId } = useParams();
   const location = useLocation();
   const toast = useToast();
   const navigate = useNavigate();
+  const isAlumni = variant === 'alumni';
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -83,7 +84,8 @@ export default function AdminProjectDetail() {
   const urlParams = new URLSearchParams(location.search || '');
   const tabFromUrl = urlParams.get('tab');
   const addReviewFromUrl = urlParams.get('addReview') === '1';
-  const initialTab = tabFromUrl === 'reviews' ? 2 : 0;
+  const reviewsTabIndex = isAlumni ? 1 : 2;
+  const initialTab = tabFromUrl === 'reviews' ? reviewsTabIndex : 0;
   const [activeTab, setActiveTab] = useState(initialTab);
   const { isOpen: isAddAssetOpen, onOpen: onAddAssetOpen, onClose: onAddAssetClose } = useDisclosure();
   const { isOpen: isShareLinkOpen, onOpen: onShareLinkOpen, onClose: onShareLinkClose } = useDisclosure();
@@ -104,7 +106,9 @@ export default function AdminProjectDetail() {
     setLoading(true);
     setLoadError(null);
     try {
-      const data = await PlacementService.getProjectById(projectId);
+      const data = isAlumni
+        ? await PlacementService.getAlumniProjectById(projectId)
+        : await PlacementService.getProjectById(projectId);
       setProject(data);
       setIsApproved(data.project_status === 'approved');
       setArchiveMode(data.project_status === 'archived');
@@ -114,7 +118,7 @@ export default function AdminProjectDetail() {
     } finally {
       setLoading(false);
     }
-  }, [projectId, toast]);
+  }, [projectId, toast, isAlumni]);
 
   useEffect(() => {
     fetchProject();
@@ -122,8 +126,8 @@ export default function AdminProjectDetail() {
 
   // When URL has tab=reviews, keep activeTab on Reviews (in case state was 0 on first render)
   useEffect(() => {
-    if (tabFromUrl === 'reviews') setActiveTab(2);
-  }, [tabFromUrl]);
+    if (tabFromUrl === 'reviews') setActiveTab(reviewsTabIndex);
+  }, [tabFromUrl, reviewsTabIndex]);
 
   // When URL has addReview=1 and project is loaded, open the add-review modal once (e.g. from showcase "Add Review" button)
   useEffect(() => {
@@ -233,15 +237,23 @@ export default function AdminProjectDetail() {
     if (!project?.id || !newReviewText.trim()) return;
     setAddingReview(true);
     try {
-      const review = await PlacementService.addProjectReview(project.id, newReviewText.trim());
-      setProject((p) => ({
-        ...p,
-        reviews: [review, ...(p.reviews || [])],
-        metrics: { ...p.metrics, comments: (p.metrics?.comments ?? 0) + 1 },
-      }));
-      toast({ title: 'Review added', status: 'success', isClosable: true });
-      setNewReviewText('');
-      onAddReviewClose();
+      if (isAlumni) {
+        await PlacementService.addProjectReviewPublic(project.id, newReviewText.trim());
+        toast({ title: 'Review added', status: 'success', isClosable: true });
+        setNewReviewText('');
+        onAddReviewClose();
+        fetchProject();
+      } else {
+        const review = await PlacementService.addProjectReview(project.id, newReviewText.trim());
+        setProject((p) => ({
+          ...p,
+          reviews: [review, ...(p.reviews || [])],
+          metrics: { ...p.metrics, comments: (p.metrics?.comments ?? 0) + 1 },
+        }));
+        toast({ title: 'Review added', status: 'success', isClosable: true });
+        setNewReviewText('');
+        onAddReviewClose();
+      }
     } catch (err) {
       toast({ title: err.message || 'Failed to add review', status: 'error', isClosable: true });
     } finally {
@@ -264,20 +276,23 @@ export default function AdminProjectDetail() {
     }
   };
 
+  const backPath = isAlumni ? '/placement/alumni-projects' : '/placement/gallery/manage';
+  const backLabel = isAlumni ? 'Back to Student Projects' : 'Back to Manage Projects';
+
   if (loading && !project) {
     return (
-      <AdminLayout>
+      <LayoutComponent>
         <Box py={16} display="flex" justifyContent="center" alignItems="center">
           <Spinner size="xl" color="blue.500" thickness="3px" />
         </Box>
-      </AdminLayout>
+      </LayoutComponent>
     );
   }
 
   if (loadError || !project) {
     const is404 = loadError?.response?.status === 404;
     return (
-      <AdminLayout>
+      <LayoutComponent>
         <Box bg="#f0f0f0" minH="100vh" py={12}>
           <Container maxW="md">
             <VStack spacing={6} align="stretch" bg="white" p={8} borderRadius="xl" shadow="md">
@@ -292,14 +307,14 @@ export default function AdminProjectDetail() {
               <Button
                 leftIcon={<Icon as={FaChevronLeft} />}
                 colorScheme="blue"
-                onClick={() => navigate('/placement/gallery/manage')}
+                onClick={() => navigate(backPath)}
               >
-                Back to Manage Projects
+                {backLabel}
               </Button>
             </VStack>
           </Container>
         </Box>
-      </AdminLayout>
+      </LayoutComponent>
     );
   }
 
@@ -310,7 +325,7 @@ export default function AdminProjectDetail() {
   const metrics = project.metrics || {};
 
   return (
-    <AdminLayout>
+    <LayoutComponent>
       <Box bg="#f8f9fa" minH="100vh" py={6} color="gray.800">
         <Container maxW="6xl">
           <Button
@@ -319,9 +334,9 @@ export default function AdminProjectDetail() {
             mb={4}
             color="gray.800"
             _hover={{ bg: 'gray.100', color: 'gray.900' }}
-            onClick={() => navigate('/placement/gallery/manage')}
+            onClick={() => navigate(backPath)}
           >
-            Back to Manage Projects
+            {backLabel}
           </Button>
 
           {/* Header: Blue gradient + overlapping image (matches reference) */}
@@ -386,31 +401,33 @@ export default function AdminProjectDetail() {
                     <Text fontSize="xl" fontWeight="bold" color="gray.900">{metrics.favorites ?? 0}</Text>
                   </Box>
                 </HStack>
-                <HStack spacing={4} flexWrap="wrap" align="center">
-                  <Select
-                    size="sm"
-                    maxW="130px"
-                    value={archiveMode ? 'archived' : (isApproved ? 'approved' : (project.project_status === 'rejected' ? 'rejected' : 'not_approved'))}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setArchiveMode(v === 'archived');
-                      setIsApproved(v === 'approved');
-                    }}
-                    borderColor="gray.300"
-                    borderRadius="lg"
-                    fontSize="sm"
-                    color="gray.800"
-                    _hover={{ borderColor: 'gray.400' }}
-                  >
-                    <option value="not_approved">Not Approved</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="archived">Archived</option>
-                  </Select>
-                  <Button size="sm" bg="blue.600" color="white" _hover={{ bg: 'blue.700' }} onClick={handleSaveStatus} isLoading={saving}>
-                    Save Status
-                  </Button>
-                </HStack>
+                {!isAlumni && (
+                  <HStack spacing={4} flexWrap="wrap" align="center">
+                    <Select
+                      size="sm"
+                      maxW="130px"
+                      value={archiveMode ? 'archived' : (isApproved ? 'approved' : (project.project_status === 'rejected' ? 'rejected' : 'not_approved'))}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setArchiveMode(v === 'archived');
+                        setIsApproved(v === 'approved');
+                      }}
+                      borderColor="gray.300"
+                      borderRadius="lg"
+                      fontSize="sm"
+                      color="gray.800"
+                      _hover={{ borderColor: 'gray.400' }}
+                    >
+                      <option value="not_approved">Not Approved</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="archived">Archived</option>
+                    </Select>
+                    <Button size="sm" bg="blue.600" color="white" _hover={{ bg: 'blue.700' }} onClick={handleSaveStatus} isLoading={saving}>
+                      Save Status
+                    </Button>
+                  </HStack>
+                )}
               </Flex>
             </Box>
           </Box>
@@ -419,9 +436,9 @@ export default function AdminProjectDetail() {
             <Tabs index={activeTab} onChange={setActiveTab} variant="line" colorScheme="blue">
               <TabList mb={6} borderBottom="2px" borderColor="gray.200" gap={0}>
                 <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Overview</Tab>
-                <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Assets & Variants</Tab>
+                {!isAlumni && <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Assets & Variants</Tab>}
                 <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Reviews</Tab>
-                <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Share Links</Tab>
+                {!isAlumni && <Tab px={8} py={4} fontSize="sm" fontWeight="medium" color="gray.700" _selected={{ color: 'blue.600', borderColor: 'blue.600' }}>Share Links</Tab>}
               </TabList>
               <TabPanels>
                 <TabPanel p={0}>
@@ -477,7 +494,12 @@ export default function AdminProjectDetail() {
                           </Flex>
                         </VStack>
                         <HStack mt={4} spacing={2} flexWrap="wrap">
-                          <Button size="xs" variant="outline" leftIcon={<Icon as={FaUser} />} onClick={() => navigate(`/placement/students/${project.owner_usn}`)}>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            leftIcon={<Icon as={FaUser} />}
+                            onClick={() => navigate(isAlumni ? `/placement/alumni-student/${encodeURIComponent(project.owner_usn)}` : `/placement/students/${project.owner_usn}`)}
+                          >
                             View Student
                           </Button>
                           {project.hosted_url && (
@@ -496,6 +518,7 @@ export default function AdminProjectDetail() {
                   </SimpleGrid>
                 </TabPanel>
 
+                {!isAlumni && (
                 <TabPanel p={0}>
                   <VStack align="stretch" spacing={6}>
                     <Flex justify="space-between" align="center" flexWrap="wrap" gap={4}>
@@ -586,6 +609,7 @@ export default function AdminProjectDetail() {
                     )}
                   </VStack>
                 </TabPanel>
+                )}
 
                 <TabPanel p={0}>
                   <VStack align="stretch" spacing={6}>
@@ -623,16 +647,18 @@ export default function AdminProjectDetail() {
                                   <Text fontWeight="bold" color="gray.800">{r.reviewer_usn || `Reviewer #${r.id}`}</Text>
                                 </Box>
                               </HStack>
-                              <IconButton
-                                icon={<Icon as={FaTrash} />}
-                                size="sm"
-                                color="gray.400"
-                                variant="ghost"
-                                aria-label="Delete review"
-                                onClick={() => handleDeleteReview(r.id)}
-                                isLoading={deletingId === r.id}
-                                _hover={{ color: 'red.500', bg: 'red.50' }}
-                              />
+                              {!isAlumni && (
+                                <IconButton
+                                  icon={<Icon as={FaTrash} />}
+                                  size="sm"
+                                  color="gray.400"
+                                  variant="ghost"
+                                  aria-label="Delete review"
+                                  onClick={() => handleDeleteReview(r.id)}
+                                  isLoading={deletingId === r.id}
+                                  _hover={{ color: 'red.500', bg: 'red.50' }}
+                                />
+                              )}
                             </Flex>
                             <Text fontSize="sm" color="gray.700" mb={r.reply_text ? 4 : 0}>{r.review_text}</Text>
                             {r.reply_text && (
@@ -642,12 +668,13 @@ export default function AdminProjectDetail() {
                               </Box>
                             )}
                           </Box>
-                        ))}
+                        )                    )}
                       </VStack>
                     )}
                   </VStack>
                 </TabPanel>
 
+                {!isAlumni && (
                 <TabPanel p={0}>
                   <Box bg="white" borderRadius="2xl" borderWidth="1px" borderColor="gray.200" overflow="hidden">
                     <Flex p={6} borderBottomWidth="1px" borderColor="gray.200" justify="space-between" align="flex-start" flexWrap="wrap" gap={4}>
@@ -718,6 +745,7 @@ export default function AdminProjectDetail() {
                     )}
                   </Box>
                 </TabPanel>
+                )}
               </TabPanels>
             </Tabs>
           </Box>
@@ -840,6 +868,6 @@ export default function AdminProjectDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
-    </AdminLayout>
+    </LayoutComponent>
   );
 }

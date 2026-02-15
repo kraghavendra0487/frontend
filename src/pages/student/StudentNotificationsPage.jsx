@@ -43,7 +43,7 @@ const formatDate = (dateStr) => {
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return d.toLocaleDateString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 const getTypeBadgeColor = (type) => {

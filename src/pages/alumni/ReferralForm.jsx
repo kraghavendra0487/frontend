@@ -14,23 +14,17 @@ import {
   useToast,
   Container,
   SimpleGrid,
-  Grid,
   InputGroup,
   InputLeftElement,
-  Checkbox,
   Select,
-  Badge,
   Flex,
   Icon,
   Spinner,
-  Avatar,
-  Divider,
   Link,
 } from '@chakra-ui/react';
 import { 
   EmailIcon, 
   PhoneIcon, 
-  CheckCircleIcon, 
   AddIcon,
 } from '@chakra-ui/icons';
 import { 
@@ -45,18 +39,31 @@ import {
 } from 'react-icons/fa';
 import AlumniLayout from '../../components/AlumniLayout';
 import { PlacementService } from '../../services/placement.service';
+import './ReferralForm.css';
 
 const colors = {
-  accent: '#d4a960',
-  accentHover: '#c4983f',
-  accentLight: '#f8f3e8',
-  dark: '#172e36',
-  darkBlue: '#1e3a47',
+  accent: '#6366f1',
+  accentHover: '#4f46e5',
+  accentLight: '#eef2ff',
+  dark: '#1e293b',
+  darkBlue: '#0f172a',
   secondary: '#64748b',
   cardBg: '#ffffff',
-  pageBg: '#f1f5f9',
+  pageBg: '#fcfcfd',
   border: '#e2e8f0',
+  slate: '#1e293b',
+  slate500: '#64748b',
+  slate400: '#94a3b8',
 };
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)',
+  'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+  'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+  'linear-gradient(135deg, #d946ef 0%, #c026d3 100%)',
+];
 
 const OPPORTUNITY_TYPES = [
   'Full-Time',
@@ -154,17 +161,6 @@ const ReferralForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.company_name || !formData.hr_name) {
-      toast({ 
-        title: 'Required fields missing', 
-        description: 'Please fill in Company Name and HR Name.', 
-        status: 'warning', 
-        duration: 3000, 
-        isClosable: true 
-      });
-      return;
-    }
-
     const errors = {};
     if (formData.hr_email && !validateEmail(formData.hr_email)) {
       errors.hr_email = 'Please enter a valid email address (e.g. name@company.com)';
@@ -190,20 +186,9 @@ const ReferralForm = () => {
       return;
     }
 
-    if (!formData.consent_given) {
-      toast({ 
-        title: 'Consent Required', 
-        description: 'Please confirm that you have consent to share this contact.', 
-        status: 'warning', 
-        duration: 3000, 
-        isClosable: true 
-      });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      const payload = { ...formData };
+      const payload = { ...formData, consent_given: true };
       if (formData.hr_phone_number) {
         const countryCode = formData.hr_phone_country_code || '+91';
         payload.hr_phone = `${countryCode} ${formData.hr_phone_number}`;
@@ -266,356 +251,264 @@ const ReferralForm = () => {
     }
   };
 
+  const getOpportunityBadgeClass = (type) => {
+    if (type === 'Full-Time') return 'badge-fulltime';
+    if (type === 'Internship') return 'badge-internship';
+    return 'badge-other';
+  };
+
+  const getAvatarGradient = (index) => AVATAR_GRADIENTS[index % AVATAR_GRADIENTS.length];
+  const getInitial = (str) => (str && str.trim() ? str.trim().charAt(0).toUpperCase() : '?');
+
   return (
     <AlumniLayout>
-      <Box bg={colors.pageBg} minH="100vh" py={8}>
-        <Container maxW="1000px">
-          {/* Header */}
-          <Flex 
-            justify="space-between" 
-            align="center" 
-            mb={8}
-            flexWrap="wrap"
+      <Box className="referral-page" bg={colors.pageBg} minH="100vh" py={{ base: 4, md: 8 }}>
+        <Container maxW="4xl">
+          {/* Header - match admin/student: size lg, subtitle sm */}
+          <Flex
+            as="header"
+            direction={{ base: 'column', md: 'row' }}
+            justify="space-between"
+            align={{ base: 'stretch', md: 'flex-end' }}
+            mb={6}
             gap={4}
           >
             <Box>
-              <Heading color={colors.dark} size="xl" fontWeight="700" mb={1}>
+              <Heading as="h1" size="lg" color="gray.800" mb={1}>
                 HR Recommendations
               </Heading>
-              <Text color={colors.secondary} fontSize="md">
-                Connect the placement team with HR professionals from your network
+              <Text color="gray.500" fontSize="sm">
+                Strengthen the placement ecosystem by introducing HR experts from your professional circle.
               </Text>
             </Box>
-            <HStack spacing={3}>
-              <Badge 
-                bg={colors.accentLight}
-                color={colors.accent}
-                fontSize="md"
-                px={4}
-                py={2}
-                borderRadius="full"
-                fontWeight="600"
-              >
-                {myRecommendations.length} Recommendations
-              </Badge>
-            </HStack>
+            <Box className="badge-total" alignSelf={{ base: 'flex-start', md: 'center' }}>
+              <span>{myRecommendations.length}</span> Total Leads
+            </Box>
           </Flex>
 
-          {/* Custom Tabs */}
-          <Flex 
-            bg="white" 
-            borderRadius="2xl" 
-            p={1.5}
-            mb={6}
-            boxShadow="sm"
-            border="1px solid"
-            borderColor={colors.border}
-          >
+          {/* Tabs - match admin: size sm, font sm */}
+          <Flex className="nav-tabs-wrap" mb={6} gap={2}>
             <Button
               flex={1}
-              size="lg"
+              size="sm"
+              py={2}
+              px={3}
               borderRadius="xl"
-              bg={activeTab === 'list' ? colors.dark : 'transparent'}
-              color={activeTab === 'list' ? 'white' : colors.secondary}
-              _hover={{ 
-                bg: activeTab === 'list' ? colors.dark : colors.pageBg,
-                color: activeTab === 'list' ? 'white' : colors.dark
-              }}
-              onClick={() => setActiveTab('list')}
-              leftIcon={<Icon as={FaListAlt} boxSize={4} />}
               fontWeight="600"
-              transition="all 0.2s"
+              fontSize="sm"
+              transition="all 0.3s"
+              leftIcon={<Icon as={FaListAlt} boxSize={4} />}
+              className={activeTab === 'list' ? 'tab-active' : 'tab-inactive'}
+              bg={activeTab === 'list' ? colors.dark : 'transparent'}
+              color={activeTab === 'list' ? 'white' : undefined}
+              _hover={activeTab === 'list' ? {} : { bg: '#f1f5f9', color: colors.dark }}
+              onClick={() => setActiveTab('list')}
             >
-              My Recommendations
+              My Submissions
             </Button>
             <Button
               flex={1}
-              size="lg"
+              size="sm"
+              py={2}
+              px={3}
               borderRadius="xl"
-              bg={activeTab === 'new' ? colors.accent : 'transparent'}
-              color={activeTab === 'new' ? 'white' : colors.secondary}
-              _hover={{ 
-                bg: activeTab === 'new' ? colors.accent : colors.pageBg,
-                color: activeTab === 'new' ? 'white' : colors.dark
-              }}
-              onClick={() => setActiveTab('new')}
-              leftIcon={<Icon as={FaPlusCircle} boxSize={4} />}
               fontWeight="600"
-              transition="all 0.2s"
+              fontSize="sm"
+              transition="all 0.3s"
+              leftIcon={<Icon as={FaPlusCircle} boxSize={4} />}
+              className={activeTab === 'new' ? 'tab-active' : 'tab-inactive'}
+              bg={activeTab === 'new' ? colors.dark : 'transparent'}
+              color={activeTab === 'new' ? 'white' : undefined}
+              _hover={activeTab === 'new' ? {} : { bg: '#f1f5f9', color: colors.dark }}
+              onClick={() => setActiveTab('new')}
             >
-              New Recommendation
+              Refer HR
             </Button>
           </Flex>
 
           {/* Content */}
-          <Box
-            bg="white"
-            borderRadius="2xl"
-            boxShadow="lg"
-            overflow="hidden"
-            border="1px solid"
-            borderColor={colors.border}
-          >
+          <Box as="main">
             {activeTab === 'list' ? (
-              /* My Recommendations */
+              /* My Submissions list */
               loadingHistory ? (
                 <Flex justify="center" align="center" py={20}>
                   <VStack spacing={4}>
                     <Spinner size="xl" color={colors.accent} thickness="4px" />
-                    <Text color={colors.secondary}>Loading recommendations...</Text>
+                    <Text color="gray.500" fontSize="sm">Loading recommendations...</Text>
                   </VStack>
                 </Flex>
               ) : myRecommendations.length === 0 ? (
                 <Flex direction="column" align="center" justify="center" py={20} px={8}>
                   <Flex
-                    w="120px"
-                    h="120px"
+                    w="16"
+                    h="16"
                     borderRadius="full"
-                    bg={`linear-gradient(135deg, ${colors.accentLight} 0%, #fff 100%)`}
+                    bg={colors.accentLight}
                     align="center"
                     justify="center"
-                    mb={6}
-                    border="3px dashed"
+                    mb={4}
+                    border="2px dashed"
                     borderColor={colors.border}
                   >
-                    <Icon as={FaUserTie} boxSize={12} color={colors.accent} opacity={0.6} />
+                    <Icon as={FaUserTie} boxSize={8} color={colors.accent} opacity={0.6} />
                   </Flex>
-                  <Heading size="lg" color={colors.dark} mb={3}>No recommendations yet</Heading>
-                  <Text color={colors.secondary} textAlign="center" mb={8} maxW="450px" fontSize="md" lineHeight="1.7">
-                    Help students by referring HR contacts from your network. Your recommendations create valuable opportunities!
+                  <Heading size="md" color="gray.600" mb={2}>No recommendations yet</Heading>
+                  <Text color="gray.500" textAlign="center" mb={6} maxW="400px" fontSize="sm" lineHeight="1.6">
+                    Strengthen the placement ecosystem by referring HR contacts from your network.
                   </Text>
                   <Button
                     leftIcon={<AddIcon />}
-                    bg={colors.accent}
+                    bg={colors.dark}
                     color="white"
-                    size="lg"
+                    size="sm"
                     borderRadius="xl"
-                    px={8}
-                    h="56px"
-                    fontSize="md"
+                    px={6}
                     fontWeight="600"
-                    _hover={{ bg: colors.accentHover, transform: 'translateY(-2px)' }}
-                    transition="all 0.2s"
-                    boxShadow="0 4px 14px rgba(212, 169, 96, 0.4)"
+                    _hover={{ bg: colors.darkBlue }}
                     onClick={() => setActiveTab('new')}
                   >
                     Add Your First Recommendation
                   </Button>
                 </Flex>
               ) : (
-                <Box>
-                  {/* Recommendations List */}
-                  <VStack spacing={0} align="stretch">
-                    {myRecommendations.map((rec, index) => (
-                      <Box 
-                        key={rec.id} 
-                        p={6}
-                        bg={index % 2 === 0 ? 'white' : colors.pageBg}
-                        borderBottom="1px solid"
-                        borderColor={colors.border}
-                        _last={{ borderBottom: 'none' }}
-                        _hover={{ bg: index % 2 === 0 ? 'gray.50' : '#e8ecf0' }}
-                        transition="all 0.2s"
-                      >
-                        <Flex gap={5} align="start">
-                          {/* Company Avatar */}
-                          <Avatar
-                            size="lg"
-                            name={rec.company_name}
-                            bg={`hsl(${(index * 47) % 360}, 55%, 50%)`}
-                            color="white"
-                            fontWeight="700"
-                            fontSize="lg"
-                          />
-
-                          {/* Content */}
-                          <Box flex="1">
-                            <Flex justify="space-between" align="start" mb={3} flexWrap="wrap" gap={2}>
-                              <Box>
-                                <Heading size="md" color={colors.dark} mb={1} fontWeight="700">
-                                  {rec.company_name}
-                                </Heading>
-                                <HStack spacing={4} flexWrap="wrap">
-                                  <HStack spacing={2}>
-                                    <Icon as={FaUserTie} color={colors.accent} boxSize={4} />
-                                    <Text color={colors.dark} fontSize="sm" fontWeight="600">
-                                      {rec.hr_name}
-                                    </Text>
-                                  </HStack>
-                                  {rec.hiring_role && (
-                                    <HStack spacing={2}>
-                                      <Icon as={FaBriefcase} color={colors.secondary} boxSize={3.5} />
-                                      <Text color={colors.secondary} fontSize="sm">
-                                        {rec.hiring_role}
-                                      </Text>
-                                    </HStack>
-                                  )}
-                                </HStack>
-                              </Box>
-                              
-                              {rec.opportunity_type && (
-                                <Badge 
-                                  colorScheme={getOpportunityColor(rec.opportunity_type)}
-                                  fontSize="sm"
-                                  px={4}
-                                  py={1.5}
-                                  borderRadius="full"
-                                  fontWeight="600"
-                                >
-                                  {rec.opportunity_type}
-                                </Badge>
-                              )}
-                            </Flex>
-
-                            {/* Contact Info */}
-                            <Flex gap={5} mb={3} flexWrap="wrap">
-                              {rec.hr_email && (
-                                <Link href={`mailto:${rec.hr_email}`} _hover={{ textDecoration: 'none' }}>
-                                  <HStack 
-                                    spacing={2} 
-                                    bg={colors.pageBg} 
-                                    px={3} 
-                                    py={2} 
-                                    borderRadius="lg"
-                                    _hover={{ bg: colors.accentLight }}
-                                    transition="all 0.2s"
-                                  >
-                                    <EmailIcon boxSize={4} color={colors.accent} />
-                                    <Text fontSize="sm" color={colors.dark} fontWeight="500">{rec.hr_email}</Text>
-                                  </HStack>
-                                </Link>
-                              )}
-                              {rec.hr_phone && (
-                                <HStack 
-                                  spacing={2} 
-                                  bg={colors.pageBg} 
-                                  px={3} 
-                                  py={2} 
-                                  borderRadius="lg"
-                                >
-                                  <PhoneIcon boxSize={4} color={colors.accent} />
-                                  <Text fontSize="sm" color={colors.dark} fontWeight="500">{rec.hr_phone}</Text>
-                                </HStack>
-                              )}
-                            </Flex>
-
-                            {/* Notes */}
-                            {rec.recommendation_note && (
-                              <Box 
-                                p={4} 
-                                bg="white"
-                                borderRadius="xl"
-                                borderLeft="4px solid"
-                                borderColor={colors.accent}
-                                boxShadow="sm"
-                                mb={3}
-                              >
-                                <Text fontSize="sm" color={colors.secondary} lineHeight="1.6">
-                                  "{rec.recommendation_note}"
-                                </Text>
-                              </Box>
-                            )}
-
-                            {/* Footer */}
-                            <HStack spacing={4} flexWrap="wrap">
+                <VStack spacing={4} align="stretch">
+                  {myRecommendations.map((rec, index) => (
+                    <Box
+                      key={rec.id}
+                      className="rec-card card-hover"
+                      display="flex"
+                      flexDirection={{ base: 'column', md: 'row' }}
+                      gap={4}
+                    >
+                      <Box className="rec-card-avatar" bg={getAvatarGradient(index)} boxShadow="sm">
+                        {getInitial(rec.company_name)}
+                      </Box>
+                      <Box flex="1" minW={0}>
+                        <Flex flexWrap="wrap" align="flex-start" justify="space-between" mb={3} gap={3}>
+                          <Box>
+                            <Heading as="h3" size="md" color="gray.800" mb={1}>
+                              {rec.company_name}
+                            </Heading>
+                            <Flex flexWrap="wrap" align="center" gap={{ base: 2, md: 4 }} color="gray.500" fontSize="sm">
                               <HStack spacing={2}>
-                                <Icon as={FaCalendarAlt} boxSize={3.5} color={colors.secondary} />
-                                <Text fontSize="sm" color={colors.secondary}>
-                                  {formatDate(rec.created_at)}
-                                </Text>
+                                <Icon as={FaUserTie} color="gray.400" boxSize={4} />
+                                <span>{rec.hr_name}</span>
                               </HStack>
-                              {rec.consent_given && (
-                                <Badge 
-                                  bg="green.50"
-                                  color="green.600"
-                                  fontSize="xs"
-                                  borderRadius="full"
-                                  px={3}
-                                  py={1}
-                                >
-                                  <HStack spacing={1}>
-                                    <CheckCircleIcon boxSize={3} />
-                                    <Text>Consent Verified</Text>
-                                  </HStack>
-                                </Badge>
+                              {rec.hiring_role && (
+                                <HStack spacing={2}>
+                                  <Icon as={FaBriefcase} color="gray.400" boxSize={4} />
+                                  <span>{rec.hiring_role}</span>
+                                </HStack>
                               )}
-                            </HStack>
+                            </Flex>
                           </Box>
+                          {rec.opportunity_type && (
+                            <Box className={getOpportunityBadgeClass(rec.opportunity_type)}>
+                              {rec.opportunity_type}
+                            </Box>
+                          )}
+                        </Flex>
+
+                        <Flex flexWrap="wrap" gap={3} mb={3}>
+                          {rec.hr_email && (
+                            <Link href={`mailto:${rec.hr_email}`} _hover={{ textDecoration: 'none' }}>
+                              <Box as="span" className="contact-chip">
+                                <EmailIcon color="#6366f1" boxSize={4} />
+                                {rec.hr_email}
+                              </Box>
+                            </Link>
+                          )}
+                          {rec.hr_phone && (
+                            <Box as="span" className="contact-chip">
+                              <PhoneIcon color="#6366f1" boxSize={4} />
+                              {rec.hr_phone}
+                            </Box>
+                          )}
+                        </Flex>
+
+                        {rec.recommendation_note && (
+                          <Box
+                            p={3}
+                            bg="gray.50"
+                            borderRadius="lg"
+                            borderLeft="4px solid"
+                            borderColor={colors.accent}
+                            mb={3}
+                          >
+                            <Text fontSize="sm" color="gray.600" lineHeight="1.5" fontStyle="italic">
+                              "{rec.recommendation_note}"
+                            </Text>
+                          </Box>
+                        )}
+
+                        <Flex align="center" pt={4} borderTop="1px solid" borderColor="gray.100">
+                          <HStack spacing={2} color="gray.400" fontSize="xs" fontWeight="600">
+                            <Icon as={FaCalendarAlt} boxSize={4} />
+                            <span>Submitted {formatDate(rec.created_at)}</span>
+                          </HStack>
                         </Flex>
                       </Box>
-                    ))}
-                  </VStack>
+                    </Box>
+                  ))}
 
-                  {/* Add More Button */}
-                  <Box p={6} bg={colors.accentLight}>
+                  <Box pt={4}>
                     <Button
                       leftIcon={<AddIcon />}
-                      bg={colors.accent}
+                      bg={colors.dark}
                       color="white"
-                      size="lg"
+                      size="sm"
                       borderRadius="xl"
                       w="full"
-                      h="56px"
-                      fontSize="md"
                       fontWeight="600"
-                      _hover={{ bg: colors.accentHover }}
+                      _hover={{ bg: colors.darkBlue }}
                       onClick={() => setActiveTab('new')}
                     >
                       Add Another Recommendation
                     </Button>
                   </Box>
-                </Box>
+                </VStack>
               )
             ) : (
-              /* New Recommendation Form */
-              <Box p={8}>
+              /* New Recommendation Form - match reference */
+              <Box className="form-card">
                 <form onSubmit={handleSubmit}>
-                  <VStack spacing={8} align="stretch">
-                    {/* Company Section */}
+                  <VStack spacing={6} align="stretch">
+                    {/* Section 01: Organization Profile - match admin section headings size md */}
                     <Box>
-                      <HStack spacing={3} mb={5}>
-                        <Flex 
-                          w="40px" h="40px" 
-                          bg={colors.accentLight}
-                          borderRadius="xl" 
-                          align="center" 
-                          justify="center"
-                        >
-                          <Icon as={FaBuilding} color={colors.accent} boxSize={5} />
-                        </Flex>
-                        <Box>
-                          <Text fontWeight="700" color={colors.dark} fontSize="lg">Company Details</Text>
-                          <Text fontSize="sm" color={colors.secondary}>Where is this opportunity?</Text>
-                        </Box>
+                      <HStack spacing={3} mb={4}>
+                        <Box className="section-number">01</Box>
+                        <Heading as="h2" size="md" color="gray.700">
+                          Organization Profile
+                        </Heading>
                       </HStack>
-                      
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-                        <FormControl isRequired>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl>
                           <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Company Name</FormLabel>
-                          <Input 
-                            name="company_name" 
-                            value={formData.company_name} 
-                            onChange={handleChange} 
-                            placeholder="e.g. Google, Amazon" 
-                            size="lg"
-                            borderRadius="xl"
-                            borderWidth="2px"
+                          <Input
+                            className="form-input-wrap input-focus"
+                            name="company_name"
+                            value={formData.company_name}
+                            onChange={handleChange}
+                            placeholder="Where is the opportunity?"
+                            size="sm"
+                            border="1px solid"
+                            borderColor="gray.200"
                             bg="white"
                             _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
-                            _hover={{ borderColor: 'gray.300' }}
                           />
                         </FormControl>
 
                         <FormControl>
                           <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Opportunity Type</FormLabel>
-                          <Select 
-                            name="opportunity_type" 
-                            value={formData.opportunity_type} 
+                          <Select
+                            className="form-input-wrap input-focus"
+                            name="opportunity_type"
+                            value={formData.opportunity_type}
                             onChange={handleChange}
                             placeholder="Select type"
-                            size="lg"
-                            borderRadius="xl"
-                            borderWidth="2px"
+                            size="sm"
+                            border="1px solid"
+                            borderColor="gray.200"
                             bg="white"
                             _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                           >
@@ -626,221 +519,177 @@ const ReferralForm = () => {
                         </FormControl>
                       </SimpleGrid>
 
-                      <FormControl mt={5}>
-                        <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Hiring Role / Position</FormLabel>
-                        <Input 
-                          name="hiring_role" 
-                          value={formData.hiring_role} 
-                          onChange={handleChange} 
-                          placeholder="e.g. Software Engineer, Data Analyst" 
-                          size="lg"
-                          borderRadius="xl"
-                          borderWidth="2px"
+                      <FormControl mt={4}>
+                        <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Position / Designation</FormLabel>
+                        <Input
+                          className="form-input-wrap input-focus"
+                          name="hiring_role"
+                          value={formData.hiring_role}
+                          onChange={handleChange}
+                          placeholder="e.g. Senior Technical Recruiter"
+                          size="sm"
+                          border="1px solid"
+                          borderColor="gray.200"
                           bg="white"
                           _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                         />
                       </FormControl>
                     </Box>
 
-                    <Divider borderColor={colors.border} />
-
-                    {/* HR Contact Section */}
-                    <Box 
-                      p={5} 
-                      borderRadius="xl" 
-                      bg={colors.accentLight}
-                      borderWidth="1px"
-                      borderColor={colors.border}
-                    >
-                      <HStack spacing={3} mb={5}>
-                        <Flex 
-                          w="44px" h="44px" 
-                          bg="white"
-                          borderRadius="xl" 
-                          align="center" 
-                          justify="center"
-                          boxShadow="sm"
-                        >
-                          <Icon as={FaUserTie} color={colors.accent} boxSize={5} />
-                        </Flex>
-                        <Box>
-                          <Text fontWeight="700" color={colors.dark} fontSize="lg">HR Contact</Text>
-                          <Text fontSize="sm" color={colors.secondary}>Who should we reach out to?</Text>
-                        </Box>
+                    {/* Section 02: HR Professional Details */}
+                    <Box>
+                      <HStack spacing={3} mb={4}>
+                        <Box className="section-number">02</Box>
+                        <Heading as="h2" size="md" color="gray.700">
+                          HR Professional Details
+                        </Heading>
                       </HStack>
 
-                      <Grid
-                        templateColumns={{ base: '1fr', md: 'minmax(0, 1fr) minmax(240px, 1.2fr) minmax(0, 1fr)' }}
-                        gap={5}
-                        alignItems="start"
-                      >
-                        <FormControl isRequired>
-                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Contact Name</FormLabel>
-                          <Input 
-                            name="hr_name" 
-                            value={formData.hr_name} 
-                            onChange={handleChange} 
-                            placeholder="Full name" 
-                            size="lg"
-                            h="48px"
-                            borderRadius="lg"
-                            borderWidth="1px"
-                            borderColor={colors.border}
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl>
+                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Full Name</FormLabel>
+                          <Input
+                            className="form-input-wrap input-focus"
+                            name="hr_name"
+                            value={formData.hr_name}
+                            onChange={handleChange}
+                            placeholder="Who should we contact?"
+                            size="sm"
+                            border="1px solid"
+                            borderColor="gray.200"
                             bg="white"
-                            _placeholder={{ color: 'gray.400' }}
                             _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                           />
                         </FormControl>
 
-                        <Box minW={0}>
-                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm" mb={2}>Phone Number</FormLabel>
+                        <FormControl>
+                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Mobile Number</FormLabel>
                           <HStack spacing={2} align="stretch" flexWrap="nowrap">
-                            <FormControl isInvalid={!!fieldErrors.hr_phone_country_code} w="88px" flexShrink={0}>
-                              <Input 
-                                name="hr_phone_country_code" 
-                                value={formData.hr_phone_country_code} 
+                            <FormControl isInvalid={!!fieldErrors.hr_phone_country_code} w="80px" flexShrink={0}>
+                              <Input
+                                className="form-input-wrap input-focus"
+                                name="hr_phone_country_code"
+                                value={formData.hr_phone_country_code}
                                 onChange={handleChange}
                                 onBlur={handleBlur}
-                                placeholder="+91" 
+                                placeholder="+91"
                                 maxLength={4}
-                                size="lg"
-                                h="48px"
-                                borderRadius="lg"
-                                borderWidth="1px"
-                                borderColor={colors.border}
+                                size="sm"
+                                border="1px solid"
+                                borderColor="gray.200"
                                 bg="white"
-                                _placeholder={{ color: 'gray.400' }}
                                 _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                                 _invalid={{ borderColor: 'red.400' }}
                               />
-                              <FormErrorMessage>{fieldErrors.hr_phone_country_code}</FormErrorMessage>
+                              <FormErrorMessage fontSize="xs">{fieldErrors.hr_phone_country_code}</FormErrorMessage>
                             </FormControl>
                             <FormControl isInvalid={!!fieldErrors.hr_phone_number} flex={1} minW={0}>
-                              <InputGroup size="lg" h="48px">
-                                <InputLeftElement pointerEvents="none" h="48px" pl={3}>
+                              <InputGroup size="sm">
+                                <InputLeftElement pointerEvents="none" pl={3}>
                                   <PhoneIcon color="gray.400" boxSize={4} />
                                 </InputLeftElement>
-                                <Input 
-                                  name="hr_phone_number" 
+                                <Input
+                                  className="form-input-wrap input-focus"
+                                  name="hr_phone_number"
                                   type="tel"
                                   inputMode="numeric"
-                                  value={formData.hr_phone_number} 
+                                  value={formData.hr_phone_number}
                                   onChange={handleChange}
                                   onBlur={handleBlur}
-                                  placeholder="9876543210" 
+                                  placeholder="XXXXXXXXXX"
                                   maxLength={PHONE_NUMBER_LENGTH}
-                                  h="48px"
-                                  borderRadius="lg"
-                                  borderWidth="1px"
-                                  borderColor={colors.border}
+                                  pl="40px"
+                                  border="1px solid"
+                                  borderColor="gray.200"
                                   bg="white"
-                                  pl="44px"
-                                  _placeholder={{ color: 'gray.400' }}
                                   _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                                   _invalid={{ borderColor: 'red.400' }}
                                 />
                               </InputGroup>
-                              <FormErrorMessage>{fieldErrors.hr_phone_number}</FormErrorMessage>
+                              <FormErrorMessage fontSize="xs">{fieldErrors.hr_phone_number}</FormErrorMessage>
                             </FormControl>
                           </HStack>
-                        </Box>
-
-                        <FormControl isInvalid={!!fieldErrors.hr_email}>
-                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Email Address</FormLabel>
-                          <InputGroup size="lg" h="48px">
-                            <InputLeftElement pointerEvents="none" h="48px" pl={3}>
-                              <EmailIcon color="gray.400" boxSize={4} />
-                            </InputLeftElement>
-                            <Input 
-                              name="hr_email" 
-                              type="email" 
-                              value={formData.hr_email} 
-                              onChange={handleChange}
-                              onBlur={handleBlur}
-                              placeholder="hr@company.com" 
-                              maxLength={254}
-                              h="48px"
-                              borderRadius="lg"
-                              borderWidth="1px"
-                              borderColor={colors.border}
-                              bg="white"
-                              pl="44px"
-                              _placeholder={{ color: 'gray.400' }}
-                              _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
-                              _invalid={{ borderColor: 'red.400' }}
-                            />
-                          </InputGroup>
-                          <FormErrorMessage>{fieldErrors.hr_email}</FormErrorMessage>
                         </FormControl>
-                      </Grid>
+
+                        <FormControl isInvalid={!!fieldErrors.hr_email} gridColumn={{ md: '1 / -1' }}>
+                          <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Work Email</FormLabel>
+                          <Input
+                            className="form-input-wrap input-focus"
+                            name="hr_email"
+                            type="email"
+                            value={formData.hr_email}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            placeholder="professional@company.com"
+                            maxLength={254}
+                            size="sm"
+                            border="1px solid"
+                            borderColor="gray.200"
+                            bg="white"
+                            _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
+                            _invalid={{ borderColor: 'red.400' }}
+                          />
+                          <FormErrorMessage fontSize="xs">{fieldErrors.hr_email}</FormErrorMessage>
+                        </FormControl>
+                      </SimpleGrid>
                     </Box>
 
-                    <Divider borderColor={colors.border} />
-
-                    {/* Notes Section */}
+                    {/* Section 03: Context & Notes */}
                     <Box>
+                      <HStack spacing={3} mb={4}>
+                        <Box className="section-number">03</Box>
+                        <Heading as="h2" size="md" color="gray.700">
+                          Context & Notes
+                        </Heading>
+                      </HStack>
                       <FormControl>
-                        <FormLabel fontWeight="600" color="gray.600" fontSize="sm">Additional Notes</FormLabel>
-                        <Textarea 
-                          name="recommendation_note" 
-                          value={formData.recommendation_note} 
-                          onChange={handleChange} 
-                          placeholder="Any context - best time to reach out, how you know them, specific advice..." 
+                        <Textarea
+                          className="form-input-wrap input-focus"
+                          name="recommendation_note"
+                          value={formData.recommendation_note}
+                          onChange={handleChange}
+                          placeholder="Briefly explain your professional relationship or any specific tips for the placement team..."
                           rows={4}
-                          size="lg"
-                          borderRadius="xl"
-                          borderWidth="2px"
+                          size="sm"
+                          border="1px solid"
+                          borderColor="gray.200"
                           bg="white"
+                          resize="none"
                           _focus={{ borderColor: colors.accent, boxShadow: `0 0 0 1px ${colors.accent}` }}
                         />
                       </FormControl>
                     </Box>
 
-                    {/* Consent Checkbox */}
-                    <Box 
-                      bg={formData.consent_given ? 'green.50' : 'blue.50'}
-                      p={5} 
-                      borderRadius="xl" 
-                      borderWidth="2px" 
-                      borderColor={formData.consent_given ? 'green.200' : 'blue.100'}
-                      transition="all 0.3s"
-                    >
-                      <Checkbox 
-                        name="consent_given" 
-                        isChecked={formData.consent_given} 
-                        onChange={handleChange}
-                        colorScheme={formData.consent_given ? 'green' : 'blue'}
-                        size="lg"
-                        spacing={4}
+                    {/* Submit & Back - match admin button size sm */}
+                    <Flex flexDirection={{ base: 'column', sm: 'row' }} align="center" gap={4} pt={6} borderTop="1px solid" borderColor="gray.100">
+                      <Button
+                        type="submit"
+                        className="btn-submit-ref"
+                        size="sm"
+                        bg={colors.dark}
+                        color="white"
+                        fontWeight="600"
+                        borderRadius="xl"
+                        px={6}
+                        isLoading={isSubmitting}
+                        loadingText="Submitting..."
+                        leftIcon={<Icon as={FaPaperPlane} boxSize={4} />}
+                        _hover={{ bg: colors.darkBlue }}
+                        transition="all 0.2s"
                       >
-                        <Text fontSize="sm" color="gray.700">
-                          I confirm that I have <Text as="span" fontWeight="700">consent</Text> from this contact to share their details with the placement team.
-                        </Text>
-                      </Checkbox>
-                    </Box>
-
-                    {/* Submit Button */}
-                    <Button 
-                      type="submit" 
-                      size="lg" 
-                      bg={colors.dark}
-                      color="white" 
-                      _hover={{ bg: colors.darkBlue, transform: 'translateY(-2px)' }}
-                      _active={{ transform: 'translateY(0)' }}
-                      isLoading={isSubmitting} 
-                      loadingText="Submitting..." 
-                      borderRadius="xl"
-                      fontWeight="600"
-                      h="60px"
-                      fontSize="md"
-                      leftIcon={<Icon as={FaPaperPlane} />}
-                      isDisabled={!formData.consent_given}
-                      _disabled={{ opacity: 0.5, cursor: 'not-allowed', _hover: { transform: 'none' } }}
-                      boxShadow="0 4px 14px rgba(23, 46, 54, 0.3)"
-                      transition="all 0.2s"
-                    >
-                      Submit Recommendation
-                    </Button>
+                        Submit Referral
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="btn-back"
+                        size="sm"
+                        fontSize="sm"
+                        onClick={() => setActiveTab('list')}
+                      >
+                        Back to Dashboard
+                      </Button>
+                    </Flex>
                   </VStack>
                 </form>
               </Box>

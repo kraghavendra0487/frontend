@@ -54,6 +54,7 @@ import { ViewIcon, StarIcon, SearchIcon, CheckIcon, TimeIcon } from '@chakra-ui/
 import { FaExternalLinkAlt, FaGithub, FaChevronLeft, FaChevronRight, FaUser, FaHeart, FaRegHeart, FaStar, FaRegStar, FaChevronDown, FaBookmark, FaRegBookmark, FaLink, FaComment } from 'react-icons/fa';
 import { useNavigate, useLocation } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout';
+import ProjectsShowcasePage from '../ProjectsShowcasePage';
 import { PlacementService } from '../../services/placement.service';
 import { getFileUrl } from '../../utils/fileUrl';
 
@@ -70,6 +71,19 @@ function formatCount(n) {
 }
 
 const AdminProjects = ({ mode = 'showcase' }) => {
+  if (mode === 'showcase') {
+    return (
+      <ProjectsShowcasePage
+        LayoutComponent={AdminLayout}
+        variant="admin"
+        fetchProjects={async () => {
+          const data = await PlacementService.getAllProjects({});
+          return Array.isArray(data) ? data : [];
+        }}
+      />
+    );
+  }
+
   const toast = useToast();
   const location = useLocation();
   const [projects, setProjects] = useState([]);

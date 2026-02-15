@@ -75,8 +75,13 @@ import AlumniRegistration from './pages/AlumniRegistration';
 import AlumniDashboard from './pages/alumni/AlumniDashboard';
 import AlumniDirectory from './pages/alumni/AlumniDirectory';
 import AlumniProfile from './pages/alumni/AlumniProfile';
-import AlumniProjects from './pages/alumni/AlumniProjects';
+import ProjectsShowcasePage from './pages/ProjectsShowcasePage';
+import AlumniLayout from './components/AlumniLayout';
+import { PlacementService } from './services/placement.service';
 import AlumniViewStudent from './pages/alumni/AlumniViewStudent';
+import AlumniViewAlumni from './pages/alumni/AlumniViewAlumni';
+import AlumniEvents from './pages/alumni/AlumniEvents';
+import AlumniNotificationsPage from './pages/alumni/AlumniNotificationsPage';
 import ReferralForm from './pages/alumni/ReferralForm';
 // Company pages
 import CompanyDashboard from './pages/company/CompanyDashboard';
@@ -375,10 +380,50 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: "/placement/alumni-directory/:identifier",
+        element: (
+          <PlacementProtectedRoute requiredRole="alumni">
+            <AlumniViewAlumni />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
         path: "/placement/alumni-projects",
         element: (
           <PlacementProtectedRoute requiredRole="alumni">
-            <AlumniProjects />
+            <ProjectsShowcasePage
+              LayoutComponent={AlumniLayout}
+              variant="alumni"
+              fetchProjects={async () => {
+                const data = await PlacementService.getAlumniProjects();
+                return Array.isArray(data) ? data : [];
+              }}
+            />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/alumni-projects/project/:projectId",
+        element: (
+          <PlacementProtectedRoute requiredRole="alumni">
+            <AdminProjectDetail variant="alumni" LayoutComponent={AlumniLayout} />
+          </PlacementProtectedRoute>
+        ),
+        errorElement: <ProjectDetailErrorBoundary />
+      },
+      {
+        path: "/placement/alumni-events",
+        element: (
+          <PlacementProtectedRoute requiredRole="alumni">
+            <AlumniEvents />
+          </PlacementProtectedRoute>
+        )
+      },
+      {
+        path: "/placement/alumni-notifications",
+        element: (
+          <PlacementProtectedRoute requiredRole="alumni">
+            <AlumniNotificationsPage />
           </PlacementProtectedRoute>
         )
       },

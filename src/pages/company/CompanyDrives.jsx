@@ -15,6 +15,11 @@ import {
   useToast,
   Spinner,
   Badge,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Button,
 } from '@chakra-ui/react';
 import { FaRocket } from 'react-icons/fa';
 import { HiLocationMarker } from 'react-icons/hi';
@@ -40,6 +45,7 @@ const CompanyDrives = () => {
   const toast = useToast();
   const [drives, setDrives] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [statusTab, setStatusTab] = useState('current'); // 'current' | 'history'
 
   const calculateTotalCTC = (c) => {
@@ -101,15 +107,20 @@ const CompanyDrives = () => {
 
   const loadDrives = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const data = await CompanyService.getDrives();
       setDrives(Array.isArray(data) ? data : []);
     } catch (err) {
+      setDrives([]);
+      setLoadError(true);
+      const message = err?.message || '';
+      const isNoDrives = message.toLowerCase().includes('no drives') || message.toLowerCase().includes('not found') || err?.status === 404;
       toast({
-        title: 'Failed to load placement drives',
-        description: err?.message || 'Please try again',
-        status: 'error',
-        duration: 4000,
+        title: isNoDrives ? 'No placement drives' : 'Could not load placement drives',
+        description: isNoDrives ? 'Your company has no placement drives yet.' : (message || 'Check your connection and try again.'),
+        status: isNoDrives ? 'info' : 'error',
+        duration: 5000,
         isClosable: true,
       });
     } finally {
@@ -299,6 +310,21 @@ const CompanyDrives = () => {
         </Box>
 
         <Box as="main" className="placement-events-main">
+          {loadError && (
+            <Alert status="warning" borderRadius="md" mb={4} flexWrap="wrap" gap={2}>
+              <AlertIcon />
+              <Box flex={1}>
+                <AlertTitle>Could not load placement drives</AlertTitle>
+                <AlertDescription>
+                  You may not have any drives yet, or there was a connection issue. You can try again below.
+                </AlertDescription>
+              </Box>
+              <Button size="sm" colorScheme="orange" variant="outline" onClick={() => loadDrives()}>
+                Try again
+              </Button>
+            </Alert>
+          )}
+
           {/* Tabs: Current Drives | Drive History */}
           <div className="placement-events-tabs">
             <button

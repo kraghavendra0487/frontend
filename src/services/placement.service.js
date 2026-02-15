@@ -675,6 +675,21 @@ export const PlacementService = {
     return response.data ?? [];
   },
 
+  /** Alumni: get single approved project by id (full detail for view page) */
+  getAlumniProjectById: async (projectId) => {
+    const response = await apiFetch(`/placement/projects/alumni/${projectId}`);
+    return response.data;
+  },
+
+  /** Add review (any authenticated user – used by alumni on project detail page). POST /api/projects/:id/reviews */
+  addProjectReviewPublic: async (projectId, reviewText) => {
+    const response = await apiFetch(`/projects/${projectId}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify({ review_text: reviewText }),
+    });
+    return response.data;
+  },
+
   /** Alumni: get student profile for viewing (limited data) */
   getStudentProfileForAlumni: async (usn) => {
     const response = await apiFetch(`/placement/alumni/student/${encodeURIComponent(usn)}`);
@@ -694,6 +709,56 @@ export const PlacementService = {
   getMyHrRecommendations: async () => {
     const response = await apiFetch('/placement/alumni/hr-recommendations');
     return response.data ?? [];
+  },
+
+  /** Alumni: get events that were notified to this alumni */
+  getAlumniEvents: async () => {
+    const response = await apiFetch('/placement/alumni/events');
+    return Array.isArray(response?.data) ? response.data : [];
+  },
+
+  /** Alumni: list my notifications. Params: tab (unread|read|archived|starred), search, page, limit */
+  getAlumniNotifications: async (params = {}) => {
+    try {
+      const sp = new URLSearchParams();
+      if (params.tab) sp.set('tab', params.tab);
+      if (params.search) sp.set('search', params.search);
+      if (params.page != null) sp.set('page', params.page);
+      if (params.limit != null) sp.set('limit', params.limit);
+      const qs = sp.toString();
+      const response = await apiFetch(`/placement/alumni/notifications${qs ? `?${qs}` : ''}`);
+      const data = response?.data ?? response;
+      const list = Array.isArray(data?.notifications) ? data.notifications : (Array.isArray(data) ? data : []);
+      return {
+        notifications: list,
+        total: data?.total ?? list.length,
+        page: data?.page ?? 1,
+        limit: data?.limit ?? 20,
+        totalPages: data?.totalPages ?? 1,
+      };
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  /** Alumni: unread notifications count for badge */
+  getAlumniNotificationsUnreadCount: async () => {
+    try {
+      const response = await apiFetch('/placement/alumni/notifications/unread-count');
+      const data = response?.data ?? response;
+      return typeof data?.unreadCount === 'number' ? data.unreadCount : 0;
+    } catch (_err) {
+      return 0;
+    }
+  },
+
+  /** Alumni: update notification node (mark read, archive, star) */
+  updateAlumniNotificationNode: async (nodeId, payload) => {
+    const response = await apiFetch(`/placement/alumni/notifications/${nodeId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    return response.data;
   },
 
   /** Admin: get all HR recommendations */

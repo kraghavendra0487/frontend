@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -13,11 +14,12 @@ import {
   useToast,
   Spinner,
 } from '@chakra-ui/react';
-import { SearchIcon } from '@chakra-ui/icons';
+import { SearchIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import AlumniLayout from '../../components/AlumniLayout';
 import { PlacementService } from '../../services/placement.service';
 
 const AlumniDirectory = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [alumni, setAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,13 +67,26 @@ const AlumniDirectory = () => {
       ) : (
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
           {filteredAlumni.map((a) => (
-            <Card key={a.id} variant="outline" boxShadow="sm" _hover={{ boxShadow: 'md' }}>
-              <CardBody>
-                <Text fontWeight="bold" fontSize="lg" color="#166534">{a.full_name || '—'}</Text>
-                {a.student_id && <Text fontSize="sm" color="gray.500">USN: {a.student_id}</Text>}
-                {a.graduation_year && <Text fontSize="sm" color="gray.500">Batch: {a.graduation_year}</Text>}
-                {a.current_company && <Text fontSize="sm" mt={2} color="gray.700">{a.current_company}</Text>}
-                {a.current_designation && <Text fontSize="sm" color="gray.600">{a.current_designation}</Text>}
+            <Card
+              key={a.id}
+              variant="outline"
+              boxShadow="sm"
+              cursor="pointer"
+              _hover={{ boxShadow: 'md', borderColor: '#d4a960', transform: 'translateY(-2px)' }}
+              transition="all 0.2s"
+              onClick={() => navigate(`/placement/alumni-directory/${encodeURIComponent(String(a.student_id || a.id))}`)}
+            >
+              <CardBody display="flex" flexDir="column" alignItems="flex-start" justifyContent="space-between">
+                <Box flex="1" w="full">
+                  <Text fontWeight="bold" fontSize="lg" color="#166534">{a.full_name || '—'}</Text>
+                  {a.student_id && <Text fontSize="sm" color="gray.500">USN: {a.student_id}</Text>}
+                  {a.graduation_year && <Text fontSize="sm" color="gray.500">Batch: {a.graduation_year}</Text>}
+                  {a.current_company && <Text fontSize="sm" mt={2} color="gray.700">{a.current_company}</Text>}
+                  {a.current_designation && <Text fontSize="sm" color="gray.600">{a.current_designation}</Text>}
+                </Box>
+                <Flex mt={3} align="center" color="#d4a960" fontWeight="600" fontSize="sm">
+                  View details <ChevronRightIcon ml={1} />
+                </Flex>
               </CardBody>
             </Card>
           ))}
