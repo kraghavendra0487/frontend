@@ -91,6 +91,38 @@ const BulkEmail = () => {
     return programs.filter((p) => p.school_id === sid);
   }, [programs, schoolId]);
 
+  const programIdsForSchool = useMemo(() => new Set(programsForSchool.map((p) => p.id)), [programsForSchool]);
+
+  // Major belongs to program: filter by selected program, or by programs under selected school
+  const majorsForSelection = useMemo(() => {
+    if (programId) {
+      const pid = parseInt(programId, 10);
+      if (Number.isNaN(pid)) return majors;
+      return majors.filter((m) => m.program_id === pid);
+    }
+    if (schoolId && programIdsForSchool.size > 0) return majors.filter((m) => programIdsForSchool.has(m.program_id));
+    return majors;
+  }, [majors, programId, programIdsForSchool, schoolId]);
+
+  // Minor belongs to school: filter by selected school
+  const minorsForSelection = useMemo(() => {
+    if (!schoolId) return minors;
+    const sid = parseInt(schoolId, 10);
+    if (Number.isNaN(sid)) return minors;
+    return minors.filter((m) => m.school_id === sid);
+  }, [minors, schoolId]);
+
+  // Specialization belongs to program: filter by selected program, or by programs under selected school
+  const specializationsForSelection = useMemo(() => {
+    if (programId) {
+      const pid = parseInt(programId, 10);
+      if (Number.isNaN(pid)) return specializations;
+      return specializations.filter((s) => s.program_id === pid);
+    }
+    if (schoolId && programIdsForSchool.size > 0) return specializations.filter((s) => programIdsForSchool.has(s.program_id));
+    return specializations;
+  }, [specializations, programId, programIdsForSchool, schoolId]);
+
   const loadMetadata = useCallback(async () => {
     try {
       const [schoolsData, programsData, majorsData, minorsData, specsData] = await Promise.all([
@@ -235,10 +267,23 @@ const BulkEmail = () => {
               onChange={(e) => {
                 const newSchoolId = e.target.value;
                 setSchoolId(newSchoolId);
-                if (newSchoolId && programId) {
-                  const sid = parseInt(newSchoolId, 10);
-                  const belongs = programs.some((p) => p.id === parseInt(programId, 10) && p.school_id === sid);
+                const sid = newSchoolId ? parseInt(newSchoolId, 10) : null;
+                const newProgramIds = sid && !Number.isNaN(sid) ? new Set(programs.filter((p) => p.school_id === sid).map((p) => p.id)) : new Set();
+                if (programId) {
+                  const belongs = !sid || programs.some((p) => p.id === parseInt(programId, 10) && p.school_id === sid);
                   if (!belongs) setProgramId('');
+                }
+                if (minorId && sid && !Number.isNaN(sid)) {
+                  const minorBelongs = minors.some((m) => m.id === parseInt(minorId, 10) && m.school_id === sid);
+                  if (!minorBelongs) setMinorId('');
+                }
+                if (majorId && newProgramIds.size > 0) {
+                  const major = majors.find((m) => m.id === parseInt(majorId, 10));
+                  if (major && !newProgramIds.has(major.program_id)) setMajorId('');
+                }
+                if (specializationId && newProgramIds.size > 0) {
+                  const spec = specializations.find((s) => s.id === parseInt(specializationId, 10));
+                  if (spec && !newProgramIds.has(spec.program_id)) setSpecializationId('');
                 }
               }}
               bg="white"
@@ -251,7 +296,26 @@ const BulkEmail = () => {
             </Select>
           </WrapItem>
           <WrapItem>
-            <Select placeholder="Program" value={programId} onChange={(e) => setProgramId(e.target.value)} bg="white" w={{ base: 'full', sm: '160px' }} size="sm">
+            <Select
+              placeholder="Program"
+              value={programId}
+              onChange={(e) => {
+                const newProgramId = e.target.value;
+                setProgramId(newProgramId);
+                const pid = newProgramId ? parseInt(newProgramId, 10) : null;
+                if (majorId && pid && !Number.isNaN(pid)) {
+                  const major = majors.find((m) => m.id === parseInt(majorId, 10));
+                  if (major && major.program_id !== pid) setMajorId('');
+                }
+                if (specializationId && pid && !Number.isNaN(pid)) {
+                  const spec = specializations.find((s) => s.id === parseInt(specializationId, 10));
+                  if (spec && spec.program_id !== pid) setSpecializationId('');
+                }
+              }}
+              bg="white"
+              w={{ base: 'full', sm: '160px' }}
+              size="sm"
+            >
               {programsForSchool.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -259,21 +323,21 @@ const BulkEmail = () => {
           </WrapItem>
           <WrapItem>
             <Select placeholder="Major" value={majorId} onChange={(e) => setMajorId(e.target.value)} bg="white" w={{ base: 'full', sm: '140px' }} size="sm">
-              {majors.map((m) => (
+              {majorsForSelection.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </Select>
           </WrapItem>
           <WrapItem>
             <Select placeholder="Minor" value={minorId} onChange={(e) => setMinorId(e.target.value)} bg="white" w={{ base: 'full', sm: '140px' }} size="sm">
-              {minors.map((m) => (
+              {minorsForSelection.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </Select>
           </WrapItem>
           <WrapItem>
             <Select placeholder="Specialization" value={specializationId} onChange={(e) => setSpecializationId(e.target.value)} bg="white" w={{ base: 'full', sm: '140px' }} size="sm">
-              {specializations.map((s) => (
+              {specializationsForSelection.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </Select>
