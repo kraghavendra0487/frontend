@@ -381,11 +381,11 @@ export const StudentDashboard = ({ viewData = null, basePath = null, studentName
         <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 4, xl: 8 }} gap={{ base: 3, md: 4 }} mb={6} w="100%" minChildWidth={{ base: "120px", sm: "140px" }}>
           <StatCard icon={<FaBriefcase />} title="Applications" value={totalApplications} color={ACCENT} to={isViewMode ? undefined : "/student/placements/feed"} />
           <StatCard icon={<FaBuilding />} title="Companies applied" value={companiesApplied} color="#4299e1" to={isViewMode ? undefined : "/student/placements/feed"} />
-          <StatCard icon={<FaChartBar />} title="OA passed" value={oaPassed} color="#48bb78" />
-          <StatCard icon={<FaChartBar />} title="GD passed" value={gdPassed} color="#38b2ac" />
-          <StatCard icon={<FaChartBar />} title="Technical passed" value={technicalPassed} color="#ed8936" />
-          <StatCard icon={<FaChartBar />} title="Interview passed" value={interviewPassed} color="#9f7aea" />
-          <StatCard icon={<FaChartBar />} title="HR passed" value={hrPassed} color="#d53f8c" />
+          <StatCard icon={<FaChartBar />} title="OA passed" value={oaPassed} color="#48bb78" to={isViewMode ? undefined : "/student/placements/feed"} />
+          <StatCard icon={<FaChartBar />} title="GD passed" value={gdPassed} color="#38b2ac" to={isViewMode ? undefined : "/student/placements/feed"} />
+          <StatCard icon={<FaChartBar />} title="Technical passed" value={technicalPassed} color="#ed8936" to={isViewMode ? undefined : "/student/placements/feed"} />
+          <StatCard icon={<FaChartBar />} title="Interview passed" value={interviewPassed} color="#9f7aea" to={isViewMode ? undefined : "/student/placements/feed"} />
+          <StatCard icon={<FaChartBar />} title="HR passed" value={hrPassed} color="#d53f8c" to={isViewMode ? undefined : "/student/placements/feed"} />
           <StatCard icon={<FaBriefcase />} title="Offers" value={jobOffers.length} color={ACCENT_LIGHT} to={isViewMode ? undefined : "/student/placements/offers"} />
         </SimpleGrid>
 

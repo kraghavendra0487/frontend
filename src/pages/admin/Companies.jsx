@@ -66,7 +66,7 @@ const Companies = () => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSchool, setSelectedSchool] = useState('');
+  const [selectedSchoolId, setSelectedSchoolId] = useState(null); // null = All Schools
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addStep, setAddStep] = useState(1);
   const [createdCompanyId, setCreatedCompanyId] = useState(null);
@@ -87,22 +87,12 @@ const Companies = () => {
   const companyTypeInputRef = useRef(null);
   const companyTypeListRef = useRef(null);
 
-  const schoolStats = [
-    { name: 'SoB', count: 222 },
-    { name: 'SoCSE - BTech', count: 198 },
-    { name: 'SoB - PG', count: 167 },
-    { name: 'SoD - UG', count: 113 },
-    { name: 'SoCSE - BSc', count: 106 },
-    { name: 'SoB (Hons)', count: 62 },
-    { name: 'SoLAS', count: 37 },
-    { name: 'SoD - PG', count: 33 },
-    { name: 'SoE', count: 22 },
-    { name: 'SoFMA', count: 6 },
-  ];
+  const [schoolsList, setSchoolsList] = useState([]); // [{ id, name, count }] from API
+  const [totalCompanies, setTotalCompanies] = useState(0); // total when no filter (for All Schools card)
 
   useEffect(() => {
     fetchCompanies();
-  }, []);
+  }, [selectedSchoolId]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -116,10 +106,14 @@ const Companies = () => {
     setLoading(true);
     setFetchError(null);
     try {
-      const data = await PlacementService.getAllCompanies();
-      setCompanies(Array.isArray(data) ? data : []);
+      const { companies: companyList, schoolsList: schools, totalCompanies: total } = await PlacementService.getCompaniesWithSchools(selectedSchoolId ?? undefined);
+      setCompanies(Array.isArray(companyList) ? companyList : []);
+      setSchoolsList(Array.isArray(schools) ? schools : []);
+      setTotalCompanies(total ?? companyList?.length ?? 0);
     } catch (err) {
       setCompanies([]);
+      setSchoolsList([]);
+      setTotalCompanies(0);
       const msg = err?.message || '';
       if (msg.includes('403') || msg.includes('Forbidden') || msg.includes('Session expired')) {
         setFetchError('Session expired. Please log out and log in again.');
@@ -303,27 +297,43 @@ const Companies = () => {
           <Box mb={8}>
             <Flex justify="space-between" align="center" mb={3}>
               <Text fontWeight="bold" color="gray.700" fontSize="sm">Filter by School</Text>
-              {selectedSchool && (
-                <Button size="xs" onClick={() => setSelectedSchool('')}>Clear</Button>
+              {selectedSchoolId != null && (
+                <Button size="xs" onClick={() => setSelectedSchoolId(null)}>Clear</Button>
               )}
             </Flex>
             <Flex gap={4} wrap="wrap">
-              {schoolStats.map((stat) => (
+              <Card
+                bg="white"
+                boxShadow="sm"
+                borderRadius="xl"
+                cursor="pointer"
+                border={selectedSchoolId == null ? '2px solid #d1a85d' : '1px solid transparent'}
+                onClick={() => setSelectedSchoolId(null)}
+                minW="100px"
+                _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
+                transition="all 0.2s"
+              >
+                <CardBody p={3} textAlign="center">
+                  <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1}>All Schools</Text>
+                  <Text fontSize="lg" fontWeight="bold" color="blue.600">{selectedSchoolId == null ? companies.length : totalCompanies}</Text>
+                </CardBody>
+              </Card>
+              {schoolsList.map((school) => (
                 <Card
-                  key={stat.name}
+                  key={school.id}
                   bg="white"
                   boxShadow="sm"
                   borderRadius="xl"
                   cursor="pointer"
-                  border={selectedSchool === stat.name ? '2px solid #d1a85d' : '1px solid transparent'}
-                  onClick={() => setSelectedSchool(selectedSchool === stat.name ? '' : stat.name)}
+                  border={selectedSchoolId === school.id ? '2px solid #d1a85d' : '1px solid transparent'}
+                  onClick={() => setSelectedSchoolId(selectedSchoolId === school.id ? null : school.id)}
                   minW="100px"
                   _hover={{ boxShadow: 'md', transform: 'translateY(-2px)' }}
                   transition="all 0.2s"
                 >
                   <CardBody p={3} textAlign="center">
-                    <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1}>{stat.name}</Text>
-                    <Text fontSize="lg" fontWeight="bold" color="blue.600">{stat.count}</Text>
+                    <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1} noOfLines={2}>{school.name}</Text>
+                    <Text fontSize="lg" fontWeight="bold" color="blue.600">{school.count}</Text>
                   </CardBody>
                 </Card>
               ))}

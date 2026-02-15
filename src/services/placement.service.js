@@ -308,14 +308,41 @@ export const PlacementService = {
   },
 
   /**
-   * Get all participating companies
+   * Get all participating companies.
+   * @param {Object} opts - Optional: { schoolId } to filter by school.
+   * @returns {Promise<Array>} Companies array (backward compat for callers expecting array).
+   * Use getCompaniesWithSchools() for Companies page to get { companies, schoolsList }.
    */
-  getAllCompanies: async () => {
+  getAllCompanies: async (opts) => {
     try {
-      const response = await apiFetch('/placement/companies');
-      return response.data ?? [];
+      const schoolId = opts?.schoolId ?? opts?.school_id;
+      const params = schoolId != null ? `?school_id=${schoolId}` : '';
+      const response = await apiFetch('/placement/companies' + params);
+      const data = response.data ?? {};
+      // Backward compat: return companies array for existing callers
+      return (data.companies && Array.isArray(data.companies)) ? data.companies : (Array.isArray(data) ? data : []);
     } catch (_error) {
       return [];
+    }
+  },
+
+  /**
+   * Get companies with schools list for filter UI. Uses process table: companies -> drives -> process -> students (school_id).
+   * @param {number|null} schoolId - Optional school ID to filter companies.
+   * @returns {Promise<{ companies: Array, schoolsList: Array }>}
+   */
+  getCompaniesWithSchools: async (schoolId = null) => {
+    try {
+      const params = schoolId != null ? `?school_id=${schoolId}` : '';
+      const response = await apiFetch('/placement/companies' + params);
+      const data = response.data ?? {};
+      return {
+        companies: Array.isArray(data.companies) ? data.companies : [],
+        schoolsList: Array.isArray(data.schoolsList) ? data.schoolsList : [],
+        totalCompanies: data.totalCompanies ?? data.companies?.length ?? 0,
+      };
+    } catch (_error) {
+      return { companies: [], schoolsList: [], totalCompanies: 0 };
     }
   },
 
@@ -523,7 +550,7 @@ export const PlacementService = {
     }
     const formData = new FormData();
     formData.append('file', file, file.name || 'profile.jpg');
-    formData.append('usn', `alumni_${alumniId}`);
+    formData.append('alumni_id', String(alumniId));
     formData.append('folder', 'profile_image');
 
     const token = localStorage.getItem('token');

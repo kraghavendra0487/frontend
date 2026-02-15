@@ -1,32 +1,37 @@
 /**
  * Utility function to get the correct file URL
- * Handles both relative paths and full URLs
+ * - Supabase PUBLIC buckets (projects, system-assets): return URL as-is, direct access
+ * - Supabase PRIVATE buckets: use backend proxy for signed URL
+ * - Legacy /uploads: backend static files
  */
+const PRIVATE_BUCKETS = ['student-assets', 'alumni-assets', 'company-assets', 'admin-assets'];
+
 export const getFileUrl = (filePath) => {
   if (!filePath) return null;
-  
-  // If it's already a full URL (http/https), return as is
+
+  const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_BASE_URL = rawUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
+  const API_URL = `${API_BASE_URL}/api`;
+
+  // Full URL (http/https)
   if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+    // Supabase storage: public buckets = direct URL, private = signed URL proxy
+    if (filePath.includes('supabase.co/storage')) {
+      const isPrivate = PRIVATE_BUCKETS.some((b) => filePath.includes(`/${b}/`));
+      if (isPrivate) {
+        return `${API_URL}/upload/asset?url=${encodeURIComponent(filePath)}`;
+      }
+      return filePath; // public bucket - direct access
+    }
     return filePath;
   }
-  
-  // Get backend base URL
-  const rawUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  let API_BASE_URL = rawUrl.replace('/api', ''); // Remove /api to get base URL
-  
-  // Ensure no trailing slash
-  API_BASE_URL = API_BASE_URL.replace(/\/$/, '');
-  
-  // If it starts with /uploads, it's a backend path - prepend backend URL
+
+  // Legacy /uploads path - backend static files
   if (filePath.startsWith('/uploads/')) {
     return `${API_BASE_URL}${filePath}`;
   }
-  
-  // If it's a relative path without /uploads, add it
   if (!filePath.startsWith('/')) {
     return `${API_BASE_URL}/uploads/${filePath}`;
   }
-  
-  // If it starts with / but not /uploads, assume it's a backend path
   return `${API_BASE_URL}${filePath}`;
 };
